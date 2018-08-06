@@ -64,12 +64,12 @@ const (
 	KeyDelete
 	KeyHome
 	KeyEnd
-	KeyPgup
-	KeyPgdn
-	KeyArrowUp
-	KeyArrowDown
-	KeyArrowLeft
-	KeyArrowRight
+	KeyPageUp
+	KeyPageDown
+	KeyUp
+	KeyDown
+	KeyLeft
+	KeyRight
 
 	maxKeys
 )
