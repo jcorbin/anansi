@@ -38,8 +38,6 @@ type Curse func(Cursor, []byte) ([]byte, Cursor)
 
 // Init ialize Output state; TODO would be great to eliminate this method.
 func (out *Output) Init() {
-	out.tcur = StartCursor
-	out.bcur = StartCursor
 	out.tmp = make([]byte, 64)
 	out.writeObserver = flushWhenFull{}
 }
