@@ -2,7 +2,6 @@ package terminfo
 
 import (
 	"encoding/hex"
-	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -161,5 +160,5 @@ func Load(term string) (*Terminfo, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("unable to find terminfo for TERM=%q in any of %q", term, paths)
+	return GetBuiltin(term)
 }

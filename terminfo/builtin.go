@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-func getBuiltin(term string) (*Terminfo, error) {
+// GetBuiltin returns a named builtin Terminfo.
+func GetBuiltin(term string) (*Terminfo, error) {
 	if term == "" {
 		if defaultTerm == "" {
 			return nil, errors.New("no term name given, and no default defined")
