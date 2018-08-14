@@ -102,3 +102,34 @@ func (id Escape) String() string {
 		return fmt.Sprintf("%U", rune(id))
 	}
 }
+
+// IsCharacterSetControl returns true if the escape identifier is a character
+// control rune, or an character set control escape sequence. Such controls can
+// be ignored in a modern UTF-8 terminal.
+func (id Escape) IsCharacterSetControl() bool {
+	switch id {
+	case
+		0x000E, // SO     Shift Out, switch to G1 (other half of character set)
+		0x000F, // SI     Shift In, switch to G0 (normal half of character set)
+		0x008E, // SS2    Single Shift to G2
+		0x008F, // SS3    Single Shift to G3 (VT100 uses this for sending PF keys)
+		0xEF28, // ESC+(  SCS - Select G0 character set (choice of 63 standard, 16 private)
+		0xEF29, // ESC+)  SCS - Select G1 character set (choice of 63 standard, 16 private)
+		0xEF2A, // ESC+*  SCS - Select G2 character set
+		0xEF2B, // ESC++  SCS - Select G3 character set
+		0xEF2C, // ESC+,  SCS - Select G0 character set (additional 63+16 sets)
+		0xEF2D, // ESC+-  SCS - Select G1 character set (additional 63+16 sets)
+		0xEF2E, // ESC+.  SCS - Select G2 character set
+		0xEF2F, // ESC+/  SCS - Select G3 character set
+		0xEF6B, // ESC+k  NAPLPS lock-shift G1 to GR
+		0xEF6C, // ESC+l  NAPLPS lock-shift G2 to GR
+		0xEF6D, // ESC+m  NAPLPS lock-shift G3 to GR
+		0xEF6E, // ESC+n  LS2 - Shift G2 to GL (extension of SI) VT240,NAPLPS
+		0xEF6F, // ESC+o  LS3 - Shift G3 to GL (extension of SO) VT240,NAPLPS
+		0xEF7C, // ESC+|  LS3R - VT240 lock-shift G3 to GR
+		0xEF7D, // ESC+}  LS2R - VT240 lock-shift G2 to GR
+		0xEF7E: // ESC+~  LS1R - VT240 lock-shift G1 to GR
+		return true
+	}
+	return false
+}
