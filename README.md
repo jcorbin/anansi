@@ -29,7 +29,6 @@ useful:
 ## TODO
 
 - unwritten:
-  - more contextual links
   - a termios layer
   - an ANSI layer
   - an input buffer
@@ -43,3 +42,22 @@ useful:
 - terminfo layer:
   - automated codegen (for builtins)
   - full load rather than the termbox-inherited cherry picking
+
+## Resources
+
+- [xterm control sequences](http://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
+- [vt100.net](https://www.vt100.net)
+  - especially its [dec ansi parser](https://www.vt100.net/emu/dec_ansi_parser) state diagram
+- https://www.dabsoft.ch/dicom/3/C.12.1.1.2/
+- [UCS history][ucs] and the [unicode BMP][unicode_bmp] of course
+- ansicode.txt [source1](https://github.com/tmux/tmux/blob/master/tools/ansicode.txt) [source2](http://www.inwap.com/pdp10/ansicode.txt)
+- various related Go libraries like:
+  - the ill-fated [x/term](https://github.com/golang/go/issues/13104) package
+  - [termbox](https://github.com/nsf/termbox-go)
+  - [tcell](https://github.com/gdamore/tcell)
+  - [cops](https://github.com/kriskowal/cops)
+  - [go-ansiterm](https://github.com/Azure/go-ansiterm)
+  - [terminfo](https://github.com/xo/terminfo)
+
+[ucs]: https://en.wikipedia.org/wiki/Universal_Coded_Character_Set
+[unicode_bmp]: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
