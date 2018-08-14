@@ -48,9 +48,11 @@ useful:
 - [xterm control sequences](http://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
 - [vt100.net](https://www.vt100.net)
   - especially its [dec ansi parser](https://www.vt100.net/emu/dec_ansi_parser) state diagram
-- https://www.dabsoft.ch/dicom/3/C.12.1.1.2/
 - [UCS history][ucs] and the [unicode BMP][unicode_bmp] of course
 - ansicode.txt [source1](https://github.com/tmux/tmux/blob/master/tools/ansicode.txt) [source2](http://www.inwap.com/pdp10/ansicode.txt)
+- more history collation:
+  - https://www.cl.cam.ac.uk/~mgk25/unicode.html
+  - https://www.dabsoft.ch/dicom/3/C.12.1.1.2/
 - various related Go libraries like:
   - the ill-fated [x/term](https://github.com/golang/go/issues/13104) package
   - [termbox](https://github.com/nsf/termbox-go)
