@@ -93,8 +93,8 @@ func (at *Attr) modifyTermios(attr syscall.Termios) syscall.Termios {
 
 // Enter applies termios attributes, retaining the file handle so that all
 // future calls to Set* now immediately.
-func (at *Attr) Enter(f *os.File) (err error) {
-	at.f = f
+func (at *Attr) Enter(term *Term) (err error) {
+	at.f = term.File
 	if at.orig, err = at.getAttr(); err == nil {
 		at.cur = at.modifyTermios(at.orig)
 		err = at.setAttr(at.cur)
@@ -105,8 +105,8 @@ func (at *Attr) Enter(f *os.File) (err error) {
 // Exit restores termios attributes only if the given file is the retained one,
 // clearing the retained file pointer to transition out of immediate
 // application mode.
-func (at *Attr) Exit(f *os.File) error {
-	if at.f == f {
+func (at *Attr) Exit(term *Term) error {
+	if at.f == term.File {
 		err := at.setAttr(at.orig)
 		at.f = nil
 		return err
