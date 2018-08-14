@@ -159,6 +159,9 @@ useful:
   pass on all commits
 - the [dev branch][dev] contains the sum of all hopes/fears, tests
   may not pass
+- the [import branch](../../tree/import) contains prior code inherited from
+  [execs reboot][import] that's in the process of being
+  reprised through the dev branch
 
 ## Resources
 
@@ -230,3 +233,4 @@ useful:
 [master]: ../../tree/master
 [rc]: ../../tree/rc
 [dev]: ../../tree/dev
+[import]: ../../../execs/tree/reboot
