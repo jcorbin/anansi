@@ -28,15 +28,18 @@ useful:
 
 ## TODO
 
-- more contextual links
-- a terminfo layer
-- a termios layer
-- an ANSI layer
-- an input buffer
-- an output buffer
-- a signal processing layer
-- a cursor state piece (e.g. to support immediate mode API)
-- a screen grid box-of-state (e.g. to support things like back/front buffer
-  diffing and other tricks)
-- maybe event synthesis from signals and input
-- maybe a high level client api that gets events and an output context
+- unwritten:
+  - more contextual links
+  - a termios layer
+  - an ANSI layer
+  - an input buffer
+  - an output buffer
+  - a signal processing layer
+  - a cursor state piece (e.g. to support immediate mode API)
+  - a screen grid box-of-state (e.g. to support things like back/front buffer
+    diffing and other tricks)
+  - maybe event synthesis from signals and input
+  - maybe a high level client api that gets events and an output context
+- terminfo layer:
+  - automated codegen (for builtins)
+  - full load rather than the termbox-inherited cherry picking
