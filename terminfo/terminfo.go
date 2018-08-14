@@ -162,3 +162,55 @@ func Load(term string) (*Terminfo, error) {
 	}
 	return GetBuiltin(term)
 }
+
+// FuncMap builds and returns a string-string map of the control sequence
+// functions defined for callers that are more interested in flexibility than
+// performance.
+func (info Terminfo) FuncMap() map[string]string {
+	r := make(map[string]string, maxFuncs)
+	r["EnterCA"] = info.Funcs[FuncEnterCA]
+	r["ExitCA"] = info.Funcs[FuncExitCA]
+	r["ShowCursor"] = info.Funcs[FuncShowCursor]
+	r["HideCursor"] = info.Funcs[FuncHideCursor]
+	r["ClearScreen"] = info.Funcs[FuncClearScreen]
+	r["SGR0"] = info.Funcs[FuncSGR0]
+	r["Underline"] = info.Funcs[FuncUnderline]
+	r["Bold"] = info.Funcs[FuncBold]
+	r["Blink"] = info.Funcs[FuncBlink]
+	r["Reverse"] = info.Funcs[FuncReverse]
+	r["EnterKeypad"] = info.Funcs[FuncEnterKeypad]
+	r["ExitKeypad"] = info.Funcs[FuncExitKeypad]
+	r["EnterMouse"] = info.Funcs[FuncEnterMouse]
+	r["ExitMouse"] = info.Funcs[FuncExitMouse]
+	return r
+}
+
+// KeyMap builds and returns a string-string map of the key control sequences
+// defined for callers that are more interested in flexibility than
+// performance.
+func (info Terminfo) KeyMap() map[string]string {
+	r := make(map[string]string, maxKeys)
+	r["F1"] = info.Keys[KeyF1]
+	r["F2"] = info.Keys[KeyF2]
+	r["F3"] = info.Keys[KeyF3]
+	r["F4"] = info.Keys[KeyF4]
+	r["F5"] = info.Keys[KeyF5]
+	r["F6"] = info.Keys[KeyF6]
+	r["F7"] = info.Keys[KeyF7]
+	r["F8"] = info.Keys[KeyF8]
+	r["F9"] = info.Keys[KeyF9]
+	r["F10"] = info.Keys[KeyF10]
+	r["F11"] = info.Keys[KeyF11]
+	r["F12"] = info.Keys[KeyF12]
+	r["Insert"] = info.Keys[KeyInsert]
+	r["Delete"] = info.Keys[KeyDelete]
+	r["Home"] = info.Keys[KeyHome]
+	r["End"] = info.Keys[KeyEnd]
+	r["PageUp"] = info.Keys[KeyPageUp]
+	r["PageDown"] = info.Keys[KeyPageDown]
+	r["Up"] = info.Keys[KeyUp]
+	r["Down"] = info.Keys[KeyDown]
+	r["Left"] = info.Keys[KeyLeft]
+	r["Right"] = info.Keys[KeyRight]
+	return r
+}
