@@ -13,6 +13,19 @@
 - Support implementing terminal emulators, e.g. to build a multiplexer or debug
   wrapper.
 
+## Status
+
+**Prototyping/Experimental**: AnANSI is currently in initial exploration mode,
+using a triple branch (`master`, `rc`, and `dev`) pattern that I've found
+useful:
+- the [master branch](../../tree/master) has relatively stable code but is
+  still pre `v1.0.0`, and so is not *actually* stable; tests must pass on all
+  commits
+- the [rc branch](../../tree/rc) contains code that is stable-ish: tests should
+  pass on all commits
+- the [dev branch](../../tree/dev) contains the sum of all hopes/fears, tests
+  may not pass
+
 ## TODO
 
 - more contextual links
