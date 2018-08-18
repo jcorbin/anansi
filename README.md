@@ -66,6 +66,10 @@ Core `anansi/ansi` package:
 - terminfo layer:
   - automated codegen (for builtins)
   - full load rather than the termbox-inherited cherry picking
+- terminal interrogation:
+  - where's the cursor?
+  - CSI DA
+  - CSI DSR
 
 ### Branches
 
