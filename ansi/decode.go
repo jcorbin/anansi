@@ -209,9 +209,10 @@ func decodeString(p []byte) (a []byte, n int) {
 }
 
 var (
-	errRange      = errors.New("value out of range")
-	errSyntax     = errors.New("invalid syntax")
-	errSGRInvalid = errors.New("invalid sgr code")
+	errRange       = errors.New("value out of range")
+	errSyntax      = errors.New("invalid syntax")
+	errSGRInvalid  = errors.New("invalid sgr code")
+	errModeInvalid = errors.New("invalid ansi mode")
 )
 
 // DecodeNumber decodes a signed base-10 encoded number from the beginning of
@@ -482,4 +483,20 @@ func decodeUint8(a []byte) (r uint8, n int, _ error) {
 		}
 	}
 	return uint8(v), n, nil
+}
+
+// DecodeMode decodes a single mode parameter from escape argument bytes.
+func DecodeMode(private bool, a []byte) (mode Mode, n int, _ error) {
+	if len(a) == 0 {
+		return mode, n, errModeInvalid
+	}
+	r, m, err := DecodeNumber(a[n:])
+	n += m
+	if err == nil {
+		mode = Mode(r)
+		if private {
+			mode |= ModePrivate
+		}
+	}
+	return mode, n, err
 }

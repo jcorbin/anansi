@@ -204,6 +204,7 @@ var (
 	TBC = CSI('g')
 
 	/*SM Set Standard Mode (. means permanently set on VT100)
+	  TODO merge with constants defined in modes.go
 	  [0h = Error, this command is ignored
 	  [1h = GATM - Guarded Area Transmit Mode, send all (VT132)
 	  [2h = KAM - Keyboard Action Mode, disable keyboard input
@@ -227,6 +228,7 @@ var (
 	SM = CSI('h')
 
 	/*SMprivate Set Private Mode
+	  TODO merge with constants defined in modes.go
 	  [?1h = DECCKM - Cursor Keys Mode, send ESC O A for cursor up
 	  [?2h = DECANM - ANSI Mode, use ESC < to switch VT52 to ANSI
 	  [?3h = DECCOLM - COLumn mode, 132 characters per line
@@ -274,6 +276,7 @@ var (
 	MC = CSI('i')
 
 	/*RM Reset Mode (. means permanently reset on VT100)
+	  TODO merge with constants defined in modes.go
 	  [1l = GATM - Transmit only unprotected characters (VT132)
 	  [2l = KAM - Enable input from keyboard
 	  [3l = CRM - Control characters are not displayable characters
