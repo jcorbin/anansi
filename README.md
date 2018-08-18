@@ -34,6 +34,7 @@ What works:
 
 - first class support for ansi SGR sequences ([dev][dev])
 - ansi mode definitions ([dev][dev])
+- special decoding for CSI M, whose arg follows AFTER
 - ansi mouse decoding ([dev][dev])
 - buffered ansi processing with cursor state tracking ([dev][dev])
 - input buffer ([dev][dev])
