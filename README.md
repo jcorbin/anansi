@@ -63,11 +63,11 @@ useful:
 
 ## Resources
 
-- [xterm control sequences](http://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
-- [vt100.net](https://www.vt100.net)
-  - especially its [dec ansi parser](https://www.vt100.net/emu/dec_ansi_parser) state diagram
+- [xterm control sequences][xterm_ctl]
+- [vt100.net][vt100],
+  - especially its [dec ansi parser][ansi_parser_sm] state diagram
 - [UCS history][ucs] and the [unicode BMP][unicode_bmp] of course
-- ansicode.txt [source1](https://github.com/tmux/tmux/blob/master/tools/ansicode.txt) [source2](http://www.inwap.com/pdp10/ansicode.txt)
+- ansicode.txt [source1][tmux_ansicode] [source2][pdp10_ansicode]
 - more history collation:
   - https://www.cl.cam.ac.uk/~mgk25/unicode.html
   - https://www.dabsoft.ch/dicom/3/C.12.1.1.2/
@@ -79,11 +79,15 @@ useful:
   - [go-ansiterm](https://github.com/Azure/go-ansiterm)
   - [terminfo](https://github.com/xo/terminfo)
 
-[decode_rune]: https://golang.org/pkg/unicode/utf8/#DecodeRune
+[ansi_parser_sm]: https://www.vt100.net/emu/dec_ansi_parser
 [decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
-
+[decode_rune]: https://golang.org/pkg/unicode/utf8/#DecodeRune
+[pdp10_ansicode]: http://www.inwap.com/pdp10/ansicode.txt
+[tmux_ansicode]: https://github.com/tmux/tmux/blob/master/tools/ansicode.txt
 [ucs]: https://en.wikipedia.org/wiki/Universal_Coded_Character_Set
 [unicode_bmp]: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
+[vt100]: https://www.vt100.net
+[xterm_ctl]: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 
 [master]: ../../tree/master
 [rc]: ../../tree/rc
