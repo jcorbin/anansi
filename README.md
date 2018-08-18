@@ -45,6 +45,7 @@ What works:
   diffing and other tricks)
 - maybe event synthesis from signals and input
 - maybe a high level client api that gets events and an output context
+- provide `DecodeEscapeInString(s string)` for completeness
 - terminfo layer:
   - automated codegen (for builtins)
   - full load rather than the termbox-inherited cherry picking
