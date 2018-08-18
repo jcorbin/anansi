@@ -6,7 +6,9 @@
 
 - Designed to be a loosely coupled set of principled layers, rather than (just)
   one unified convenient interface.
-- Be more Go-idiomatic / natural.
+- Be more Go-idiomatic / natural: e.g.  [ansi.DecodeEscape][decode_escape]
+  following [utf8.DecodeRune][decode_rune] convention, rather than heavier
+  weight event parsing/handling.
 - Supporting use cases other than fullscreen raw mode.
 - Allow applications to choose input modality, rather than lock-in to one
   paradigm like non-blocking/SIGIO.
@@ -16,32 +18,48 @@
 ## Status
 
 **Prototyping/Experimental**: AnANSI is currently in initial exploration mode,
-using a triple branch (`master`, `rc`, and `dev`) pattern that I've found
-useful:
-- the [master branch](../../tree/master) has relatively stable code but is
-  still pre `v1.0.0`, and so is not *actually* stable; tests must pass on all
-  commits
-- the [rc branch](../../tree/rc) contains code that is stable-ish: tests should
-  pass on all commits
-- the [dev branch](../../tree/dev) contains the sum of all hopes/fears, tests
-  may not pass
+and while things on master are reasonably stable, there's no guarantees yet.
+That said, there is a working demo command on the [dev][dev] branch.
 
-## TODO
+What works:
+- [ansi.DecodeEscape][decode_escape] provides escape sequence decoding
+  as similarly to [utf8.DecodeRune][decode_rune] as possible.
 
-- unwritten:
-  - a termios layer
-  - an ANSI layer
-  - an input buffer
-  - an output buffer
-  - a signal processing layer
-  - a cursor state piece (e.g. to support immediate mode API)
-  - a screen grid box-of-state (e.g. to support things like back/front buffer
-    diffing and other tricks)
-  - maybe event synthesis from signals and input
-  - maybe a high level client api that gets events and an output context
+### WIP
+
+- ansi escape/control sequence building ([rc][rc])
+- ansi function definitions ([dev][dev])
+- ansi mode definitions ([dev][dev])
+- ansi mouse decoding ([dev][dev])
+- terminal context management ([dev][dev])
+- termios manipulation ([dev][dev])
+- input buffer ([dev][dev])
+- output buffer ([dev][dev])
+- animation (tick) control loop ([dev][dev])
+
+### TODO
+
+- a signal processing layer
+- a cursor state piece (e.g. to support immediate mode API)
+- a screen grid box-of-state (e.g. to support things like back/front buffer
+  diffing and other tricks)
+- maybe event synthesis from signals and input
+- maybe a high level client api that gets events and an output context
 - terminfo layer:
   - automated codegen (for builtins)
   - full load rather than the termbox-inherited cherry picking
+
+### Branches
+
+AnANSI uses a triple branch (`master`, `rc`, and `dev`) pattern that I've found
+useful:
+- the [master branch][master] has relatively stable code but is
+  still pre `v1.0.0`, and so is not *actually* stable; tests must pass on all
+  commits
+- the [rc branch][rc] contains code that is stable-ish: tests should
+  pass on all commits
+- the [dev branch][dev] contains the sum of all hopes/fears, tests
+  may not pass
 
 ## Resources
 
@@ -61,5 +79,12 @@ useful:
   - [go-ansiterm](https://github.com/Azure/go-ansiterm)
   - [terminfo](https://github.com/xo/terminfo)
 
+[decode_rune]: https://golang.org/pkg/unicode/utf8/#DecodeRune
+[decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
+
 [ucs]: https://en.wikipedia.org/wiki/Universal_Coded_Character_Set
 [unicode_bmp]: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
+
+[master]: ../../tree/master
+[rc]: ../../tree/rc
+[dev]: ../../tree/dev
