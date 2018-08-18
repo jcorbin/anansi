@@ -68,6 +68,7 @@ useful:
   - especially its [dec ansi parser][ansi_parser_sm] state diagram
 - [UCS history][ucs] and the [unicode BMP][unicode_bmp] of course
 - ansicode.txt [source1][tmux_ansicode] [source2][pdp10_ansicode]
+- antirez did a great [raw mode teardown][kilo_rawmode] for kilo [kilo][kilo]
 - more history collation:
   - https://www.cl.cam.ac.uk/~mgk25/unicode.html
   - https://www.dabsoft.ch/dicom/3/C.12.1.1.2/
@@ -82,6 +83,8 @@ useful:
 [ansi_parser_sm]: https://www.vt100.net/emu/dec_ansi_parser
 [decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
 [decode_rune]: https://golang.org/pkg/unicode/utf8/#DecodeRune
+[kilo]: https://github.com/antirez/kilo
+[kilo_rawmode]: https://viewsourcecode.org/snaptoken/kilo/02.enteringRawMode.html
 [pdp10_ansicode]: http://www.inwap.com/pdp10/ansicode.txt
 [tmux_ansicode]: https://github.com/tmux/tmux/blob/master/tools/ansicode.txt
 [ucs]: https://en.wikipedia.org/wiki/Universal_Coded_Character_Set
