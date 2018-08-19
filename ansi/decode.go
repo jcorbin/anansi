@@ -1,6 +1,7 @@
 package ansi
 
 import (
+	"errors"
 	"fmt"
 	"unicode/utf8"
 )
@@ -205,4 +206,79 @@ func decodeString(p []byte) (a []byte, n int) {
 		n += m
 		r, m = decodeRune(p[n:])
 	}
+}
+
+var (
+	errRange  = errors.New("value out of range")
+	errSyntax = errors.New("invalid syntax")
+)
+
+// DecodeNumber decodes a signed base-10 encoded number from the beginning of
+// the given byte buffer. If the first byte is ';', it is skipped. Returns the
+// decode number and the number of bytes decoded, or a non-nil decode error
+// (either errRange or errSyntax).
+func DecodeNumber(p []byte) (r, n int, _ error) {
+	// a specialized copy of strconv.ParseInt.
+
+	// Empty string bad.
+	if len(p) == 0 {
+		return 0, 0, errSyntax
+	}
+
+	// Pick off leading sign.
+	neg := false
+	if p[0] == ';' {
+		p = p[1:]
+		n++
+		if len(p) == 0 {
+			return 0, 0, errSyntax
+		}
+	}
+
+	switch p[0] {
+	case '-':
+		neg = true
+		fallthrough
+	case '+':
+		p = p[1:]
+		n++
+		if len(p) == 0 {
+			return 0, 0, errSyntax
+		}
+	}
+
+	// Convert unsigned and check range.
+	const (
+		bitSize   = 32
+		maxUint64 = (1<<64 - 1)
+		cutoff    = maxUint64/10 + 1
+		maxVal    = uint64(1)<<uint(bitSize) - 1
+	)
+	var un uint64
+
+	for _, c := range p {
+		if c < '0' || '9' < c {
+			break
+		}
+		d := c - '0'
+		n++
+		if un < cutoff {
+			un *= 10
+			if un1 := un + uint64(d); !(un1 < un || un1 > maxVal) {
+				un = un1
+				continue
+			} // else un+v overflows
+		} // else un*10 overflows
+		if !neg && maxVal >= cutoff {
+			return int(cutoff - 1), n, errRange
+		}
+		if neg && maxVal > cutoff {
+			return -int(cutoff), n, errRange
+		}
+	}
+
+	if neg {
+		return -int(un), n, nil
+	}
+	return int(un), n, nil
 }

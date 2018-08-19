@@ -11,7 +11,7 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-func TestDecodeUTF8Escape(t *testing.T) {
+func TestDecodeEscape(t *testing.T) {
 	type anRead struct {
 		e ansi.Escape
 		a []byte
@@ -150,6 +150,52 @@ func TestDecodeUTF8Escape(t *testing.T) {
 				out = append(out, ev)
 			}
 			assert.Equal(t, tc.out, out)
+		})
+	}
+}
+
+func TestDecodeNumber(t *testing.T) {
+	for _, tc := range []struct {
+		in  string
+		out int
+		rem string
+	}{
+
+		{"1", 1, ""},
+		{"2", 2, ""},
+		{"10", 10, ""},
+		{"20", 20, ""},
+		{"13", 13, ""},
+		{"24", 24, ""},
+
+		{";1", 1, ""},
+		{";2", 2, ""},
+		{";10", 10, ""},
+		{";20", 20, ""},
+		{";13", 13, ""},
+		{";24", 24, ""},
+
+		{"-1", -1, ""},
+		{"-2", -2, ""},
+		{"-10", -10, ""},
+		{"-20", -20, ""},
+		{"-13", -13, ""},
+		{"-24", -24, ""},
+
+		{"1;42", 1, ";42"},
+		{"2;42", 2, ";42"},
+		{"10;42", 10, ";42"},
+		{"20;42", 20, ";42"},
+		{"13;42", 13, ";42"},
+		{"24;42", 24, ";42"},
+	} {
+		t.Run(tc.in, func(t *testing.T) {
+			p := []byte(tc.in)
+			v, n, err := ansi.DecodeNumber(p)
+			if assert.NoError(t, err, "unexpected decode error") {
+				assert.Equal(t, tc.out, v, "expected value")
+				assert.Equal(t, tc.rem, string(p[n:]), "expected remain")
+			}
 		})
 	}
 }
