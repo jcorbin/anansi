@@ -37,6 +37,12 @@ What works:
 - input buffer ([dev][dev])
 - output buffer ([dev][dev])
 - animation (tick) control loop ([dev][dev])
+- a 60fps [demo][demo] with things like:
+  - experimenting with the immediate mode user concept
+  - an input event processing queue
+  - a cursor state construct
+  - a diagnostic HUD that displays things like Go's log output, frame timing
+    data, and mouse state
 
 ### TODO
 
@@ -99,3 +105,4 @@ useful:
 [master]: ../../tree/master
 [rc]: ../../tree/rc
 [dev]: ../../tree/dev
+[demo]: ../../tree/dev/cmd/demo
