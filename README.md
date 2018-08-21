@@ -6,7 +6,7 @@
 
 - Designed to be a loosely coupled set of principled layers, rather than (just)
   one unified convenient interface.
-- Be more Go-idiomatic / natural: e.g.  [ansi.DecodeEscape][decode_escape]
+- Be more Go-idiomatic / natural: e.g.  [ansi.DecodeEscape][ansi_decode_escape]
   following [utf8.DecodeRune][decode_rune] convention, rather than heavier
   weight event parsing/handling.
 - Supporting use cases other than fullscreen raw mode.
@@ -22,17 +22,18 @@ and while things on master are reasonably stable, there's no guarantees yet.
 That said, there is a working demo command on the [dev][dev] branch.
 
 What works:
-- [ansi.DecodeEscape][decode_escape] provides escape sequence decoding
+- [ansi.DecodeEscape][ansi_decode_escape] provides escape sequence decoding
   as similarly to [utf8.DecodeRune][decode_rune] as possible.
+- [anansi.Attr][anansi_attr] for interacting with terminal io controls (termios)
+- [anansi.Context][anansi_context] for defining and combining pieces of
+  terminal state management
 
 ### WIP
 
 - ansi escape/control sequence building ([rc][rc])
-- ansi function definitions ([dev][dev])
+- ansi function definitions ([rc][rc])
 - ansi mode definitions ([dev][dev])
 - ansi mouse decoding ([dev][dev])
-- terminal context management ([dev][dev])
-- termios manipulation ([dev][dev])
 - input buffer ([dev][dev])
 - output buffer ([dev][dev])
 - animation (tick) control loop ([dev][dev])
@@ -81,8 +82,10 @@ useful:
   - [go-ansiterm](https://github.com/Azure/go-ansiterm)
   - [terminfo](https://github.com/xo/terminfo)
 
+[anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
+[anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
+[ansi_decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
 [ansi_parser_sm]: https://www.vt100.net/emu/dec_ansi_parser
-[decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
 [decode_rune]: https://golang.org/pkg/unicode/utf8/#DecodeRune
 [kilo]: https://github.com/antirez/kilo
 [kilo_rawmode]: https://viewsourcecode.org/snaptoken/kilo/02.enteringRawMode.html
