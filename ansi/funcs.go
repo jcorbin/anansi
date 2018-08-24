@@ -369,10 +369,6 @@ var (
 	*/
 	SGR = CSI('m')
 
-	// SGR0 resets graphs rendition (foreground, background, text and
-	// other character attributes) to default.
-	SGR0 = SGR.With('0')
-
 	/*DSR Device Status Report
 	  [0n = Terminal is ready, no malfunctions detected
 	  [1n = Terminal is busy, retry later

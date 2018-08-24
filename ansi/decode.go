@@ -209,8 +209,9 @@ func decodeString(p []byte) (a []byte, n int) {
 }
 
 var (
-	errRange  = errors.New("value out of range")
-	errSyntax = errors.New("invalid syntax")
+	errRange      = errors.New("value out of range")
+	errSyntax     = errors.New("invalid syntax")
+	errSGRInvalid = errors.New("invalid sgr code")
 )
 
 // DecodeNumber decodes a signed base-10 encoded number from the beginning of
@@ -281,4 +282,204 @@ func DecodeNumber(p []byte) (r, n int, _ error) {
 		return -int(un), n, nil
 	}
 	return int(un), n, nil
+}
+
+// DecodeSGR decodes an SGR attribute value from the given byte buffer; if
+// non-nil error is returned, then n indicates the index of the offending byte.
+func DecodeSGR(a []byte) (attr SGRAttr, n int, _ error) {
+	for n < len(a) {
+		switch a[n] {
+		case ';':
+			n++
+			continue
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8':
+			if m := n + 1; m == len(a) || a[m] == ';' {
+				switch at := []SGRAttr{
+					SGRAttrClear,
+					SGRAttrBold,
+					SGRAttrDim,
+					SGRAttrItalic,
+					SGRAttrUnderscore,
+					0, // slow blink not supported
+					0, // fast blink not supported
+					SGRAttrNegative,
+					0, // concealed not supported
+				}[a[n]-'0']; at {
+				case 0:
+				case SGRAttrClear:
+					attr = SGRAttrClear
+				default:
+					attr |= at
+				}
+				if m < len(a) {
+					n = m + 1
+				} else {
+					n++
+				}
+				continue
+			}
+		}
+
+		switch a[n] {
+
+		case '3':
+			n++
+			c, m, err := decodeSGRColor(a[n:])
+			n += m
+			if err != nil {
+				return attr, n, err
+			}
+			attr = attr.SansFG() | c.FG()
+
+		case '4':
+			n++
+			c, m, err := decodeSGRColor(a[n:])
+			n += m
+			if err != nil {
+				return attr, n, err
+			}
+			attr = attr.SansBG() | c.BG()
+
+		case '9':
+			n++
+			c, m, err := decodeSGRBrightColor(a[n:])
+			n += m
+			if err != nil {
+				return attr, n, err
+			}
+			attr = attr.SansFG() | c.FG()
+
+		case '1':
+			if n++; a[n] != '0' || n == len(a)-1 {
+				return attr, n, errSGRInvalid
+			}
+			n++
+			c, m, err := decodeSGRBrightColor(a[n:])
+			n += m
+			if err != nil {
+				return attr, n, err
+			}
+			attr = attr.SansBG() | c.BG()
+
+		default:
+			return attr, n, errSGRInvalid
+		}
+	}
+	return attr, n, nil
+}
+
+func decodeSGRColor(a []byte) (c SGRColor, n int, _ error) {
+	if len(a) == 0 {
+		return c, n, errSGRInvalid
+	}
+
+	switch a[0] {
+	case '8':
+		n++
+		c, m, err := decodeSGRExtendedColor(a[n:])
+		return c, n + m, err
+
+	default:
+		c, m, err := decodeSGRClassicColor(a[n:])
+		return c, n + m, err
+	}
+}
+
+func decodeSGRClassicColor(a []byte) (c SGRColor, n int, _ error) {
+	if len(a) > 0 {
+		switch b := a[0]; b {
+		case '0', '1', '2', '3', '4', '5', '6', '7':
+			if n++; n == len(a) || a[n] == ';' {
+				return SGRColor(b - '0'), n, nil
+			}
+		}
+	}
+	return c, n, errSGRInvalid
+}
+
+func decodeSGRBrightColor(a []byte) (c SGRColor, n int, _ error) {
+	if len(a) > 0 {
+		switch b := a[0]; b {
+		case '0', '1', '2', '3', '4', '5', '6', '7':
+			if n++; n == len(a) || a[n] == ';' {
+				return SGRColor(8 + b - '0'), n, nil
+			}
+		}
+	}
+	return c, n, errSGRInvalid
+}
+
+func decodeSGRExtendedColor(a []byte) (c SGRColor, n int, _ error) {
+	if len(a) > 1 && a[n] == ';' {
+		n++
+		switch a[n] {
+		case '2':
+			n++
+			c, m, err := decodeSGRRGBColor(a[n:])
+			return c, n + m, err
+		case '5':
+			n++
+			c, m, err := decodeSGRColorNumber(a[n:])
+			return c, n + m, err
+		}
+
+	}
+	return c, n, errSGRInvalid
+}
+
+func decodeSGRColorNumber(a []byte) (c SGRColor, n int, _ error) {
+	if len(a) > 1 && a[n] == ';' {
+		n++
+		cn, m, err := decodeUint8(a[n:])
+		n += m
+		if err == nil {
+			c = SGRColor(cn)
+		}
+		return c, n, err
+	}
+	return c, n, errSGRInvalid
+}
+
+func decodeSGRRGBColor(a []byte) (c SGRColor, n int, _ error) {
+	if len(a) > 1 && a[n] == ';' {
+		n++
+		r, m, err := decodeUint8(a[n:])
+		n += m
+		if err != nil {
+			return c, n, err
+		}
+		g, m, err := decodeUint8(a[n:])
+		n += m
+		if err != nil {
+			return c, n, err
+		}
+		b, m, err := decodeUint8(a[n:])
+		n += m
+		if err != nil {
+			return c, n, err
+		}
+		return RGB(r, g, b), n, nil
+	}
+	return c, n, errSGRInvalid
+}
+
+func decodeUint8(a []byte) (r uint8, n int, _ error) {
+	if len(a) == 0 {
+		return r, n, errSGRInvalid
+	}
+	var v uint16
+	for n < len(a) {
+		if a[n] == ';' {
+			n++
+			break
+		} else if '0' <= a[n] && a[n] <= '9' {
+			if v = 10*v + uint16(a[n]-'0'); v > 0xFF {
+				return 0, n, errSGRInvalid
+			}
+			n++
+		} else {
+			return 0, n, errSGRInvalid
+		}
+	}
+	return uint8(v), n, nil
 }

@@ -199,3 +199,75 @@ func TestDecodeNumber(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeSGR_roundtrips(t *testing.T) {
+	for _, tc := range []struct {
+		attr ansi.SGRAttr
+		str  string
+	}{
+		{ansi.SGRAttrClear, "\x1b[0m"},
+		{ansi.SGRAttrNegative, "\x1b[7m"},
+
+		{ansi.SGRRed.FG(), "\x1b[31m"},
+		{ansi.SGRBrightGreen.FG(), "\x1b[92m"},
+		{ansi.SGRCube20.FG(), "\x1b[38;5;20m"},
+		{ansi.SGRGray10.FG(), "\x1b[38;5;241m"},
+		{ansi.RGB(10, 20, 30).FG(), "\x1b[38;2;10;20;30m"},
+
+		{ansi.SGRRed.BG(), "\x1b[41m"},
+		{ansi.SGRBrightGreen.BG(), "\x1b[102m"},
+		{ansi.SGRCube20.BG(), "\x1b[48;5;20m"},
+		{ansi.SGRGray10.BG(), "\x1b[48;5;241m"},
+		{ansi.RGB(10, 20, 30).BG(), "\x1b[48;2;10;20;30m"},
+
+		{ansi.SGRAttrBold | ansi.SGRAttrNegative, "\x1b[1;7m"},
+		{ansi.SGRAttrClear | ansi.SGRAttrBold | ansi.SGRAttrNegative, "\x1b[0;1;7m"},
+
+		{ansi.SGRRed.FG() | ansi.SGRRed.BG(), "\x1b[31;41m"},
+		{ansi.SGRAttrClear | ansi.SGRRed.FG() | ansi.SGRGreen.BG(), "\x1b[0;31;42m"},
+		{ansi.SGRAttrBold | ansi.SGRRed.FG() | ansi.SGRGreen.BG(), "\x1b[1;31;42m"},
+		{ansi.SGRAttrClear | ansi.SGRAttrBold | ansi.SGRRed.FG() | ansi.SGRGreen.BG(), "\x1b[0;1;31;42m"},
+		{ansi.SGRAttrClear | ansi.SGRAttrBold | ansi.SGRRed.To24Bit().FG() | ansi.SGRGreen.To24Bit().BG(), "\x1b[0;1;38;2;128;0;0;48;2;0;128;0m"},
+	} {
+		t.Run(tc.str, func(t *testing.T) {
+			p := tc.attr.AppendTo(nil)
+			e, a, n := ansi.DecodeEscape(p)
+			assert.Equal(t, len(p), n)
+			require.Equal(t, ansi.SGR, e, "expected full escape decode")
+			require.Equal(t, tc.str, string(p), "expected control sequence")
+
+			attr, n, err := ansi.DecodeSGR(a)
+			if err != nil {
+				err = fmt.Errorf("%v @%v in %q", err, n, a)
+			}
+			require.NoError(t, err)
+			assert.Equal(t, len(a), n, "expected full arg decode")
+			if !assert.Equal(t, tc.attr, attr) {
+				t.Logf("Encode %016x", uint64(tc.attr))
+				t.Logf(
+					"clear:%t bold:%t dim:%t italic:%t underscore:%t negative:%t conceal:%t",
+					(tc.attr&ansi.SGRAttrClear) != 0,
+					(tc.attr&ansi.SGRAttrBold) != 0,
+					(tc.attr&ansi.SGRAttrDim) != 0,
+					(tc.attr&ansi.SGRAttrItalic) != 0,
+					(tc.attr&ansi.SGRAttrUnderscore) != 0,
+					(tc.attr&ansi.SGRAttrNegative) != 0,
+					(tc.attr&ansi.SGRAttrConceal) != 0,
+				)
+
+				t.Logf("Decode %q => %016x", p, uint64(attr))
+				t.Logf(
+					"clear:%t bold:%t dim:%t italic:%t underscore:%t negative:%t conceal:%t",
+					(attr&ansi.SGRAttrClear) != 0,
+					(attr&ansi.SGRAttrBold) != 0,
+					(attr&ansi.SGRAttrDim) != 0,
+					(attr&ansi.SGRAttrItalic) != 0,
+					(attr&ansi.SGRAttrUnderscore) != 0,
+					(attr&ansi.SGRAttrNegative) != 0,
+					(attr&ansi.SGRAttrConceal) != 0,
+				)
+
+			}
+		})
+	}
+}
