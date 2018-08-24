@@ -97,8 +97,7 @@ func (at *Attr) Enter(f *os.File) (err error) {
 	at.f = f
 	if at.orig, err = at.getAttr(); err == nil {
 		at.cur = at.modifyTermios(at.orig)
-		if err = at.setAttr(at.cur); err == nil {
-		}
+		err = at.setAttr(at.cur)
 	}
 	return err
 }
