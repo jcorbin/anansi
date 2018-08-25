@@ -501,3 +501,5 @@ var (
 	  [29~ = DO */
 	DECKEYS = CSI('~')
 )
+
+// TODO reconcile with https://en.wikipedia.org/wiki/ANSI_escape_code, things like SCP / RCP
