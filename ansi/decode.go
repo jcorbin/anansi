@@ -3,6 +3,7 @@ package ansi
 import (
 	"errors"
 	"fmt"
+	"image"
 	"unicode/utf8"
 )
 
@@ -499,4 +500,26 @@ func DecodeMode(private bool, a []byte) (mode Mode, n int, _ error) {
 		}
 	}
 	return mode, n, err
+}
+
+// DecodeCursorCardinal decodes a cardinal cursor move, one of: CUU, CUD, CUF, or CUB.
+func DecodeCursorCardinal(id Escape, a []byte) (d image.Point, _ bool) {
+	switch id {
+	case CUU: // CUrsor Up
+		d.Y = -1
+	case CUD: // CUrsor Down
+		d.Y = 1
+	case CUF: // CUrsor Forward
+		d.X = 1
+	case CUB: // CUrsor Backward
+		d.X = -1
+	default:
+		return image.ZP, false
+	}
+	if len(a) > 0 {
+		if n, _, err := DecodeNumber(a); err == nil {
+			d = d.Mul(n)
+		}
+	}
+	return d, true
 }
