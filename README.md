@@ -24,14 +24,14 @@ That said, there is a working demo command on the [dev][dev] branch.
 What works:
 - [ansi.DecodeEscape][ansi_decode_escape] provides escape sequence decoding
   as similarly to [utf8.DecodeRune][decode_rune] as possible.
+- function definitions like [ansi.CUP][ansi_cup] and [ansi.SM][ansi_sm] for
+  building [control sequences][ansi_seq]
 - [anansi.Attr][anansi_attr] for interacting with terminal io controls (termios)
 - [anansi.Context][anansi_context] for defining and combining pieces of
   terminal state management
 
 ### WIP
 
-- ansi escape/control sequence building ([rc][rc])
-- ansi function definitions ([rc][rc])
 - ansi mode definitions ([dev][dev])
 - ansi mouse decoding ([dev][dev])
 - input buffer ([dev][dev])
@@ -90,8 +90,11 @@ useful:
 
 [anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
 [anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
+[ansi_cup]: https://godoc.org/github.com/jcorbin/anansi/ansi#CUP
 [ansi_decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
 [ansi_parser_sm]: https://www.vt100.net/emu/dec_ansi_parser
+[ansi_seq]: https://godoc.org/github.com/jcorbin/anansi/ansi#Seq
+[ansi_sm]: https://godoc.org/github.com/jcorbin/anansi/ansi#SM
 [decode_rune]: https://golang.org/pkg/unicode/utf8/#DecodeRune
 [kilo]: https://github.com/antirez/kilo
 [kilo_rawmode]: https://viewsourcecode.org/snaptoken/kilo/02.enteringRawMode.html
