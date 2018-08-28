@@ -32,8 +32,10 @@ What works:
 
 ### WIP
 
+- first class support for ansi SGR sequences ([dev][dev])
 - ansi mode definitions ([dev][dev])
 - ansi mouse decoding ([dev][dev])
+- buffered ansi processing with cursor state tracking ([dev][dev])
 - input buffer ([dev][dev])
 - output buffer ([dev][dev])
 - animation (tick) control loop ([dev][dev])
