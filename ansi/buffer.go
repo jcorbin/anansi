@@ -3,6 +3,7 @@ package ansi
 import (
 	"bytes"
 	"io"
+	"unicode/utf8"
 )
 
 // Buffer implements a deferred buffer of ANSI output, providing
@@ -10,6 +11,7 @@ import (
 // an observant processor up to date.
 type Buffer struct {
 	buf bytes.Buffer
+	off int
 }
 
 // Len returns the number of unwritten bytes in the buffer.
@@ -25,11 +27,13 @@ func (b *Buffer) Grow(n int) {
 // Reset the internal buffer.
 func (b *Buffer) Reset() {
 	b.buf.Reset()
+	b.off = 0
 }
 
 // WriteTo writes all bytes from the internal buffer to the given io.Writer.
 func (b *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 	n, err = b.buf.WriteTo(w)
+	b.off -= int(n)
 	return n, err
 }
 
@@ -112,4 +116,45 @@ func (b *Buffer) WriteRune(r rune) (n int, err error) {
 // WriteByte to the internal buffer.
 func (b *Buffer) WriteByte(c byte) error {
 	return b.buf.WriteByte(c)
+}
+
+// Skip Process()ing of n bytes written to the internal buffer. Useful when the
+// processor wants to intermediate a buffer write, handling its own semantic
+// update and avoiding (re)parsing the written bytes.
+func (b *Buffer) Skip(n int) {
+	b.off += n
+}
+
+// Discard processed bytes, re-using internal buffer space during the next Write*.
+func (b *Buffer) Discard() {
+	if b.off > 0 {
+		b.buf.Next(b.off)
+		b.off = 0
+	}
+}
+
+// Process bytes written to the internal buffer, decoding runes and escape
+// sequences, and passing them to the given processor.
+func (b *Buffer) Process(proc Processor) {
+	for p := b.buf.Bytes(); b.off < len(p); {
+		e, a, n := DecodeEscape(p[b.off:])
+		b.off += n
+		if e == 0 {
+			switch r, n := utf8.DecodeRune(p[b.off:]); r {
+			case '\x1b':
+				return
+			default:
+				b.off += n
+				proc.ProcessRune(r)
+			}
+		} else {
+			proc.ProcessEscape(e, a)
+		}
+	}
+}
+
+// Processor receives decoded escape sequences and runes from Buffer.Process.
+type Processor interface {
+	ProcessEscape(e Escape, a []byte)
+	ProcessRune(r rune)
 }
