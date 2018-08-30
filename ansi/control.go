@@ -27,10 +27,12 @@ type Seq struct {
 }
 
 func (id Escape) seq() Seq {
-	if 0xEF00 >= id || id >= 0xEFFF {
-		panic(fmt.Sprintf("not an Escape rune: %U", id))
+	switch {
+	case 0x0000 < id && id < 0x001F,
+		0xEF00 < id && id < 0xEFFF:
+		return Seq{id: id}
 	}
-	return Seq{id: id}
+	panic(fmt.Sprintf("not an Control or Escape rune: %U", id))
 }
 
 // With constructs an escape sequence with this identifier and given argument
@@ -52,6 +54,9 @@ func (seq Seq) ID() Escape { return seq.id }
 // Argument bytes will be written immediately after the ESCape identifier
 // itself.
 func (seq Seq) With(arg ...byte) Seq {
+	if len(arg) == 0 {
+		return seq
+	}
 	n := seq.numBytes
 	if extraNeed := n + len(arg) - numStaticBytes; extraNeed > 0 {
 		argExtraBytes := make([]byte, 0, extraNeed)
@@ -78,6 +83,9 @@ func (seq Seq) With(arg ...byte) Seq {
 // arguments in base-10 form, separated by a ';' byte.
 // Panics if the sequence identifier is not a CSI function.
 func (seq Seq) WithInts(args ...int) Seq {
+	if len(args) == 0 {
+		return seq
+	}
 	if 0xEF80 >= seq.id || seq.id >= 0xEFFF {
 		panic("may only provide integer arguments to a CSI-sequence")
 	}
@@ -139,6 +147,9 @@ func (id Escape) AppendWith(p []byte, arg ...byte) []byte {
 func (seq Seq) AppendTo(p []byte) []byte {
 	switch id := seq.id; {
 	case id == 0:
+	case 0x0000 < id && id < 0x001F: // C0 controls
+		p = append(p, byte(id))
+		p = seq.appendArgBytes(p)
 	case 0xEF80 < id && id < 0xEFFF: // CSI
 		p = append(p, "\x1b["...)
 		p = seq.appendArgBytes(p)
