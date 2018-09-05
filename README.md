@@ -23,22 +23,32 @@ That said, there is a working demo command on the [dev][dev] branch.
 
 What works:
 - [ansi.DecodeEscape][ansi_decode_escape] provides escape sequence decoding
-  as similarly to [utf8.DecodeRune][decode_rune] as possible.
+  as similarly to [utf8.DecodeRune][decode_rune] as possible. Additional
+  support for decoding escape arguments is provided (`DecodeNumber`,
+  `DecodeSGR`, `DecodeMode`, and `DecodeCursorCardinal`).
+- [ansi.SGRAttr][ansi_sgr] supports dealing with terminal colors and text
+  attributes.
+- [ansi.MouseState][ansi_mousestate] supports handling xterm extended mouse
+  reporting.
 - function definitions like [ansi.CUP][ansi_cup] and [ansi.SM][ansi_sm] for
   building [control sequences][ansi_seq]
+  terminal state management
+- [ansi.Mode][ansi_mode] supports setting and clearing various modes such as
+  mouse reporting (and its optional extra levels like motion and full button
+  reporting).
 - [anansi.Attr][anansi_attr] for interacting with terminal io controls (termios)
 - [anansi.Context][anansi_context] for defining and combining pieces of
-  terminal state management
+- [anansi.Term][anansi_term] for more coherent Enter/Exit context management
+  (e.g. termios raw mode, ANSI mode options, and SGR options
 
 ### WIP
 
-- first class support for ansi SGR sequences ([dev][dev])
-- ansi mode definitions ([dev][dev])
-- special decoding for CSI M, whose arg follows AFTER
-- ansi mouse decoding ([dev][dev])
-- buffered ansi processing with cursor state tracking ([dev][dev])
-- input buffer ([dev][dev])
-- output buffer ([dev][dev])
+- buffered ansi processing with cursor state tracking ([rc][rc])
+- input buffer ([rc][rc])
+- output buffer ([rc][rc])
+- cursor state tracking ([rc][rc])
+- screen grid ([rc][rc])
+- screen state tracking and differential update ([rc][rc])
 - animation (tick) control loop ([dev][dev])
 - a 60fps [demo][demo] with things like:
   - experimenting with the immediate mode user concept
@@ -46,6 +56,7 @@ What works:
   - a cursor state construct
   - a diagnostic HUD that displays things like Go's log output, frame timing
     data, and mouse state
+- special decoding for CSI M, whose arg follows AFTER
 
 ### TODO
 
@@ -93,10 +104,14 @@ useful:
 
 [anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
 [anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
+[anansi_term]: https://godoc.org/github.com/jcorbin/anansi#Term
 [ansi_cup]: https://godoc.org/github.com/jcorbin/anansi/ansi#CUP
 [ansi_decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
+[ansi_mode]: https://godoc.org/github.com/jcorbin/anansi/ansi#Mode
+[ansi_mousestate]: https://godoc.org/github.com/jcorbin/anansi/ansi#MouseState
 [ansi_parser_sm]: https://www.vt100.net/emu/dec_ansi_parser
 [ansi_seq]: https://godoc.org/github.com/jcorbin/anansi/ansi#Seq
+[ansi_sgr]: https://godoc.org/github.com/jcorbin/anansi/ansi#SGRAttr
 [ansi_sm]: https://godoc.org/github.com/jcorbin/anansi/ansi#SM
 [decode_rune]: https://golang.org/pkg/unicode/utf8/#DecodeRune
 [kilo]: https://github.com/antirez/kilo
