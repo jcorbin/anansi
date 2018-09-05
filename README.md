@@ -52,23 +52,16 @@ Core `anansi/ansi` package:
 - cursor state tracking ([rc][rc])
 - screen grid ([rc][rc])
 - screen state tracking and differential update ([rc][rc])
-- animation (tick) control loop ([dev][dev])
+- a platform layer ([rc][rc]) that synthesises all of that, and adds signal
+  processing, animation frame loop, input/output context, and a diagnostic HUD
 - a 60fps [demo][demo] with things like:
   - experimenting with the immediate mode user concept
-  - an input event processing queue
-  - a cursor state construct
-  - a diagnostic HUD that displays things like Go's log output, frame timing
-    data, and mouse state
-- special decoding for CSI M, whose arg follows AFTER
 
 ### TODO
 
-- a signal processing layer
-- a cursor state piece (e.g. to support immediate mode API)
-- a screen grid box-of-state (e.g. to support things like back/front buffer
-  diffing and other tricks)
-- maybe event synthesis from signals and input
-- maybe a high level client api that gets events and an output context
+- fancier image composition tricks (ala [COPS][cops])
+- fancier image rendition (e.g. leveraging iTerm2's image support)
+- special decoding for CSI M, whose arg follows AFTER
 - provide `DecodeEscapeInString(s string)` for completeness
 - terminfo layer:
   - automated codegen (for builtins)
