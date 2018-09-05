@@ -86,14 +86,33 @@ Core [`anansi/ansi`][ansi_pkg] package:
   cell grid) up to date without locking downstream users into specific APIs for
   writing.
 
+### Errata
+
+- differential screen update has an unknown glitch in it; easy to reproduce by
+  looping a short recording of moving the mouse around and clicking; glitches
+  go away on full redraw (Ctrl-L).
+- Works For Me ™ in tmux-under-iTerm2: should also work in other modern
+  xterm-descended terminals, such as the libvte family; however terminfo
+  detection not yet used by the platform layer, so basic things like
+  smcup/rmcup inversion may by broken.
+- `anansi.Screen` doesn't (yet) implement full vt100 emulation, notably lacking
+  is scrolling region support
+- there's something glitchy with trying to write into the final cell (last
+  column of last row), sometimes it seems to trigger a scroll (as when used by
+  hud log view) sometimes not (as when background filled by demo)
+
 ### WIP
 
 ### TODO
 
+- platform "middleware", i.e. for re-usable Ctrl-C and Ctrl-Z behavior (ideally
+  making current builtins like Ctrl-L and record/replay pluggable)
 - fancier image composition tricks (ala [COPS][cops])
 - fancier image rendition (e.g. leveraging iTerm2's image support)
 - special decoding for CSI M, whose arg follows AFTER
 - provide `DecodeEscapeInString(s string)` for completeness
+- support bracketed paste mode (and decoding pastes from it)
+- consider compacting the record file format; maybe also compression it
 - terminfo layer:
   - automated codegen (for builtins)
   - full load rather than the termbox-inherited cherry picking
