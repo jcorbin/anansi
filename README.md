@@ -27,59 +27,59 @@ start reading than from the various code-level docs linked below.
 
 A 60fps [demo][demo] that draws an animated test pattern, demonstrating the:
 
-Experimental cohesive `x/platform` layer:
+Experimental cohesive [`x/platform`][platform_pkg] layer:
 - provides a `platform.Events` queue layered on top of `anansi.input`, which
   contains parsed `rune`, `ansi.Escape`, and `ansi.MouseState` data.
 - synthesizes all of the below `anansi` pieces (`Term`, `Input`, `Output`, etc)
-  into one cohesive `platform.Context` which supports a single combined round of
-  non-blocking input processing and output generation.
+  into one cohesive `platform.Context` which supports a single combined round
+  of non-blocking input processing and output generation.
 - provides signal handling for typical things like `SIGINT`, `SIGERM`,
   `SIGHUP`, and `SIGWINCH`.
 - drives a `platform.Client` in a `platform.Tick` loop at a desired
   Frames-Per-Second (FPS) rate.
-- provides input record and replay on top of (de)serialized client and platform state.
+- provides input record and replay on top of (de)serialized client and platform
+  state.
 - supports inter-frame background work.
 - provides a diagnostic HUD overlay that displays things like Go's `log`
   output, FPS, time, mouse state, screen size, etc
 
-Toplevel `anansi` package:
-- [anansi.Term][anansi_term], [anansi.Context][anansi_context], and
-  [anansi.Attr][anansi_attr] provide cohesive management of terminal state such
-  as raw mode, ANSI escape sequenced modes, and SGR attribute state.
-- [anansi.Input][anansi_input] supports reading input from a file handle,
+Toplevel [`anansi`][anansi_pkg] package:
+- [`anansi.Term`][anansi_term], [`anansi.Context`][anansi_context], and
+  [`anansi.Attr`][anansi_attr] provide cohesive management of terminal state
+  such as raw mode, ANSI escape sequenced modes, and SGR attribute state.
+- [`anansi.Input`][anansi_input] supports reading input from a file handle,
   implementing both blocking `.ReadMore()` and non-blocking `.ReadAny()` modes.
-- [anansi.Output][anansi_output] mediates flushing output from any `io.WriterTo`
-  (implemented by both `anansi.Cursor` and `anansi.Screen`) into a file handle.
-  It properly handles non-blocking IO (by temporarily doing a blocking write if
-  necessary) to coexist with `anansi.Input` (since `stdin` and `stdout` share
-  the same underlying file descriptor).
-- [anansi.Cursor][anansi_cursor] represents cursor state including position,
+- [`anansi.Output`][anansi_output] mediates flushing output from any
+  `io.WriterTo` (implemented by both `anansi.Cursor` and `anansi.Screen`) into
+  a file handle.  It properly handles non-blocking IO (by temporarily doing a
+  blocking write if necessary) to coexist with `anansi.Input` (since `stdin`
+  and `stdout` share the same underlying file descriptor).
+- [`anansi.Cursor`][anansi_cursor] represents cursor state including position,
   visibility, and SGR attribute(s); it supports processing under an
-  [ansi.Buffer][ansi_buffer].
-- [anansi.Grid][anansi_grid] provides a 2d array of `rune` and`ansi.SGRAttr`
-  data; it supports processing under an [ansi.Buffer][ansi_buffer]. It also
+  [`ansi.Buffer`][ansi_buffer].
+- [`anansi.Grid`][anansi_grid] provides a 2d array of `rune` and`ansi.SGRAttr`
+  data; it supports processing under an [`ansi.Buffer`][ansi_buffer]. It also
   supports computing differential updates if you provide it a prior / reference
   `Grid`.
-- [anansi.Screen][anansi_screen] combines an `anansi.Cursor` with
+- [`anansi.Screen`][anansi_screen] combines an `anansi.Cursor` with
   `anansi.Grid`, supporting differential screen updates and final post-update
   cursor display.
 
-Core `anansi/ansi` package:
-- [ansi.DecodeEscape][ansi_decode_escape] provides escape sequence decoding
-  as similarly to [utf8.DecodeRune][decode_rune] as possible. Additional
+Core [`anansi/ansi`][ansi_pkg] package:
+- [`ansi.DecodeEscape`][ansi_decode_escape] provides escape sequence decoding
+  as similarly to [`utf8.DecodeRune`][decode_rune] as possible. Additional
   support for decoding escape arguments is provided (`DecodeNumber`,
   `DecodeSGR`, `DecodeMode`, and `DecodeCursorCardinal`).
-- [ansi.SGRAttr][ansi_sgr] supports dealing with terminal colors and text
+- [`ansi.SGRAttr`][ansi_sgr] supports dealing with terminal colors and text
   attributes.
-- [ansi.MouseState][ansi_mousestate] supports handling xterm extended mouse
+- [`ansi.MouseState`][ansi_mousestate] supports handling xterm extended mouse
   reporting.
-- function definitions like [ansi.CUP][ansi_cup] and [ansi.SM][ansi_sm] for
-  building [control sequences][ansi_seq]
-  terminal state management
-- [ansi.Mode][ansi_mode] supports setting and clearing various modes such as
+- function definitions like [`ansi.CUP`][ansi_cup] and [`ansi.SM`][ansi_sm] for
+  building [`control sequences`][ansi_seq] terminal state management
+- [`ansi.Mode`][ansi_mode] supports setting and clearing various modes such as
   mouse reporting (and its optional extra levels like motion and full button
   reporting).
-- [ansi.Buffer][ansi_buffer] supports deferred writing to a terminal; the
+- [`ansi.Buffer`][ansi_buffer] supports deferred writing to a terminal; the
   primary trick that it adds beyond a basic `bytes.Buffer` convenience, is
   allowing the users to process escape sequences, no matter how they're
   written. This enables keeping virtual state (such as cursor position or a
@@ -133,6 +133,10 @@ useful:
   - [cops][cops]
   - [go-ansiterm][go-ansiterm]
   - [terminfo][terminfo]
+
+[platform_pkg]: https://godoc.org/github.com/jcorbin/anansi/x/platform
+[anansi_pkg]: https://godoc.org/github.com/jcorbin/anansi
+[ansi_pkg]: https://godoc.org/github.com/jcorbin/anansi/ansi
 
 [anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
 [anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
