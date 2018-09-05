@@ -21,7 +21,14 @@
 and while things on master are reasonably stable, there's no guarantees yet.
 That said, there is a working demo command on the [dev][dev] branch.
 
-What works:
+### Done
+
+Toplevel `anansi` package:
+- [anansi.Term][anansi_term], [anansi.Context][anansi_context], and
+  [anansi.Attr][anansi_attr] provide cohesive management of terminal state such
+  as raw mode, ANSI escape sequenced modes, and SGR attribute state.
+
+Core `anansi/ansi` package:
 - [ansi.DecodeEscape][ansi_decode_escape] provides escape sequence decoding
   as similarly to [utf8.DecodeRune][decode_rune] as possible. Additional
   support for decoding escape arguments is provided (`DecodeNumber`,
@@ -36,10 +43,6 @@ What works:
 - [ansi.Mode][ansi_mode] supports setting and clearing various modes such as
   mouse reporting (and its optional extra levels like motion and full button
   reporting).
-- [anansi.Attr][anansi_attr] for interacting with terminal io controls (termios)
-- [anansi.Context][anansi_context] for defining and combining pieces of
-- [anansi.Term][anansi_term] for more coherent Enter/Exit context management
-  (e.g. termios raw mode, ANSI mode options, and SGR options
 
 ### WIP
 
