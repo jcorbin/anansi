@@ -17,16 +17,52 @@
 
 ## Status
 
-**Prototyping/Experimental**: AnANSI is currently in initial exploration mode,
-and while things on master are reasonably stable, there's no guarantees yet.
-That said, there is a working demo command on the [dev][dev] branch.
+**Experimental**: AnANSI is currently in initial exploration mode, and while
+things on master are reasonably stable, there's no guarantees yet.
+
+That said, there is a working [demo][demo], which may be a better place to
+start reading than from the various code-level docs linked below.
 
 ### Done
+
+A 60fps [demo][demo] that draws an animated test pattern, demonstrating the:
+
+Experimental cohesive `x/platform` layer:
+- provides a `platform.Events` queue layered on top of `anansi.input`, which
+  contains parsed `rune`, `ansi.Escape`, and `ansi.MouseState` data.
+- synthesizes all of the below `anansi` pieces (`Term`, `Input`, `Output`, etc)
+  into one cohesive `platform.Context` which supports a single combined round of
+  non-blocking input processing and output generation.
+- provides signal handling for typical things like `SIGINT`, `SIGERM`,
+  `SIGHUP`, and `SIGWINCH`.
+- drives a `platform.Client` in a `platform.Tick` loop at a desired
+  Frames-Per-Second (FPS) rate.
+- provides input record and replay on top of (de)serialized client and platform state.
+- supports inter-frame background work.
+- provides a diagnostic HUD overlay that displays things like Go's `log`
+  output, FPS, time, mouse state, screen size, etc
 
 Toplevel `anansi` package:
 - [anansi.Term][anansi_term], [anansi.Context][anansi_context], and
   [anansi.Attr][anansi_attr] provide cohesive management of terminal state such
   as raw mode, ANSI escape sequenced modes, and SGR attribute state.
+- [anansi.Input][anansi_input] supports reading input from a file handle,
+  implementing both blocking `.ReadMore()` and non-blocking `.ReadAny()` modes.
+- [anansi.Output][anansi_output] mediates flushing output from any `io.WriterTo`
+  (implemented by both `anansi.Cursor` and `anansi.Screen`) into a file handle.
+  It properly handles non-blocking IO (by temporarily doing a blocking write if
+  necessary) to coexist with `anansi.Input` (since `stdin` and `stdout` share
+  the same underlying file descriptor).
+- [anansi.Cursor][anansi_cursor] represents cursor state including position,
+  visibility, and SGR attribute(s); it supports processing under an
+  [ansi.Buffer][ansi_buffer].
+- [anansi.Grid][anansi_grid] provides a 2d array of `rune` and`ansi.SGRAttr`
+  data; it supports processing under an [ansi.Buffer][ansi_buffer]. It also
+  supports computing differential updates if you provide it a prior / reference
+  `Grid`.
+- [anansi.Screen][anansi_screen] combines an `anansi.Cursor` with
+  `anansi.Grid`, supporting differential screen updates and final post-update
+  cursor display.
 
 Core `anansi/ansi` package:
 - [ansi.DecodeEscape][ansi_decode_escape] provides escape sequence decoding
@@ -43,19 +79,14 @@ Core `anansi/ansi` package:
 - [ansi.Mode][ansi_mode] supports setting and clearing various modes such as
   mouse reporting (and its optional extra levels like motion and full button
   reporting).
+- [ansi.Buffer][ansi_buffer] supports deferred writing to a terminal; the
+  primary trick that it adds beyond a basic `bytes.Buffer` convenience, is
+  allowing the users to process escape sequences, no matter how they're
+  written. This enables keeping virtual state (such as cursor position or a
+  cell grid) up to date without locking downstream users into specific APIs for
+  writing.
 
 ### WIP
-
-- buffered ansi processing with cursor state tracking ([rc][rc])
-- input buffer ([rc][rc])
-- output buffer ([rc][rc])
-- cursor state tracking ([rc][rc])
-- screen grid ([rc][rc])
-- screen state tracking and differential update ([rc][rc])
-- a platform layer ([rc][rc]) that synthesises all of that, and adds signal
-  processing, animation frame loop, input/output context, and a diagnostic HUD
-- a 60fps [demo][demo] with things like:
-  - experimenting with the immediate mode user concept
 
 ### TODO
 
@@ -77,7 +108,8 @@ AnANSI uses a triple branch (`master`, `rc`, and `dev`) pattern that I've found
 useful:
 - the [master branch][master] has relatively stable code but is
   still pre `v1.0.0`, and so is not *actually* stable; tests must pass on all
-  commits
+  commits. NOTE any package under `anansi/x/` doesn't even have the tacit
+  attempt made at stability that the rest of `anansi/` on master does.
 - the [rc branch][rc] contains code that is stable-ish: tests should
   pass on all commits
 - the [dev branch][dev] contains the sum of all hopes/fears, tests
@@ -104,7 +136,13 @@ useful:
 
 [anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
 [anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
+[anansi_cursor]: https://godoc.org/github.com/jcorbin/anansi#Cursor
+[anansi_grid]: https://godoc.org/github.com/jcorbin/anansi#Grid
+[anansi_input]: https://godoc.org/github.com/jcorbin/anansi#Input
+[anansi_output]: https://godoc.org/github.com/jcorbin/anansi#Output
+[anansi_screen]: https://godoc.org/github.com/jcorbin/anansi#Screen
 [anansi_term]: https://godoc.org/github.com/jcorbin/anansi#Term
+[ansi_buffer]: https://godoc.org/github.com/jcorbin/anansi/ansi#Buffer
 [ansi_cup]: https://godoc.org/github.com/jcorbin/anansi/ansi#CUP
 [ansi_decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
 [ansi_mode]: https://godoc.org/github.com/jcorbin/anansi/ansi#Mode
@@ -130,6 +168,6 @@ useful:
 [xterm_ctl]: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 
 [master]: ../../tree/master
+[demo]: ../../tree/master/cmd/demo
 [rc]: ../../tree/rc
 [dev]: ../../tree/dev
-[demo]: ../../tree/dev/cmd/demo
