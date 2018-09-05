@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -9,6 +8,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"unicode/utf8"
 
 	"github.com/jcorbin/anansi"
@@ -40,17 +41,39 @@ func main() {
 	}
 
 	input := anansi.NewInput(os.Stdin, 0)
-	term := anansi.NewTerm(os.Stdout)
-	term.SetTermReset(*doReset)
-	term.SetSGRReset(*doReset)
+	output := anansi.NewOutput(os.Stdout)
+
+	var modes anansi.ModeSeqs
+
+	if *useAltScreen {
+		modes = modes.AddMode(
+			ansi.ModeAlternateScreen,
+		)
+	}
+
+	if *useMouse {
+		modes = modes.AddMode(
+			ansi.ModeMouseSgrExt,
+			ansi.ModeMouseBtnEvent,
+			ansi.ModeMouseAnyEvent,
+		)
+	}
+
+	if *doReset {
+		modes = modes.AddSeq(
+			ansi.SoftReset,
+			ansi.SGRReset,
+		)
+	}
+
+	term := anansi.NewTerm(os.Stdout, &modes)
 	term.SetRaw(!*noRaw)
-	term.SetAlternateScreen(*useAltScreen)
-	term.SetMouseReporting(*useMouse)
 
 	switch err := term.With(func(term *anansi.Term) error {
 		d := diag{
-			Term:  term,
-			Input: input,
+			Term:   term,
+			Input:  input,
+			Output: output,
 		}
 		return d.run()
 	}); err {
@@ -65,8 +88,8 @@ func main() {
 type diag struct {
 	*anansi.Term
 	*anansi.Input
-
-	output outputBuffer
+	*anansi.Output
+	anansi.Screen
 
 	size  image.Point
 	mouse struct {
@@ -96,7 +119,7 @@ func (d *diag) process() error {
 		var err error
 		if e, a := d.Input.DecodeEscape(); e != 0 {
 			err = d.handleInput(e, a, 0)
-		} else if r, ok := d.Input.DecodeRune(false); ok {
+		} else if r, ok := d.Input.DecodeRune(); ok {
 			err = d.handleInput(0, nil, r)
 		} else {
 			break
@@ -147,7 +170,17 @@ func (d *diag) handleInput(e ansi.Escape, a []byte, r rune) error {
 	// suspend on Ctrl-Z
 	case r == '\x1a':
 		fmt.Printf("^Z\r\n")
-		if err := d.Term.Without(anansi.Suspend); err != nil {
+		if err := d.Term.Without(func(_ *anansi.Term) error {
+			cont := make(chan os.Signal)
+			signal.Notify(cont, syscall.SIGCONT)
+			log.Printf("suspending")
+			if err := syscall.Kill(0, syscall.SIGTSTP); err != nil {
+				return err
+			}
+			<-cont
+			log.Printf("resumed")
+			return nil
+		}); err != nil {
 			return err
 		}
 		fmt.Printf("resumed\r\n")
@@ -182,31 +215,13 @@ var (
 	restoreCursor = ansi.ESC('8')
 )
 
-type outputBuffer struct {
-	bytes.Buffer
-}
-
-func (out *outputBuffer) WriteSeq(seqs ...ansi.Seq) (n int) {
-	for i := range seqs {
-		n += seqs[i].WriteIntoBuffer(&out.Buffer)
-	}
-	return n
-}
-
-func (out *outputBuffer) do(w io.Writer, f func()) error {
-	out.Reset()
-	f()
-	_, err := out.WriteTo(w)
-	return err
-}
-
-func (out *outputBuffer) withSavedCursor(f func()) {
+func withSavedCursor(f func()) {
 	saveCursor.WriteIntoBuffer(&out.Buffer)
 	f()
 	restoreCursor.WriteIntoBuffer(&out.Buffer)
 }
 
-func (out *outputBuffer) drawRightAlignedLines(at image.Point, parts []string) {
+func drawRightAlignedLines(at image.Point, parts []string) {
 	var max int
 	for i := range parts {
 		n := utf8.RuneCountInString(parts[i])
