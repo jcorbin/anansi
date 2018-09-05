@@ -99,11 +99,11 @@ useful:
   - https://www.dabsoft.ch/dicom/3/C.12.1.1.2/
 - various related Go libraries like:
   - the ill-fated [x/term](https://github.com/golang/go/issues/13104) package
-  - [termbox](https://github.com/nsf/termbox-go)
-  - [tcell](https://github.com/gdamore/tcell)
-  - [cops](https://github.com/kriskowal/cops)
-  - [go-ansiterm](https://github.com/Azure/go-ansiterm)
-  - [terminfo](https://github.com/xo/terminfo)
+  - [termbox][termbox]
+  - [tcell][tcell]
+  - [cops][cops]
+  - [go-ansiterm][go-ansiterm]
+  - [terminfo][terminfo]
 
 [anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
 [anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
@@ -116,10 +116,16 @@ useful:
 [ansi_seq]: https://godoc.org/github.com/jcorbin/anansi/ansi#Seq
 [ansi_sgr]: https://godoc.org/github.com/jcorbin/anansi/ansi#SGRAttr
 [ansi_sm]: https://godoc.org/github.com/jcorbin/anansi/ansi#SM
+
+[cops]: https://github.com/kriskowal/cops
 [decode_rune]: https://golang.org/pkg/unicode/utf8/#DecodeRune
+[go-ansiterm]: https://github.com/Azure/go-ansiterm
 [kilo]: https://github.com/antirez/kilo
 [kilo_rawmode]: https://viewsourcecode.org/snaptoken/kilo/02.enteringRawMode.html
 [pdp10_ansicode]: http://www.inwap.com/pdp10/ansicode.txt
+[tcell]: https://github.com/gdamore/tcell
+[termbox]: https://github.com/nsf/termbox-go
+[terminfo]: https://github.com/xo/terminfo
 [tmux_ansicode]: https://github.com/tmux/tmux/blob/master/tools/ansicode.txt
 [ucs]: https://en.wikipedia.org/wiki/Universal_Coded_Character_Set
 [unicode_bmp]: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
