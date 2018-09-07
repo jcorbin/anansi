@@ -21,6 +21,7 @@ type LogSink struct {
 }
 
 func init() {
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 	log.SetOutput(&Logs)
 }
 

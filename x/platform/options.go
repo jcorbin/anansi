@@ -2,7 +2,6 @@ package platform
 
 import (
 	"flag"
-	"log"
 	"time"
 )
 
@@ -42,7 +41,6 @@ func (pf *_platformFlags) init() {
 var platformFlags = _platformFlags{}
 
 func init() {
-	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 	platformFlags.init()
 }
 
