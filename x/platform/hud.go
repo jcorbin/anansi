@@ -648,6 +648,9 @@ func (lv *LogView) Update(ctx *Context) error {
 
 	content := lv.scanContent()
 	lines := len(lv.eolOffsets) - 1
+	if lines <= 0 {
+		return nil
+	}
 
 	bounds := image.Rectangle{topLeft, ctx.Output.Size}
 	bounds.Max = bounds.Max.Add(image.Pt(0, 1)) // TODO ideally utilize the final column too
