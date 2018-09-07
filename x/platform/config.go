@@ -53,8 +53,8 @@ func (cfg *Config) AddFlags(f *flag.FlagSet, prefix string) {
 	}
 }
 
-func (cfg *Config) apply(p *Platform) error {
-	p.Config.Merge(*cfg)
+func (cfg Config) apply(p *Platform) error {
+	p.Config.Merge(cfg)
 	return nil
 }
 
