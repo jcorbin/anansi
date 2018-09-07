@@ -85,9 +85,11 @@ func (tel *Telemetry) FPS() float64 {
 
 // SetTimingEnabled sets whether frame timing data collection is enabled.
 func (p *Platform) SetTimingEnabled(enabled bool) {
-	p.TimingEnabled = enabled
-	if !p.TimingEnabled && !p.LogTiming {
-		p.Timing.reset()
+	if p.TimingEnabled != enabled {
+		p.TimingEnabled = enabled
+		if !p.TimingEnabled && !p.LogTiming {
+			p.Timing.reset()
+		}
 	}
 }
 
