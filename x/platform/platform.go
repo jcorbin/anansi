@@ -3,6 +3,7 @@ package platform
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"image"
 	"log"
@@ -68,9 +69,17 @@ func New(opts ...Option) (*Platform, error) {
 	p.Timing.ds = make([]time.Duration, timingPeriod)
 	p.bgworkers = append(p.bgworkers, &p.Telemetry.coll, &Logs)
 
-	if err := platformFlags.apply(&p); err != nil {
-		return nil, err
+	if !hasConfig(opts) {
+		flagConfig := Config{}
+		flagConfig.AddFlags(flag.CommandLine, "platform.")
+		if !flag.Parsed() {
+			flag.Parse()
+		}
+		if err := flagConfig.apply(&p); err != nil {
+			return nil, err
+		}
 	}
+
 	if err := p.HUD.apply(&p); err != nil {
 		return nil, err
 	}

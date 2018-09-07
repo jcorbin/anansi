@@ -21,7 +21,7 @@ func (tcl testClient) Update(_ *Context) error {
 func TestPlatform_state_reload(t *testing.T) {
 	var save []byte
 	require.NoError(t, func() error {
-		p, err := New()
+		p, err := New(Config{})
 		require.NoError(t, err)
 		var cl testClient
 		p.TimingEnabled = true
@@ -37,7 +37,7 @@ func TestPlatform_state_reload(t *testing.T) {
 		return nil
 	}(), "unexpected writeState error")
 	require.NoError(t, func() error {
-		p, err := New()
+		p, err := New(Config{})
 		require.NoError(t, err)
 		var cl testClient
 		p.client = &cl
@@ -53,7 +53,7 @@ func TestPlatform_state_reload(t *testing.T) {
 
 func TestPlatform_state_rewind(t *testing.T) {
 	require.NoError(t, func() error {
-		p, err := New()
+		p, err := New(Config{})
 		require.NoError(t, err)
 		var cl testClient
 		p.TimingEnabled = true

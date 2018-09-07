@@ -1,7 +1,6 @@
 package platform
 
 import (
-	"flag"
 	"time"
 )
 
@@ -26,21 +25,11 @@ func FrameRate(fps int) Option {
 	})
 }
 
-type _platformFlags struct{ Config }
-
-func (pf *_platformFlags) init() {
-	pf.AddFlags(flag.CommandLine, "platform.")
-}
-
-var platformFlags = _platformFlags{}
-
-func init() {
-	platformFlags.init()
-}
-
-func (pf *_platformFlags) apply(p *Platform) error {
-	if !flag.Parsed() {
-		flag.Parse()
+func hasConfig(opts []Option) bool {
+	for _, opt := range opts {
+		if _, isConfig := opt.(Config); isConfig {
+			return true
+		}
 	}
-	return pf.Config.apply(p)
+	return false
 }
