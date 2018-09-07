@@ -2,6 +2,7 @@ package platform
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -44,6 +45,26 @@ type Config struct {
 	cpuProfile    cpuProfileContext
 	traceProfile  traceProfileContext
 	pprofProfiles []pprofProfileContext
+}
+
+// AddFlags adds flag variables to the given flag set that will allow the user
+// to set various log and profiling files from the outset. If a non-empty
+// prefix is given, then timing variables are also wired up.
+func (cfg *Config) AddFlags(f *flag.FlagSet, prefix string) {
+	f.StringVar(&cfg.LogFileName, prefix+"logfile", cfg.LogFileName,
+		"write logs to a file")
+	f.StringVar(&cfg.CPUProfileName, prefix+"cpuprofile", cfg.CPUProfileName,
+		"enables platform cpu profiling")
+	f.StringVar(&cfg.MemProfileName, prefix+"memprofile", cfg.MemProfileName,
+		"enables platform memory profiling")
+	f.StringVar(&cfg.TraceFileName, prefix+"tracefile", cfg.TraceFileName,
+		"enables platform execution tracing")
+	if prefix != "" {
+		f.BoolVar(&cfg.StartTiming, prefix+"timing", false,
+			"measure timing from the beginning")
+		f.BoolVar(&cfg.LogTiming, prefix+"timing.log", false,
+			"measure and log timing from the beginning")
+	}
 }
 
 func (cfg *Config) apply(p *Platform) error {

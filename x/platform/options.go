@@ -29,13 +29,7 @@ func FrameRate(fps int) Option {
 type _platformFlags struct{ Config }
 
 func (pf *_platformFlags) init() {
-	flag.StringVar(&pf.LogFileName, "platform.logfile", "", "write logs to a file (in addition to in-memory buffer)")
-	flag.StringVar(&pf.CPUProfileName, "platform.cpuprofile", "", "enables platform cpu profiling")
-	flag.StringVar(&pf.MemProfileName, "platform.memprofile", "", "enables platform memory profiling")
-	flag.StringVar(&pf.TraceFileName, "platform.tracefile", "", "enables platform execution tracing")
-
-	flag.BoolVar(&pf.StartTiming, "platform.timing", false, "measure timing from the beginning")
-	flag.BoolVar(&pf.LogTiming, "platform.timing.log", false, "measure and log timing from the beginning")
+	pf.AddFlags(flag.CommandLine, "platform.")
 }
 
 var platformFlags = _platformFlags{}
