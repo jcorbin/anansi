@@ -47,22 +47,27 @@ type Config struct {
 }
 
 func (cfg *Config) apply(p *Platform) error {
-	if cfg.LogFileName != "" && p.Config.LogFileName == "" {
-		p.Config.LogFileName = cfg.LogFileName
-	}
-	if cfg.CPUProfileName != "" && p.CPUProfileName == "" {
-		p.CPUProfileName = cfg.CPUProfileName
-	}
-	if cfg.TraceFileName != "" && p.TraceFileName == "" {
-		p.TraceFileName = cfg.TraceFileName
-	}
-	if cfg.MemProfileName != "" && p.MemProfileName == "" {
-		p.MemProfileName = cfg.MemProfileName
-	}
-	if cfg.StartTiming || cfg.LogTiming {
-		p.LogTiming = p.LogTiming || cfg.LogTiming
-	}
+	p.Config.Merge(*cfg)
 	return nil
+}
+
+// Merge an other config value into the receiver.
+func (cfg *Config) Merge(other Config) {
+	if other.LogFileName != "" && cfg.LogFileName == "" {
+		cfg.LogFileName = other.LogFileName
+	}
+	if other.CPUProfileName != "" && cfg.CPUProfileName == "" {
+		cfg.CPUProfileName = other.CPUProfileName
+	}
+	if other.TraceFileName != "" && cfg.TraceFileName == "" {
+		cfg.TraceFileName = other.TraceFileName
+	}
+	if other.MemProfileName != "" && cfg.MemProfileName == "" {
+		cfg.MemProfileName = other.MemProfileName
+	}
+	if other.LogTiming {
+		cfg.LogTiming = true
+	}
 }
 
 func (cfg *Config) setup(p *Platform) error {
