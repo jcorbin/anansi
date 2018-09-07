@@ -27,8 +27,6 @@ func FrameRate(fps int) Option {
 	})
 }
 
-type options []Option
-
 type _platformFlags struct{ Config }
 
 func (pf *_platformFlags) init() {
