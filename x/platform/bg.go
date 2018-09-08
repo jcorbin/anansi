@@ -54,12 +54,14 @@ func (core *bgWorkerCore) Error() error {
 }
 
 func (core *bgWorkerCore) Notify() error {
-	if err := core.Error(); err != nil {
-		return err
-	}
-	select {
-	case core.w <- struct{}{}:
-	default:
+	if core.w != nil {
+		if err := core.Error(); err != nil {
+			return err
+		}
+		select {
+		case core.w <- struct{}{}:
+		default:
+		}
 	}
 	return nil
 }
