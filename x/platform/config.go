@@ -85,8 +85,9 @@ func (cfg *Config) setup(p *Platform) error {
 		if err != nil {
 			return fmt.Errorf("failed to open log file %q: %v", cfg.LogFileName, err)
 		}
-		log.SetOutput(io.MultiWriter(&Logs, f))
-		log.Printf("logging to %q", f.Name())
+		if err := Logs.SetFile(f); err != nil {
+			return err
+		}
 	}
 
 	if cfg.CPUProfileName != "" {
