@@ -80,6 +80,10 @@ func New(opts ...Option) (*Platform, error) {
 		}
 	}
 
+	if err := p.Config.setup(&p); err != nil {
+		return nil, err
+	}
+
 	return &p, nil
 }
 
@@ -243,9 +247,6 @@ func (p *Platform) Enter(term *anansi.Term) error {
 		return errors.New("Platform may only be used under a single terminal")
 	}
 	p.term = term
-	if err := p.setupConfig(); err != nil {
-		return err
-	}
 	if err := p.readSize(); err != nil {
 		return fmt.Errorf("initial term size request failed: %v", err)
 	}

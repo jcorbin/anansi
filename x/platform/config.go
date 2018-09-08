@@ -60,42 +60,43 @@ func (cfg *Config) apply(p *Platform) error {
 		p.MemProfileName = cfg.MemProfileName
 	}
 	if cfg.StartTiming || cfg.LogTiming {
-		p.SetTimingEnabled(cfg.StartTiming || cfg.LogTiming)
 		p.LogTiming = p.LogTiming || cfg.LogTiming
 	}
 	return nil
 }
 
-func (p *Platform) setupConfig() error {
-	if p.LogFileName != "" && p.logFile == nil {
-		f, err := os.Create(p.LogFileName)
+func (cfg *Config) setup(p *Platform) error {
+	p.SetTimingEnabled(cfg.LogTiming)
+
+	if cfg.LogFileName != "" && p.logFile == nil {
+		f, err := os.Create(cfg.LogFileName)
 		if err != nil {
-			return fmt.Errorf("failed to open log file %q: %v", p.LogFileName, err)
+			return fmt.Errorf("failed to open log file %q: %v", cfg.LogFileName, err)
 		}
 		log.SetOutput(io.MultiWriter(&Logs, f))
 		log.Printf("logging to %q", f.Name())
 	}
 
-	if p.CPUProfileName != "" {
-		f, err := os.Create(p.CPUProfileName)
+	if cfg.CPUProfileName != "" {
+		f, err := os.Create(cfg.CPUProfileName)
 		if err != nil {
-			return fmt.Errorf("failed to create %q: %v", p.CPUProfileName, err)
+			return fmt.Errorf("failed to create %q: %v", cfg.CPUProfileName, err)
 		}
 		p.cpuProfile.f = f
 	}
 
-	if p.TraceFileName != "" {
-		f, err := os.Create(p.TraceFileName)
+	if cfg.TraceFileName != "" {
+		f, err := os.Create(cfg.TraceFileName)
 		if err != nil {
-			return fmt.Errorf("failed to create %q: %v", p.TraceFileName, err)
+			return fmt.Errorf("failed to create %q: %v", cfg.TraceFileName, err)
 		}
 		p.traceProfile.f = f
 	}
 
-	if p.MemProfileName != "" {
-		f, err := os.Create(p.MemProfileName)
+	if cfg.MemProfileName != "" {
+		f, err := os.Create(cfg.MemProfileName)
 		if err != nil {
-			return fmt.Errorf("failed to create %q: %v", p.MemProfileName, err)
+			return fmt.Errorf("failed to create %q: %v", cfg.MemProfileName, err)
 		}
 		p.pprofProfiles = append(p.pprofProfiles, pprofProfileContext{
 			profile: pprof.Lookup("heap"),
