@@ -75,6 +75,9 @@ func (logs *LogSink) Write(p []byte) (n int, _ error) {
 		logs.bufEOLs = append(logs.bufEOLs, len(b)+off)
 	}
 
+	// if over := len(b) + len(p) - cap(b); over > 0
+	// TODO cap buffer size by rolling earliest off to satisfy the overage
+
 	n, _ = logs.buf.Write(p)
 	return n, nil
 }
