@@ -175,6 +175,11 @@ func (p *Platform) Run(client Client) (err error) {
 	signal.Notify(resizeSig, syscall.SIGWINCH)
 	defer signal.Stop(resizeSig)
 
+	log.Printf("running %T", p.client)
+	defer func() {
+		log.Printf("run done: %v", err)
+	}()
+
 	for p.Time = time.Now(); !p.Time.IsZero(); p.Time = p.ticks.Wait(p.Time) {
 		// update performance data
 		p.Telemetry.update(p)

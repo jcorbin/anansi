@@ -23,9 +23,6 @@ func main() {
 func Run(p *platform.Platform) error {
 	for {
 		var d demo
-
-		log.Printf("demo running")
-
 		if err := p.Run(&d); platform.IsReplayDone(err) {
 			continue // loop replay
 		} else if err == io.EOF || err == errInt {
