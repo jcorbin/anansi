@@ -6,6 +6,7 @@ import (
 )
 
 func init() {
+	Logs.Buffer.Grow(1024 * 1024)
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 	log.SetOutput(&Logs)
 }
