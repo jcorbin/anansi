@@ -1,7 +1,6 @@
 package platform
 
 import (
-	"bytes"
 	"fmt"
 	"image"
 	"log"
@@ -596,9 +595,7 @@ func (hud *HUD) underFileEdit(fil fileable, ctx *Context, box image.Rectangle, i
 type LogView struct {
 	LogViewState
 
-	logs       *LogSink
-	lastByte   int
-	eolOffsets []int
+	logs *LogSink
 }
 
 // LogViewState contains serializable LogView state.
@@ -646,57 +643,38 @@ func (lv *LogView) Update(ctx *Context) error {
 		viewLines = 1
 	}
 
-	content := lv.scanContent()
-	lines := len(lv.eolOffsets) - 1
+	bounds := image.Rectangle{topLeft, ctx.Output.Size}
+	bounds.Max = bounds.Max.Add(image.Pt(0, 1)) // TODO ideally utilize the final column too
+
+	content, eolOffsets := lv.logs.Contents()
+	lines := len(eolOffsets)
 	if lines <= 0 {
 		return nil
 	}
-
-	bounds := image.Rectangle{topLeft, ctx.Output.Size}
-	bounds.Max = bounds.Max.Add(image.Pt(0, 1)) // TODO ideally utilize the final column too
 	if diff := bounds.Dy() - lines + 1; diff > 0 {
 		bounds.Min.Y += diff
 	}
 	if delta := ctx.Input.TotalScrollIn(bounds); delta != 0 {
 		lv.scrollBy(lines, delta)
 	}
-	start, end := lv.viewWindow(lines, viewLines)
 
 	// render
+	start, end := lv.viewWindow(lines, viewLines)
 	ctx.Output.To(bounds.Min)
 	if height > 1 {
 		fmt.Fprintf(ctx.Output, "Logs (%v-%v/%v):", start, end, lines)
 	}
-	off := lv.eolOffsets[start-1] + 1
-	for _, eol := range lv.eolOffsets[start : end+1] {
+	off := 0
+	if start > 1 {
+		off = eolOffsets[start-2] + 1
+	}
+	for _, eol := range eolOffsets[start-1 : end] {
 		ctx.Output.To(image.Pt(1, ctx.Output.Y+1))
 		w := bounds.Max.X - ctx.Output.X
 		writeTruncated(ctx, w, content[off:eol])
 		off = eol + 1
 	}
 	return nil
-}
-
-func (lv *LogView) scanContent() []byte {
-	content := bytes.TrimRight(lv.logs.Bytes(), "\n")
-	if len(content) > lv.lastByte {
-		if len(lv.eolOffsets) == 0 {
-			lv.eolOffsets = append(lv.eolOffsets, -1)
-		} else {
-			lv.eolOffsets = lv.eolOffsets[:len(lv.eolOffsets)-1]
-		}
-		for off := lv.lastByte; off < len(content); off++ {
-			i := bytes.IndexByte(content[off:], '\n')
-			if i < 0 {
-				break
-			}
-			off += i
-			lv.eolOffsets = append(lv.eolOffsets, off)
-		}
-		lv.lastByte = len(content)
-		lv.eolOffsets = append(lv.eolOffsets, lv.lastByte)
-	}
-	return content
 }
 
 func (lv *LogView) scrollBy(lines, delta int) {
