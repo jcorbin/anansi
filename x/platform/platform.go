@@ -163,22 +163,6 @@ func (p *Platform) Run(client Client) (err error) {
 		p.replay.cur = p.replay.input
 	}
 
-	// start background workers
-	for i := 0; i < len(p.bgworkers); i++ {
-		if err := p.bgworkers[i].Start(); err != nil {
-			return err
-		}
-	}
-
-	// defer stop background workers
-	defer func() {
-		for i := len(p.bgworkers) - 1; i >= 0; i-- {
-			if serr := p.bgworkers[i].Stop(); err == nil {
-				err = serr
-			}
-		}
-	}()
-
 	stopSig := make(chan os.Signal, 1)
 	signal.Notify(stopSig, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	defer signal.Stop(stopSig)
@@ -276,13 +260,31 @@ func (p *Platform) Enter(term *anansi.Term) error {
 		}
 	}
 
-	return p.termContext.Enter(term)
+	if err := p.termContext.Enter(term); err != nil {
+		return err
+	}
+
+	// start background workers
+	for i := 0; i < len(p.bgworkers); i++ {
+		if err := p.bgworkers[i].Start(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Exit tears down everything that Enter setup.
 func (p *Platform) Exit(term *anansi.Term) (err error) {
 	if term != p.term {
 		return nil
+	}
+
+	// stop background workers
+	for i := len(p.bgworkers) - 1; i >= 0; i-- {
+		if serr := p.bgworkers[i].Stop(); err == nil {
+			err = serr
+		}
 	}
 
 	p.buf.WriteSGR(p.screen.CursorState.MergeSGR(0))
