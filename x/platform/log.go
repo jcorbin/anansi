@@ -22,7 +22,10 @@ type LogSink struct {
 	buf     bytes.Buffer
 	bufEOLs []int
 
-	f *os.File
+	direct bool
+	bgWorkerCore
+	fbuf bytes.Buffer
+	f    *os.File
 }
 
 // Contents all in-memory buffered bytes and a slice containing the index of
@@ -47,6 +50,16 @@ func (logs *LogSink) Write(p []byte) (n int, _ error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
+	if logs.f != nil {
+		if logs.direct {
+			if n, err := logs.f.Write(p); err != nil {
+				return n, err
+			}
+		} else {
+			_, _ = logs.fbuf.Write(p)
+		}
+	}
+
 	b := logs.buf.Bytes()
 	// unwind any implicit EOL-at-EOF
 	if i := len(logs.bufEOLs) - 1; i >= 0 && b[logs.bufEOLs[i]] != '\n' {
@@ -63,13 +76,52 @@ func (logs *LogSink) Write(p []byte) (n int, _ error) {
 	}
 
 	n, _ = logs.buf.Write(p)
-	if logs.f != nil {
-		return logs.f.Write(p)
-	}
 	return n, nil
 }
 
-// SetFile sets the sink's file destination.
+// Start a background goroutine to defer file writing, transitioning to such
+// deferred writing model; file writes will not be performed until Notify() or
+// Stop() is next called.
+func (logs *LogSink) Start() error {
+	if logs.f == nil || logs.w != nil {
+		return nil
+	}
+	err := logs.bgWorkerCore.Start()
+	if err == nil {
+		logs.direct = false
+		go logs.flushWorker()
+	}
+	return err
+}
+
+// Stop the any background file-writing goroutine, transitioning back to direct
+// file writes.
+func (logs *LogSink) Stop() error {
+	err := logs.bgWorkerCore.Stop()
+	logs.direct = true
+	return err
+}
+
+func (logs *LogSink) flushWorker() {
+	defer close(logs.e)
+	for open := true; open; {
+		_, open = <-logs.w
+		if logs.f == nil {
+			break
+		}
+		if err := logs.flush(); err != nil {
+			logs.e <- err
+		}
+	}
+}
+
+func (logs *LogSink) flush() error {
+	_, err := logs.fbuf.WriteTo(logs.f)
+	return err
+}
+
+// SetFile sets the sink's file destination, starting or stopping a background
+// goroutine as needed.
 func (logs *LogSink) SetFile(f *os.File) error {
 	if logs.f == f {
 		return nil
@@ -82,12 +134,12 @@ func (logs *LogSink) SetFile(f *os.File) error {
 	if f != nil {
 		log.Printf("logging to %q", f.Name())
 		logs.f = f
-		return nil
+		return logs.Start()
 	}
 	if logs.f != nil {
 		log.Printf("disabling log file output")
 		logs.f = nil
-		return nil
+		return logs.Stop()
 	}
 	return nil
 }

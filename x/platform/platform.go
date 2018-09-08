@@ -66,7 +66,7 @@ func New(opts ...Option) (*Platform, error) {
 	p.FPSEstimate.data = make([]float64, defaultFrameRate)
 	p.Timing.ts = make([]time.Time, timingPeriod)
 	p.Timing.ds = make([]time.Duration, timingPeriod)
-	p.bgworkers = append(p.bgworkers, &p.Telemetry.coll)
+	p.bgworkers = append(p.bgworkers, &p.Telemetry.coll, &Logs)
 
 	if err := platformFlags.apply(&p); err != nil {
 		return nil, err
