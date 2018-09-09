@@ -56,7 +56,10 @@ func (ms MouseState) IsPress() (id uint8, is bool) {
 }
 
 // IsDrag returns true if the state represents motion with a button held.
-func (ms MouseState) IsDrag() bool { return ms&(MouseRelease|MouseMotion) == MouseMotion }
+func (ms MouseState) IsDrag() bool {
+	return ms.ButtonID() != 0 &&
+		ms&(MouseRelease|MouseMotion) == MouseMotion
+}
 
 func (ms MouseState) String() string {
 	s := ms.ButtonName()
