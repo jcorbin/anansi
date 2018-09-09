@@ -349,6 +349,22 @@ func RGB(r, g, b uint8) SGRColor {
 	return sgrColor24 | SGRColor(r) | SGRColor(g)<<8 | SGRColor(b)<<16
 }
 
+// RGBA creates an SGRColor from color.Color() alpha-premultiplied values,
+// ignoring the alpha value. Clips components to 0xffff before converting to
+// 24-bit color (8-bit per channel).
+func RGBA(r, g, b, _ uint32) SGRColor {
+	if r > 0xffff {
+		r = 0xffff
+	}
+	if g > 0xffff {
+		g = 0xffff
+	}
+	if b > 0xffff {
+		b = 0xffff
+	}
+	return RGB(uint8(r>>8), uint8(g>>8), uint8(b>>8))
+}
+
 const (
 	sgrColor24  SGRColor = 1 << 24 // 24-bit color flag
 	sgrColorSet SGRColor = 1 << 25 // color set flag (only used when inside SGRAttr)
