@@ -99,7 +99,7 @@ func (d *demo) Update(ctx *platform.Context) (err error) {
 		if r == 0 {
 			r = def
 		}
-		ctx.Output.Set(image.Pt(x, y), r, d.Grid.Attr[i])
+		ctx.Output.Cell(image.Pt(x, y)).Set(r, d.Grid.Attr[i])
 		if x++; x > d.Grid.Size.X {
 			x = 1
 			y++

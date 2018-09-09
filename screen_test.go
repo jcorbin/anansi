@@ -30,19 +30,19 @@ func TestScreen(t *testing.T) {
 			}, ""},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.Set(image.Pt(3, 3), '@', ansi.SGRBrightGreen.FG())
+				sc.Cell(image.Pt(3, 3)).Set('@', ansi.SGRBrightGreen.FG())
 			}, "\x1b[3;3H\x1b[0;92m@"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.Set(image.Pt(4, 3), '@', ansi.SGRBrightYellow.FG())
+				sc.Cell(image.Pt(4, 3)).Set('@', ansi.SGRBrightYellow.FG())
 			}, "\x1b[D\x1b[0m \x1b[93m@"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.Set(image.Pt(4, 4), '@', ansi.SGRGreen.FG())
+				sc.Cell(image.Pt(4, 4)).Set('@', ansi.SGRGreen.FG())
 			}, "\x1b[D\x1b[0m \x1b[4;4H\x1b[32m@"}, // 5,4
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.Set(image.Pt(3, 4), '@', ansi.SGRYellow.FG())
+				sc.Cell(image.Pt(3, 4)).Set('@', ansi.SGRYellow.FG())
 			}, "\x1b[2D\x1b[33m@\x1b[0m "},
 		}},
 

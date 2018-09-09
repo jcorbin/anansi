@@ -15,6 +15,13 @@ type Grid struct {
 	// TODO []string for multi-rune glyphs
 }
 
+// Cell is a reference to a positioned cell within a Grid.
+type Cell struct {
+	image.Point
+	Grid *Grid
+	I    int
+}
+
 // Clear the grid, setting all runes and attrs to 0.
 func (g *Grid) Clear() {
 	for i := range g.Rune {
@@ -64,22 +71,59 @@ func (g *Grid) Bounds() image.Rectangle {
 	return image.Rectangle{image.Pt(1, 1), g.Size.Add(image.Pt(1, 1))}
 }
 
-// Set the rune and attribute for the given x,y cell; silently ignores
-// out-of-bounds points.
-func (g *Grid) Set(pt image.Point, r rune, attr ansi.SGRAttr) {
+// Cell returns the grid cell for the given point, which will be the Cell zero
+// value if outside the grid.
+func (g *Grid) Cell(pt image.Point) Cell {
 	if i, ok := g.index(pt); ok {
-		g.Rune[i] = r
-		g.Attr[i] = attr
+		return Cell{pt, g, i}
+	}
+	return Cell{}
+}
+
+// Get returns the cell's rune value and SGR attributes.
+func (c Cell) Get() (rune, ansi.SGRAttr) {
+	if c.Grid != nil {
+		return c.Grid.Rune[c.I], c.Grid.Attr[c.I]
+	}
+	return 0, 0
+}
+
+// Set sets both the cell's rune value and its SGR attributes.
+func (c Cell) Set(r rune, a ansi.SGRAttr) {
+	if c.Grid != nil {
+		c.Grid.Rune[c.I] = r
+		c.Grid.Attr[c.I] = a
 	}
 }
 
-// Get the rune and attribute set for the given x,y cell; always returns 0 for
-// out-of-bounds points.
-func (g *Grid) Get(pt image.Point) (rune, ansi.SGRAttr) {
-	if i, ok := g.index(pt); ok {
-		return g.Rune[i], g.Attr[i]
+// Rune returns the cell's rune value.
+func (c Cell) Rune() rune {
+	if c.Grid != nil {
+		return c.Grid.Rune[c.I]
 	}
-	return 0, 0
+	return 0
+}
+
+// Attr returns the cell's SGR attributes.
+func (c Cell) Attr() ansi.SGRAttr {
+	if c.Grid != nil {
+		return c.Grid.Attr[c.I]
+	}
+	return 0
+}
+
+// SetRune sets the cell's rune value.
+func (c Cell) SetRune(r rune) {
+	if c.Grid != nil {
+		c.Grid.Rune[c.I] = r
+	}
+}
+
+// SetAttr sets the cell's SGR attributes.
+func (c Cell) SetAttr(a ansi.SGRAttr) {
+	if c.Grid != nil {
+		c.Grid.Attr[c.I] = a
+	}
 }
 
 func (g *Grid) index(pt image.Point) (int, bool) {

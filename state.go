@@ -265,7 +265,7 @@ func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
 func (scs *ScreenState) ProcessRune(r rune) {
 	switch {
 	case unicode.IsGraphic(r):
-		scs.Grid.Set(scs.Point, r, scs.CursorState.Attr)
+		scs.Grid.Cell(scs.Point).Set(r, scs.CursorState.Attr)
 		if scs.X++; scs.X > scs.Size.X {
 			scs.X = 1
 			scs.linefeed()
