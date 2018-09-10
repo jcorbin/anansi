@@ -58,6 +58,12 @@ func (g *Grid) CopyTo(dest *Grid) {
 	copy(dest.Attr, g.Attr)
 }
 
+// Bounds returns the bounding rectangle of the grid in cell space: 1,1 origin,
+// with max of Size+1.
+func (g *Grid) Bounds() image.Rectangle {
+	return image.Rectangle{image.Pt(1, 1), g.Size.Add(image.Pt(1, 1))}
+}
+
 // Set the rune and attribute for the given x,y cell; silently ignores
 // out-of-bounds points.
 func (g *Grid) Set(pt image.Point, r rune, attr ansi.SGRAttr) {
