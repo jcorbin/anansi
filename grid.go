@@ -70,6 +70,42 @@ func (g *Grid) Bounds() image.Rectangle {
 	return image.Rectangle{image.Pt(1, 1), g.Size.Add(image.Pt(1, 1))}
 }
 
+// CopyIntoAt is a convenience for calling CopyInto with a bounding rectangle
+// starting at a given point and maxing at bounds.
+func (g *Grid) CopyIntoAt(dest *Grid, at image.Point) {
+	if at == image.ZP {
+		g.CopyInto(dest, image.ZR)
+	} else {
+		g.CopyInto(dest, image.Rectangle{at, at.Add(g.Size).Add(image.Pt(1, 1))})
+	}
+}
+
+// CopyInto copies the receivers data into a region within the destination
+// grid, clipping if necessary.
+func (g *Grid) CopyInto(dest *Grid, r image.Rectangle) {
+	if r == image.ZR {
+		r = dest.Bounds()
+	} else {
+		r = r.Intersect(dest.Bounds())
+	}
+	if dx := r.Dx() - g.Size.X; dx > 0 {
+		r.Max.X -= dx
+	}
+	if dy := r.Dy() - g.Size.Y; dy > 0 {
+		r.Max.Y -= dy
+	}
+
+	stride := r.Dx()
+	i := 0
+	j, _ := dest.index(r.Min)
+	for i < len(g.Rune) && j < len(dest.Rune) {
+		copy(dest.Rune[j:j+stride], g.Rune[i:])
+		copy(dest.Attr[j:j+stride], g.Attr[i:])
+		i += g.Size.X
+		j += dest.Size.X
+	}
+}
+
 // Cell returns the grid cell for the given point, which will be the Cell zero
 // value if outside the grid.
 func (g *Grid) Cell(pt image.Point) Cell {
