@@ -24,6 +24,12 @@ func (b *Buffer) Grow(n int) {
 	b.buf.Grow(n)
 }
 
+// Bytes returns a byte slice containing all bytes written into the internal
+// buffer. Returned slice is only valid until the next call to a buffer method.
+func (b *Buffer) Bytes() []byte {
+	return b.buf.Bytes()
+}
+
 // Reset the internal buffer.
 func (b *Buffer) Reset() {
 	b.buf.Reset()
