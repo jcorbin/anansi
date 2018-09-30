@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"image"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -139,4 +140,140 @@ func TestScreen(t *testing.T) {
 			}
 		}))
 	}
+}
+
+func Test_gridLines(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		size  image.Point
+		in    string
+		lines []string
+	}{
+		{
+			name: "5x5 room",
+			size: image.Pt(10, 10),
+			in: "" +
+				"\x1b[3;3H\x1b[32m#####" +
+				"\x1b[4;3H#\x1b[4;7H#" +
+				"\x1b[5;3H#\x1b[5;7H#" +
+				"\x1b[6;3H#\x1b[6;7H#" +
+				"\x1b[7;3H#####",
+			lines: []string{
+				"          ",
+				"          ",
+				"  \x1b[32m#####\x1b[0m   ",
+				"  \x1b[32m#\x1b[0m   \x1b[32m#\x1b[0m   ",
+				"  \x1b[32m#\x1b[0m   \x1b[32m#\x1b[0m   ",
+				"  \x1b[32m#\x1b[0m   \x1b[32m#\x1b[0m   ",
+				"  \x1b[32m#####\x1b[0m   ",
+				"          ",
+				"          ",
+				"          ",
+			},
+		},
+
+		{
+			name: "player inline 5x5 room",
+			size: image.Pt(10, 10),
+			in: "" +
+				"\x1b[3;3H\x1b[32m#####" +
+				"\x1b[4;3H#\x1b[4;7H#" +
+				"\x1b[5;3H#" +
+				"\x1b[5;5H\x1b[31m@" +
+				"\x1b[5;7H\x1b[32m#" +
+				"\x1b[6;3H#\x1b[6;7H#" +
+				"\x1b[7;3H#####",
+			lines: []string{
+				"          ",
+				"          ",
+				"  \x1b[32m#####\x1b[0m   ",
+				"  \x1b[32m#\x1b[0m   \x1b[32m#\x1b[0m   ",
+				"  \x1b[32m#\x1b[0m \x1b[31m@\x1b[0m \x1b[32m#\x1b[0m   ",
+				"  \x1b[32m#\x1b[0m   \x1b[32m#\x1b[0m   ",
+				"  \x1b[32m#####\x1b[0m   ",
+				"          ",
+				"          ",
+				"          ",
+			},
+		},
+
+		{
+			name: "player after 5x5 room",
+			size: image.Pt(10, 10),
+			in: "" +
+				"\x1b[3;3H\x1b[32m#####" +
+				"\x1b[4;3H#\x1b[4;7H#" +
+				"\x1b[5;3H#\x1b[5;7H#" +
+				"\x1b[6;3H#\x1b[6;7H#" +
+				"\x1b[7;3H#####" +
+				"\x1b[5;5H\x1b[31m@",
+			lines: []string{
+				"          ",
+				"          ",
+				"  \x1b[32m#####\x1b[0m   ",
+				"  \x1b[32m#\x1b[0m   \x1b[32m#\x1b[0m   ",
+				"  \x1b[32m#\x1b[0m \x1b[31m@\x1b[0m \x1b[32m#\x1b[0m   ",
+				"  \x1b[32m#\x1b[0m   \x1b[32m#\x1b[0m   ",
+				"  \x1b[32m#####\x1b[0m   ",
+				"          ",
+				"          ",
+				"          ",
+			},
+		},
+	} {
+		t.Run(tc.name, logBuf.With(func(t *testing.T) {
+			g := parseGrid(tc.in, tc.size)
+			assert.Equal(t, tc.lines, gridLines(g, ' '))
+			if t.Failed() {
+				rs, as := gridRowData(g)
+				for i := range rs {
+					t.Logf("rs[%v]: %q", i, rs[i])
+				}
+				for i := range as {
+					t.Logf("as[%v]: %q", i, as[i])
+				}
+			}
+		}))
+	}
+}
+
+func parseGrid(s string, sz image.Point) Grid {
+	var sc Screen
+	sc.Resize(sz)
+	sc.WriteString(s)
+	return sc.Grid
+}
+
+func gridLines(g Grid, fill rune) (lines []string) {
+	var ca ansi.SGRAttr
+	for i, p := 0, image.ZP; p.Y < g.Size.Y; p.Y++ {
+		var b []byte
+		for p.X = 0; p.X < g.Size.X; p.X++ {
+			r, a := g.Rune[i], g.Attr[i]
+			if a != ca {
+				a = ca.Diff(a)
+				b = a.AppendTo(b)
+				ca = ca.Merge(a)
+			}
+			var tmp [4]byte
+			if r == 0 {
+				r = fill
+			}
+			b = append(b, tmp[:utf8.EncodeRune(tmp[:], r)]...)
+			i++
+		}
+		lines = append(lines, string(b))
+	}
+	return lines
+}
+
+func gridRowData(g Grid) (rs [][]rune, as [][]ansi.SGRAttr) {
+	// NOTE p is in array space, not 1,1-based screen space
+	for i, p := 0, image.ZP; p.Y < g.Size.Y; p.Y++ {
+		j := p.Y * g.Size.X
+		rs = append(rs, g.Rune[i:j])
+		as = append(as, g.Attr[i:j])
+		i = j
+	}
+	return rs, as
 }
