@@ -3,6 +3,7 @@ package ansi
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // SGR Set Graphics Rendition (affects character attributes)
@@ -686,8 +687,34 @@ func (attr SGRAttr) Size() int {
 }
 
 func (attr SGRAttr) String() string {
-	if attr == 0 {
-		return ""
+	parts := make([]string, 0, 8)
+	if attr&SGRAttrClear != 0 {
+		parts = append(parts, "clear")
 	}
-	return string(attr.AppendTo(make([]byte, 0, attr.Size())))
+	if attr&SGRAttrBold != 0 {
+		parts = append(parts, "bold")
+	}
+	if attr&SGRAttrDim != 0 {
+		parts = append(parts, "dim")
+	}
+	if attr&SGRAttrItalic != 0 {
+		parts = append(parts, "italic")
+	}
+	if attr&SGRAttrUnderscore != 0 {
+		parts = append(parts, "underscore")
+	}
+	if attr&SGRAttrNegative != 0 {
+		parts = append(parts, "negative")
+	}
+	if attr&SGRAttrConceal != 0 {
+		parts = append(parts, "conceal")
+	}
+	if fg, set := attr.FG(); set {
+		parts = append(parts, "fg:"+fg.String())
+	}
+	if bg, set := attr.BG(); set {
+		parts = append(parts, "bg:"+bg.String())
+	}
+	// let implicit clear stand as ""
+	return strings.Join(parts, " ")
 }
