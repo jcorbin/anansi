@@ -45,8 +45,10 @@ func TestSGRAttr(t *testing.T) {
 			"\x1b[38;2;0;128;0;48;2;0;0;128m"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			p := tc.attr.AppendTo(nil)
 			assert.Equal(t, tc.name, tc.attr.String(), "expected name string")
-			assert.Equal(t, tc.code, string(tc.attr.AppendTo(nil)), "expected code string")
+			assert.Equal(t, len(p), tc.attr.Size(), "expected correct size")
+			assert.Equal(t, tc.code, string(p), "expected code string")
 		})
 	}
 }

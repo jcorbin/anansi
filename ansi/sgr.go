@@ -451,6 +451,20 @@ func (c SGRColor) appendFGTo(p []byte) []byte {
 	return p
 }
 
+func (c SGRColor) fgSize() int {
+	switch {
+	case c&sgrColor24 != 0:
+		return 4 + c.rgbSize()
+	case c <= SGRWhite:
+		return 2
+	case c <= SGRBrightWhite:
+		return 2
+	case c <= SGRGray24:
+		return 4 + len(colorStrings[uint8(c)])
+	}
+	return 0
+}
+
 func (c SGRColor) appendBGTo(p []byte) []byte {
 	switch {
 	case c&sgrColor24 != 0:
@@ -465,16 +479,16 @@ func (c SGRColor) appendBGTo(p []byte) []byte {
 	return p
 }
 
-func (c SGRColor) size() int {
+func (c SGRColor) bgSize() int {
 	switch {
 	case c&sgrColor24 != 0:
-		return 5 + 3 + 1 + 3 + 1 + 3
+		return 4 + c.rgbSize()
 	case c <= SGRWhite:
 		return 2
 	case c <= SGRBrightWhite:
 		return 3
 	case c <= SGRGray24:
-		return 5 + 3
+		return 4 + len(colorStrings[uint8(c)])
 	}
 	return 0
 }
@@ -484,6 +498,13 @@ func (c SGRColor) appendRGB(p []byte) []byte {
 	p = append(p, colorStrings[uint8(c>>8)]...)
 	p = append(p, colorStrings[uint8(c>>16)]...)
 	return p
+}
+
+func (c SGRColor) rgbSize() int {
+	return 0 +
+		len(colorStrings[uint8(c)]) +
+		len(colorStrings[uint8(c>>8)]) +
+		len(colorStrings[uint8(c>>16)])
 }
 
 var colorNames = [16]string{
@@ -655,6 +676,9 @@ func (attr SGRAttr) AppendTo(p []byte) []byte {
 // Size returns the number of bytes needed to encode the SGR control sequence needed.
 func (attr SGRAttr) Size() int {
 	n := -1 // discount the first over-counted ';' below
+	if attr&SGRAttrClear != 0 {
+		n += 2
+	}
 	if attr&SGRAttrBold != 0 {
 		n += 2
 	}
@@ -674,10 +698,10 @@ func (attr SGRAttr) Size() int {
 		n += 2
 	}
 	if fg, set := attr.FG(); set {
-		n += 1 + fg.size()
+		n += 1 + fg.fgSize()
 	}
 	if bg, set := attr.BG(); set {
-		n += 1 + bg.size()
+		n += 1 + bg.bgSize()
 	}
 	if n < 0 {
 		n = 1 // no args added, will append a clear code
