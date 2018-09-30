@@ -387,7 +387,14 @@ func (c SGRColor) String() string {
 	case c&sgrColor24 != 0:
 		var tmp [12]byte
 		p := c.appendRGB(tmp[:0])[1:]
+		for i := range p {
+			if p[i] == ';' {
+				p[i] = ','
+			}
+		}
 		return fmt.Sprintf("rgb(%s)", p)
+	case int(c) < len(colorNames):
+		return colorNames[c]
 	default:
 		return fmt.Sprintf("color%d", c)
 	}
@@ -476,6 +483,26 @@ func (c SGRColor) appendRGB(p []byte) []byte {
 	p = append(p, colorStrings[uint8(c>>8)]...)
 	p = append(p, colorStrings[uint8(c>>16)]...)
 	return p
+}
+
+var colorNames = [16]string{
+	"black",
+	"red",
+	"green",
+	"yellow",
+	"blue",
+	"magenta",
+	"cyan",
+	"white",
+
+	"bright-black",
+	"bright-red",
+	"bright-green",
+	"bright-yellow",
+	"bright-blue",
+	"bright-magenta",
+	"bright-cyan",
+	"bright-white",
 }
 
 var colorStrings [256]string
