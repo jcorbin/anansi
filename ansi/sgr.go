@@ -1,6 +1,9 @@
 package ansi
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 // SGR Set Graphics Rendition (affects character attributes)
 const (
@@ -380,15 +383,14 @@ const (
 )
 
 func (c SGRColor) String() string {
-	var tmp [6 + 3 + 1 + 3 + 1 + 3]byte
-	p := tmp[:0]
 	switch {
 	case c&sgrColor24 != 0:
-		p = c.appendRGB(append(p, "RGB"...))
+		var tmp [12]byte
+		p := c.appendRGB(tmp[:0])[1:]
+		return fmt.Sprintf("rgb(%s)", p)
 	default:
-		p = append(append(p, "Color"...), colorStrings[uint8(c)]...)
+		return fmt.Sprintf("color%d", c)
 	}
-	return string(p)
 }
 
 // FG constructs an SGR attribute value with the color as foreground.
