@@ -609,14 +609,21 @@ func (attr SGRAttr) AppendTo(p []byte) []byte {
 
 	// attr arguments
 	first := true
-	attrBytes := []byte{'0', '1', '2', '3', '4', '7', '8'}
-	for i := uint(0); i < sgrNumBits; i++ {
-		if attr&(1<<i) != 0 {
+	for i, b := range []byte{
+		'0', // SGRAttrClear
+		'1', // SGRAttrBold
+		'2', // SGRAttrDim
+		'3', // SGRAttrItalic
+		'4', // SGRAttrUnderscore
+		'7', // SGRAttrNegative
+		'8', // SGRAttrConceal
+	} {
+		if attr&(1<<uint(i)) != 0 {
 			if first {
-				p = append(p, attrBytes[i])
+				p = append(p, b)
 				first = false
 			} else {
-				p = append(p, ';', attrBytes[i])
+				p = append(p, ';', b)
 			}
 		}
 	}
