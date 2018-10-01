@@ -9,10 +9,10 @@ import (
 )
 
 var cursorMoves = [4]image.Point{
-	image.Pt(-1, 0), // CUU ^[[A
-	image.Pt(1, 0),  // CUD ^[[B
-	image.Pt(0, 1),  // CUF ^[[C
-	image.Pt(0, -1), // CUB ^[[D
+	image.Pt(0, -1), // CUU ^[[A
+	image.Pt(0, 1),  // CUD ^[[B
+	image.Pt(1, 0),  // CUF ^[[C
+	image.Pt(-1, 0), // CUB ^[[D
 }
 
 // CursorState represents cursor state, allowing consumers to reason virtually
