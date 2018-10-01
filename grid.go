@@ -2,7 +2,6 @@ package anansi
 
 import (
 	"image"
-	"unicode/utf8"
 
 	"github.com/jcorbin/anansi/ansi"
 )
@@ -149,8 +148,6 @@ func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ 
 		n += buf.WriteSeq(ansi.ED.With('2'))
 	}
 
-	var lastUpdate image.Point
-
 	for i, pt := 0, image.Pt(1, 1); i < len(g.Rune); /* next: */ {
 		gr, ga := g.Rune[i], g.Attr[i]
 
@@ -173,31 +170,6 @@ func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ 
 		}
 
 		if gr != 0 {
-
-			// check to see if we're indifferent to just writing the runes,
-			// rather than a CUF sequence
-			if travel := cur.Point.Sub(lastUpdate); lastUpdate != image.ZP && travel.Y == 0 && travel.X <= 4 {
-				rn := 0
-				var tmp [4]byte
-				j, _ := g.index(lastUpdate)
-				for _, r := range g.Rune[j:i] {
-					if r == 0 {
-						r = ' '
-					}
-					rn += utf8.EncodeRune(tmp[:], r)
-				}
-				if rn > 0 && rn <= 4 {
-					for _, r := range g.Rune[j:i] {
-						if r == 0 {
-							r = ' '
-						}
-						m, _ := buf.WriteRune(r)
-						n += m
-						cur.ProcessRune(r)
-					}
-				}
-			}
-
 			mv := cur.To(pt)
 			ad := cur.MergeSGR(ga)
 			n += buf.WriteSeq(mv)
@@ -205,7 +177,6 @@ func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ 
 			m, _ := buf.WriteRune(gr)
 			n += m
 			cur.ProcessRune(gr)
-			lastUpdate = cur.Point
 		}
 
 	next:

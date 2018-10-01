@@ -80,13 +80,13 @@ func TestScreen(t *testing.T) {
 				sc.To(image.Pt(1, 1))
 				sc.WriteString("1) ")
 				sc.WriteString("\x1b[31mred")
-			}, "\x1b[5D1) \x1b[31mred"},
+			}, "\x1b[5D1\x1b[2C\x1b[31mred"},
 			{func(sc *Screen) {
 				sc.Clear()
 				sc.To(image.Pt(1, 1))
 				sc.WriteString("2) ")
 				sc.WriteString("\x1b[32mgreen")
-			}, "\x1b[6D\x1b[0m2) \x1b[32mgreen"},
+			}, "\x1b[6D\x1b[0m2\x1b[2C\x1b[32mgreen"},
 		}},
 
 		{"writing", []step{
