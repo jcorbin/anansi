@@ -144,7 +144,7 @@ func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ 
 		return n, cur
 	}
 	diffing := true
-	if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Size != g.Size {
+	if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Size == image.ZP || prior.Size != g.Size {
 		diffing = false
 		n += buf.WriteSeq(ansi.ED.With('2'))
 	}
