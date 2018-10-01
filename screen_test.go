@@ -97,7 +97,7 @@ func TestScreen(t *testing.T) {
 				sc.Clear()
 				sc.To(image.Pt(1, 1))
 				sc.WriteString("hello world")
-			}, "\x1b[1;1H\x1b[0mhello worl\r\nd"},
+			}, "\x1b[1;1H\x1b[0mhello\x1b[Cworl\r\nd"},
 			{func(sc *Screen) {
 				sc.To(image.Pt(1, 1))
 				sc.WriteString("hello ")
