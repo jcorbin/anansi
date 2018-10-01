@@ -94,38 +94,28 @@ func TestEditLine(t *testing.T) {
 				expect: expectResult(""),
 			},
 			{
-				in: "h",
-				out: "\x1b[?25l" +
-					"h " +
-					"\x1b[D\x1b[?25h",
+				in:     "h",
+				out:    "\x1b[?25lh\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
-				in: "e",
-				out: "\x1b[?25l" +
-					"e " +
-					"\x1b[D\x1b[?25h",
+				in:     "e",
+				out:    "\x1b[?25le\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
-				in: "l",
-				out: "\x1b[?25l" +
-					"l " +
-					"\x1b[D\x1b[?25h",
+				in:     "l",
+				out:    "\x1b[?25ll\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
-				in: "l",
-				out: "\x1b[?25l" +
-					"l " +
-					"\x1b[D\x1b[?25h",
+				in:     "l",
+				out:    "\x1b[?25ll\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
-				in: "o",
-				out: "\x1b[?25l" +
-					"o " +
-					"\x1b[D\x1b[?25h",
+				in:     "o",
+				out:    "\x1b[?25lo\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
@@ -144,10 +134,8 @@ func TestEditLine(t *testing.T) {
 				expect: expectResult(""),
 			},
 			{
-				in: "hello",
-				out: "\x1b[?25l" +
-					"hello " +
-					"\x1b[D\x1b[?25h",
+				in:     "hello",
+				out:    "\x1b[?25lhello\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
@@ -172,10 +160,8 @@ func TestEditLine(t *testing.T) {
 				expect: expectResult(""),
 			},
 			{
-				in: "hello alice",
-				out: "\x1b[?25l" +
-					"llo alice " +
-					"\x1b[D\x1b[?25h",
+				in:     "hello alice",
+				out:    "\x1b[?25lllo alice\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
@@ -186,10 +172,8 @@ func TestEditLine(t *testing.T) {
 				expect: expectResult(""),
 			},
 			{
-				in: "bob",
-				out: "\x1b[?25l" +
-					"bob " +
-					"\x1b[D\x1b[?25h",
+				in:     "bob",
+				out:    "\x1b[?25lbob\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
@@ -208,10 +192,8 @@ func TestEditLine(t *testing.T) {
 				expect: expectResult(""),
 			},
 			{
-				in: "hello alice",
-				out: "\x1b[?25l" +
-					"llo alice " +
-					"\x1b[D\x1b[?25h",
+				in:     "hello alice",
+				out:    "\x1b[?25lllo alice\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{

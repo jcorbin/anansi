@@ -160,11 +160,11 @@ func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ 
 			} else if pt.X <= prior.Size.X {
 				j := prior.Size.X*(pt.Y-1) + pt.X - 1
 				pr, pa := prior.Rune[j], prior.Attr[j] // NOTE range ok since pt <= prior.Size
-				if gr == pr && ga == pa {
-					goto next // continue
-				}
 				if gr == 0 {
 					gr, ga = ' ', 0
+				}
+				if pr == 0 {
+					pr, pa = ' ', 0
 				}
 				if gr == pr && ga == pa {
 					goto next // continue
