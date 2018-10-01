@@ -197,8 +197,10 @@ func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ 
 				}
 			}
 
-			n += buf.WriteSeq(cur.To(pt))
-			n += buf.WriteSGR(cur.MergeSGR(ga))
+			mv := cur.To(pt)
+			ad := cur.MergeSGR(ga)
+			n += buf.WriteSeq(mv)
+			n += buf.WriteSGR(ad)
 			m, _ := buf.WriteRune(gr)
 			n += m
 			cur.ProcessRune(gr)
