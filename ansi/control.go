@@ -225,5 +225,11 @@ func (seq Seq) Size() int {
 }
 
 func (seq Seq) String() string {
-	return string(seq.AppendTo(make([]byte, 0, seq.Size())))
+	if seq.id == 0 && seq.numBytes == 0 && seq.numInts == 0 {
+		return ""
+	}
+	p := make([]byte, 0, seq.numBytes+10*seq.numInts)
+	p = seq.appendArgBytes(p)
+	p = seq.appendArgNums(p)
+	return fmt.Sprintf("%v%q", seq.id, p)
 }

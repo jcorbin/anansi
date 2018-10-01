@@ -35,44 +35,45 @@ func TestEscape_AppendWith(t *testing.T) {
 				tc.expect,
 				string(tc.id.AppendWith(make([]byte, 0, n), tc.arg...)),
 				"from just enough")
-
 			assert.Equal(t,
 				tc.expect,
 				string(tc.id.AppendWith(make([]byte, 0, n+1), tc.arg...)),
 				"from more than enough")
-
 			prior := "hello"
 			b := make([]byte, 0, n+2*len(prior))
 			b = append(b, prior...)
 			b = tc.id.AppendWith(b, tc.arg...)
 			assert.Equal(t, tc.expect, string(b[len(prior):]), "with prior")
-
 		})
 	}
 }
 
 var seqTestCases = []struct {
-	out string
-	seq ansi.Seq
+	name     string
+	seq      ansi.Seq
+	expected string
 }{
-	{"\x1b[<t", ansi.CSI('t').With('<')},
-	{"\x1b[<=t", ansi.CSI('t').With('<', '=')},
-	{"\x1b[<=>t", ansi.CSI('t').With('<', '=', '>')},
-	{"\x1b[<=?>t", ansi.CSI('t').With('<', '=', '?', '>')},
+	{`CSI+t"<"`, ansi.CSI('t').With('<'), "\x1b[<t"},
+	{`CSI+t"<="`, ansi.CSI('t').With('<', '='), "\x1b[<=t"},
+	{`CSI+t"<=>"`, ansi.CSI('t').With('<', '=', '>'), "\x1b[<=>t"},
+	{`CSI+t"<=?>"`, ansi.CSI('t').With('<', '=', '?', '>'), "\x1b[<=?>t"},
 
-	{"\x1b[12t", ansi.CSI('t').WithInts(12)},
-	{"\x1b[12;34t", ansi.CSI('t').WithInts(12, 34)},
-	{"\x1b[12;34;56t", ansi.CSI('t').WithInts(12, 34, 56)},
-	{"\x1b[12;34;56;78t", ansi.CSI('t').WithInts(12, 34, 56, 78)},
-	{"\x1b[12;34;56;78;90t", ansi.CSI('t').WithInts(12, 34, 56, 78, 90)},
+	{`CSI+t"12"`, ansi.CSI('t').WithInts(12), "\x1b[12t"},
+	{`CSI+t"12;34"`, ansi.CSI('t').WithInts(12, 34), "\x1b[12;34t"},
+	{`CSI+t"12;34;56"`, ansi.CSI('t').WithInts(12, 34, 56), "\x1b[12;34;56t"},
+	{`CSI+t"12;34;56;78"`, ansi.CSI('t').WithInts(12, 34, 56, 78), "\x1b[12;34;56;78t"},
+	{`CSI+t"12;34;56;78;90"`, ansi.CSI('t').WithInts(12, 34, 56, 78, 90), "\x1b[12;34;56;78;90t"},
 
-	{"\x1b[<=?>12;34;56;78;90t", ansi.CSI('t').With('<', '=', '?', '>').WithInts(12, 34, 56, 78, 90)},
+	{`CSI+t"<=?>12;34;56;78;90"`, ansi.CSI('t').With('<', '=', '?', '>').WithInts(12, 34, 56, 78, 90), "\x1b[<=?>12;34;56;78;90t"},
 }
 
-func TestSeq_String(t *testing.T) {
+func TestSeq(t *testing.T) {
 	for _, tc := range seqTestCases {
-		t.Run(strconv.Quote(tc.out), func(t *testing.T) {
-			assert.Equal(t, tc.out, tc.seq.String())
+		t.Run(strconv.Quote(tc.name), func(t *testing.T) {
+			p := tc.seq.AppendTo(nil)
+			assert.Equal(t, tc.name, tc.seq.String(), "expected string name")
+			assert.Equal(t, tc.expected, string(p), "expected code string")
+			assert.True(t, len(p) <= tc.seq.Size(), "expected size bound")
 		})
 	}
 }
@@ -80,8 +81,8 @@ func TestSeq_String(t *testing.T) {
 func BenchmarkSeq_AppendTo(b *testing.B) {
 	var p []byte
 	for _, tc := range seqTestCases {
-		b.Run(strconv.Quote(tc.out), func(b *testing.B) {
-			if need := b.N * len(tc.out); cap(p) < need {
+		b.Run(strconv.Quote(tc.name), func(b *testing.B) {
+			if need := b.N * len(tc.name); cap(p) < need {
 				p = make([]byte, 0, need)
 			} else {
 				p = p[:0]
