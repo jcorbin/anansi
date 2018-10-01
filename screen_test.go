@@ -295,10 +295,25 @@ func TestScreen_equiv(t *testing.T) {
 		steps []string
 	}{
 		{
-			name: "empty",
+			name: "room",
 			sz:   image.Pt(10, 10),
 			steps: []string{
 				"",
+
+				"" +
+					"\x1b[3;3H\x1b[32m#####" +
+					"\x1b[4;3H#\x1b[4;7H#" +
+					"\x1b[5;3H#\x1b[5;7H#" +
+					"\x1b[6;3H#\x1b[6;7H#" +
+					"\x1b[7;3H#####",
+
+				"" +
+					"\x1b[3;3H\x1b[32m#####" +
+					"\x1b[4;3H#\x1b[4;7H#" +
+					"\x1b[5;3H#\x1b[5;7H#" +
+					"\x1b[6;3H#\x1b[6;7H#" +
+					"\x1b[7;3H#####" +
+					"\x1b[5;5H\x1b[31m@",
 			},
 		},
 	} {
