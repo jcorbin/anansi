@@ -2,7 +2,9 @@ package anansi_test
 
 import (
 	"bytes"
+	"fmt"
 	"image"
+	"strconv"
 	"testing"
 	"unicode/utf8"
 
@@ -276,4 +278,69 @@ func gridRowData(g Grid) (rs [][]rune, as [][]ansi.SGRAttr) {
 		i = j
 	}
 	return rs, as
+}
+
+// TestScreen_equiv tests screen grid diffing by functional equivalence with a
+// full redraw. A test case is a series of grid states on a statically sized
+// grid. The test then loads each grid into a pair of independent screens.
+// The first screen is told to writes its output into an output screen, ala
+// Screen.WriteTo(). Then the second screen is told to write its output into
+// another output screen, but with a full redraw forced, ala
+// Screen.Invalidate(). The contents of both output screens is then tested
+// for equivalence.
+func TestScreen_equiv(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		sz    image.Point
+		steps []string
+	}{
+		{
+			name: "empty",
+			sz:   image.Pt(10, 10),
+			steps: []string{
+				"",
+			},
+		},
+	} {
+		t.Run(tc.name, logBuf.With(func(t *testing.T) {
+			var a, b, aout, bout Screen
+			a.Resize(tc.sz)
+			b.Resize(tc.sz)
+			aout.Resize(tc.sz)
+			bout.Resize(tc.sz)
+
+			for i, s := range tc.steps {
+				t.Run(fmt.Sprintf("step_%d", i), logBuf.With(func(t *testing.T) {
+					a.Grid = parseGrid(s, tc.sz)
+					b.Grid = parseGrid(s, tc.sz)
+
+					_, err := a.WriteTo(&aout)
+					require.NoError(t, err, "unexpected write error")
+					aLines := gridLines(aout.Grid, ' ')
+
+					b.Invalidate()
+					_, err = b.WriteTo(&bout)
+					require.NoError(t, err, "unexpected write error")
+					bLines := gridLines(bout.Grid, ' ')
+
+					var aw, bw int
+					for i := range aLines {
+						aLines[i] = strconv.Quote(aLines[i])
+						bLines[i] = strconv.Quote(bLines[i])
+						if n := utf8.RuneCountInString(aLines[i]); aw < n {
+							aw = n
+						}
+						if n := utf8.RuneCountInString(bLines[i]); bw < n {
+							bw = n
+						}
+					}
+					for i := range aLines {
+						t.Logf("%*s %*s", aw, aLines[i], bw, bLines[i])
+					}
+
+					assert.Equal(t, aLines, bLines, "[%v] expected equivalent output", i)
+				}))
+			}
+		}))
+	}
 }
