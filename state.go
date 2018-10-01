@@ -91,8 +91,9 @@ func (cs *CursorState) Hide() ansi.Seq {
 // MergeSGR merges the given SGR attribute into Attr, returning the difference.
 func (cs *CursorState) MergeSGR(attr ansi.SGRAttr) ansi.SGRAttr {
 	if !cs.attrKnown {
-		attr |= ansi.SGRAttrClear
+		cs.Attr = attr
 		cs.attrKnown = true
+		return attr | ansi.SGRAttrClear
 	}
 	diff := cs.Attr.Diff(attr)
 	cs.Attr = cs.Attr.Merge(diff)
