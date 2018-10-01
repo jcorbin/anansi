@@ -88,9 +88,10 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 ### Errata
 
-- differential screen update has an unknown glitch in it; easy to reproduce by
-  looping a short recording of moving the mouse around and clicking; glitches
-  go away on full redraw (Ctrl-L).
+- differential screen update is still not perfect, although the glitches that
+  were previously present are now lessened due to the functional test; however
+  this was done by removing a (perhaps premature) cursor movement optimization
+  to simplify diffing.
 - Works For Me ™ in tmux-under-iTerm2: should also work in other modern
   xterm-descended terminals, such as the libvte family; however terminfo
   detection not yet used by the platform layer, so basic things like
