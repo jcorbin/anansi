@@ -1,6 +1,7 @@
 package anansi
 
 import (
+	"fmt"
 	"image"
 	"unicode"
 
@@ -33,6 +34,14 @@ type ScreenState struct {
 	CursorState
 	UserCursor CursorState
 	Grid
+}
+
+func (cs CursorState) String() string {
+	return fmt.Sprintf("@%v a:%v v:%v", cs.Point, cs.Attr, cs.Visible)
+}
+
+func (scs ScreenState) String() string {
+	return fmt.Sprintf("%v uc:(%v) gsz:%v", scs.CursorState, scs.UserCursor, scs.Grid.Size)
 }
 
 // Clear the screen grid, and reset the UserCursor (to invisible nowhere).
