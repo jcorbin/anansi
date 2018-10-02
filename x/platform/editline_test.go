@@ -161,7 +161,7 @@ func TestEditLine(t *testing.T) {
 			},
 			{
 				in:     "hello alice",
-				out:    "\x1b[?25lllo alice\x1b[?25h",
+				out:    "\x1b[?25lllo\x1b[Calice\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
@@ -193,7 +193,7 @@ func TestEditLine(t *testing.T) {
 			},
 			{
 				in:     "hello alice",
-				out:    "\x1b[?25lllo alice\x1b[?25h",
+				out:    "\x1b[?25lllo\x1b[Calice\x1b[?25h",
 				expect: expectResult(""),
 			},
 			{
