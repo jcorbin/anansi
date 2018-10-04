@@ -65,3 +65,33 @@ func copySetup(dst, src Grid) (dp, sp ansi.Point, di, si int) {
 	si, _ = src.CellOffset(sp)
 	return dp, sp, di, si
 }
+
+// DrawBitmap draw's a bitmap's braille runes into the destination grid.
+//
+// Optional rendering styles may be passed to control the graphical rendition
+// and transparency of the braille runes. The styles are passed any prior grid
+// attributes for each target cell.
+//
+// One particularly useful style to use is ElideStyle(0x2800), which will map
+// any empty braille runes to the zero rune, causing only non-empty braille
+// runes to be drawn.
+//
+// Use sub-grids to target specific regions; see Grid.SubRect.
+func DrawBitmap(dst Grid, src *Bitmap, styles ...Style) {
+	style := Styles(styles...)
+	for gp, bp := dst.Rect.Min, src.Rect.Min; bp.Y < src.Rect.Max.Y; bp.Y += 4 {
+		gp.X, bp.X = dst.Rect.Min.X, src.Rect.Min.X
+		for gp.X < dst.Rect.Max.X && bp.X < src.Rect.Max.X {
+			if i, ok := dst.CellOffset(gp); ok {
+				r, a := src.Rune(bp), dst.Attr[i]
+				sp := ansi.PtFromImage(bp)
+				if r, a = style.Style(sp, 0, r, 0, a); r != 0 {
+					dst.Rune[i], dst.Attr[i] = r, a
+				}
+			}
+			gp.X++
+			bp.X += 2
+		}
+		gp.Y++
+	}
+}

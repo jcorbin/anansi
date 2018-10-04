@@ -1,6 +1,8 @@
 package anansi
 
-import "github.com/jcorbin/anansi/ansi"
+import (
+	"github.com/jcorbin/anansi/ansi"
+)
 
 // RenderGrid writes a grid's contents into an ansi buffer, relative to current
 // cursor state and any prior screen contents. To force an absolute
@@ -98,4 +100,28 @@ func renderGridDiff(buf *ansi.Buffer, cur CursorState, g, prior Grid, style Styl
 		}
 	}
 	return n, cur
+}
+
+// RenderBitmap writes a bitmap's contents as braille runes into an ansi buffer.
+// Optional style(s) may be passed to control graphical rendition of the
+// braille runes.
+func RenderBitmap(buf *ansi.Buffer, bi *Bitmap, styles ...Style) {
+	style := Styles(styles...)
+	for bp := bi.Rect.Min; bp.Y < bi.Rect.Max.Y; bp.Y += 4 {
+		if bp.Y > 0 {
+			buf.WriteByte('\n')
+		}
+		for bp.X = bi.Rect.Min.X; bp.X < bi.Rect.Max.X; bp.X += 2 {
+			sp := ansi.PtFromImage(bp)
+			sr := bi.Rune(bp)
+			if r, a := style.Style(sp, 0, sr, 0, 0); r != 0 {
+				if a != 0 {
+					buf.WriteSGR(a)
+				}
+				buf.WriteRune(r)
+			} else {
+				buf.WriteRune(' ')
+			}
+		}
+	}
 }

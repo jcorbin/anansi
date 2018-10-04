@@ -1,6 +1,7 @@
 package anansi_test
 
 import (
+	"image"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -154,6 +155,46 @@ func TestDrawGrid(t *testing.T) {
 			DrawGrid(dst, src, tc.styles...)
 			out := anansitest.GridLines(dst, '.')
 			assert.Equal(t, tc.out, out)
+		})
+	}
+}
+
+func TestDrawBitmap(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		gridSize image.Point
+		inLines  []string
+		outLines []string
+		at       ansi.Point
+		styles   []Style
+	}{
+		{
+			name:     "basic test pattern",
+			gridSize: image.Pt(3, 3),
+			at:       ansi.Pt(1, 1), // cell space origin
+			inLines: []string{
+				"#.#.",
+				".#.#",
+				"#.#.",
+				".#.#",
+				"#.#.",
+				".#.#",
+				"#.#.",
+				".#.#",
+			},
+			outLines: []string{
+				"⢕⢕_",
+				"⢕⢕_",
+				"___",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var g Grid
+			g.Resize(tc.gridSize)
+			bi := NewBitmapString('#', tc.inLines...)
+			DrawBitmap(g.SubAt(tc.at), bi, tc.styles...)
+			assert.Equal(t, tc.outLines, anansitest.GridLines(g, '_'))
 		})
 	}
 }
