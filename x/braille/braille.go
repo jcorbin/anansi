@@ -30,6 +30,33 @@ func NewBitmapData(stride int, data ...bool) *Bitmap {
 	return &Bitmap{data, stride, image.Rectangle{image.ZP, sz}}
 }
 
+// NewBitmapString creates a new braille bitmap from a set of representative
+// strings. Within the strings, the `set` rune indicates a 1/true bit. Each
+// string must be the same, stride, length.
+func NewBitmapString(set rune, lines ...string) *Bitmap {
+	var stride int
+	var n int
+	for _, line := range lines {
+		if stride == 0 {
+			stride = len(line)
+		} else if len(line) != stride {
+			panic("inconsistent line length")
+		}
+		n += stride
+	}
+	data := make([]bool, 0, n)
+	for _, line := range lines {
+		for _, r := range line {
+			if r == set {
+				data = append(data, true)
+			} else {
+				data = append(data, false)
+			}
+		}
+	}
+	return &Bitmap{data, stride, image.Rectangle{image.ZP, image.Pt(stride, len(lines))}}
+}
+
 // Bitmap is a 2-color bitmap targeting unicode braille runes.
 type Bitmap struct {
 	Bit    []bool
