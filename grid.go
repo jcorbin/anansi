@@ -8,7 +8,7 @@ import (
 
 // Grid is a grid of screen cells.
 type Grid struct {
-	Size image.Point
+	Size image.Point // TODO refactor to image.*-like Rect and Stride
 	Attr []ansi.SGRAttr
 	Rune []rune
 	// TODO []string for multi-rune glyphs
