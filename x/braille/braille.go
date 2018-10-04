@@ -95,12 +95,14 @@ func (bi *Bitmap) GetRune(p image.Point) (c rune) {
 }
 
 // CopyInto copies the bitmap's rune representation into an anansi cell grid.
-func (bi *Bitmap) CopyInto(g *anansi.Grid, at image.Point) {
+func (bi *Bitmap) CopyInto(g *anansi.Grid, at image.Point, transparent bool, a ansi.SGRAttr) {
 	for gp, p := at, bi.Rect.Min; p.Y < bi.Rect.Max.Y; p.Y += 4 {
 		gp.X = at.X
 		for p.X = bi.Rect.Min.X; p.X < bi.Rect.Max.X; p.X += 2 {
-			cell := g.Cell(gp)
-			cell.SetRune(bi.GetRune(p))
+			r := bi.GetRune(p)
+			if !(r == 0x2800 && transparent) {
+				g.Cell(gp).Set(r, a)
+			}
 			gp.X++
 		}
 		gp.Y++
@@ -109,7 +111,7 @@ func (bi *Bitmap) CopyInto(g *anansi.Grid, at image.Point) {
 
 // RenderInto renders the bitmap into an ansi buffer, optionally using raw
 // cursor position codes, rather than newlines.
-func (bi *Bitmap) RenderInto(buf *ansi.Buffer, rawMode bool) {
+func (bi *Bitmap) RenderInto(buf *ansi.Buffer, rawMode bool, transparent bool) {
 	for p := bi.Rect.Min; p.Y < bi.Rect.Max.Y; p.Y += 4 {
 		if p.Y > 0 {
 			if rawMode {
@@ -120,7 +122,9 @@ func (bi *Bitmap) RenderInto(buf *ansi.Buffer, rawMode bool) {
 			}
 		}
 		for p.X = bi.Rect.Min.X; p.X < bi.Rect.Max.X; p.X += 2 {
-			buf.WriteRune(bi.GetRune(p))
+			if r := bi.GetRune(p); !(r == 0x2800 && transparent) {
+				buf.WriteRune(r)
+			}
 		}
 	}
 }
