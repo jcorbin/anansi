@@ -10,34 +10,49 @@ import (
 
 // Grid is a grid of screen cells.
 type Grid struct {
-	Size image.Point
 	Attr []ansi.SGRAttr
 	Rune []rune
 	// TODO []string for multi-rune glyphs
+	Stride int
+	Rect   ansi.Rectangle
 }
 
 // Resize the grid to have room for n cells.
 // Returns true only if the resize was a change, false if it was a no-op.
 func (g *Grid) Resize(size image.Point) bool {
-	if size == g.Size {
+	if size == g.Rect.Size() {
 		return false
 	}
-	n := size.X * size.Y
-	for n > cap(g.Attr) {
-		g.Attr = append(g.Attr, 0)
+	if isSubgrid := g.Stride != g.Rect.Dx(); isSubgrid {
+		if size.X > g.Stride {
+			size.X = g.Stride
+		}
+		if g.Stride*size.Y > len(g.Rune) {
+			size.Y = len(g.Rune) / g.Stride
+		}
+		g.Rect.Max = g.Rect.Min.Add(size)
+	} else {
+		if g.Rect.Min.Point == image.ZP {
+			g.Rect.Min = ansi.Pt(1, 1)
+		}
+		g.Rect.Max = g.Rect.Min.Add(size)
+		g.Stride = size.X
+		n := g.Stride * size.Y
+		for n > cap(g.Attr) {
+			g.Attr = append(g.Attr, 0)
+		}
+		for n > cap(g.Rune) {
+			g.Rune = append(g.Rune, 0)
+		}
+		g.Attr = g.Attr[:n]
+		g.Rune = g.Rune[:n]
 	}
-	for n > cap(g.Rune) {
-		g.Rune = append(g.Rune, 0)
-	}
-	g.Attr = g.Attr[:n]
-	g.Rune = g.Rune[:n]
-	g.Size = size
 	return true
 }
 
 // Bounds returns the screen bounding rectangle of the grid.
 func (g Grid) Bounds() ansi.Rectangle {
-	return ansi.Rect(1, 1, g.Size.X+1, g.Size.Y+1)
+	return g.Rect
 }
 
 // CellOffset returns the offset of the screen cell and true if it's
@@ -47,7 +62,7 @@ func (g Grid) CellOffset(pt ansi.Point) (int, bool) {
 		return 0, false
 	}
 	p := pt.ToImage() // convert to normal 0-indexed point
-	return p.Y*g.Size.X + p.X, true
+	return p.Y*g.Stride + p.X, true
 }
 
 // Update writes the escape sequences and runes into the given buffer necessary
@@ -56,11 +71,18 @@ func (g Grid) CellOffset(pt ansi.Point) (int, bool) {
 // redraw is done. Returns the number of bytes written into the buffer, and the
 // final cursor state.
 func (g Grid) Update(cur CursorState, buf *ansi.Buffer, prior Grid) (n int, _ CursorState) {
+	if g.Stride != g.Rect.Dx() {
+		panic("sub-grid update not implemented")
+	}
+	if g.Rect.Min != ansi.Pt(1, 1) {
+		panic("sub-screen update not implemented")
+	}
+
 	if len(g.Attr) == 0 || len(g.Rune) == 0 {
 		return n, cur
 	}
 	diffing := true
-	if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Size == image.ZP || prior.Size != g.Size {
+	if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Rect.Empty() || !prior.Rect.Eq(g.Rect) {
 		diffing = false
 		n += buf.WriteSeq(ansi.ED.With('2'))
 	}
@@ -97,10 +119,44 @@ func (g Grid) Update(cur CursorState, buf *ansi.Buffer, prior Grid) (n int, _ Cu
 
 	next:
 		i++
-		if pt.X++; pt.X > g.Size.X {
-			pt.X = 1
+		if pt.X++; pt.X >= g.Rect.Max.X {
+			pt.X = g.Rect.Min.X
 			pt.Y++
 		}
 	}
 	return n, cur
+}
+
+// SubAt is a convenience for calling SubRect with at as the new Min point, and
+// the receiver's Rect.Max point.
+func (g Grid) SubAt(at ansi.Point) Grid {
+	return g.SubRect(ansi.Rectangle{Min: at, Max: g.Rect.Max})
+}
+
+// SubSize is a convenience for calling SubRect with a Max point determined by
+// adding the given size to the receiver's Rect.Min point.
+func (g Grid) SubSize(sz image.Point) Grid {
+	return g.SubRect(ansi.Rectangle{Min: g.Rect.Min, Max: g.Rect.Min.Add(sz)})
+}
+
+// SubRect returns a subgrid, sharing the receiver's Rune/Attr/Stride data, but
+// with a new bounding Rect.
+// Clamps r.Max to g.Rect.Max, and returns the zero Grid if r.Min is not in
+// g.Rect.
+func (g Grid) SubRect(r ansi.Rectangle) Grid {
+	if !r.Min.In(g.Rect) {
+		return Grid{}
+	}
+	if r.Max.X > g.Rect.Max.X {
+		r.Max.X = g.Rect.Max.X
+	}
+	if r.Max.Y > g.Rect.Max.Y {
+		r.Max.Y = g.Rect.Max.Y
+	}
+	return Grid{
+		Attr:   g.Attr,
+		Rune:   g.Rune,
+		Stride: g.Stride,
+		Rect:   r,
+	}
 }
