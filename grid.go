@@ -40,20 +40,20 @@ func (g *Grid) ClearRegion(i, max int) {
 // Resize the grid to have room for n cells.
 // Returns true only if the resize was a change, false if it was a no-op.
 func (g *Grid) Resize(size image.Point) bool {
-	if size != g.Size {
-		g.Size = size
-		n := size.X * size.Y
-		for n > cap(g.Attr) {
-			g.Attr = append(g.Attr, 0)
-		}
-		for n > cap(g.Rune) {
-			g.Rune = append(g.Rune, 0)
-		}
-		g.Attr = g.Attr[:n]
-		g.Rune = g.Rune[:n]
-		return true
+	if size == g.Size {
+		return false
 	}
-	return false
+	n := size.X * size.Y
+	for n > cap(g.Attr) {
+		g.Attr = append(g.Attr, 0)
+	}
+	for n > cap(g.Rune) {
+		g.Rune = append(g.Rune, 0)
+	}
+	g.Attr = g.Attr[:n]
+	g.Rune = g.Rune[:n]
+	g.Size = size
+	return true
 }
 
 // CopyTo resizes the dest grid to match the receiver, and copies all receiver
