@@ -104,8 +104,11 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 ### WIP
 
+- `anansi/x/braille` supports rendering a bitmap image to unicode braiile runes ([rc][rc])
+
 ### TODO
 
+- `anansi.Grid` should be refactored around an `image`-like `Stride` and `Rect` field
 - platform "middleware", i.e. for re-usable Ctrl-C and Ctrl-Z behavior (ideally
   making current builtins like Ctrl-L and record/replay pluggable)
 - fancier image composition tricks (ala [COPS][cops])
