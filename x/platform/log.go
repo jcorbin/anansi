@@ -97,6 +97,9 @@ func (logs *LogSink) Start() error {
 // Stop the any background file-writing goroutine, transitioning back to direct
 // file writes.
 func (logs *LogSink) Stop() error {
+	if logs.f == nil || logs.w == nil {
+		return nil
+	}
 	err := logs.bgWorkerCore.Stop()
 	logs.direct = true
 	return err

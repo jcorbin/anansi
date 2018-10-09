@@ -37,6 +37,9 @@ func (core *bgWorkerCore) Stop() error {
 		close(core.w)
 		core.w = nil
 	}
+	if core.e == nil {
+		return nil
+	}
 	return <-core.e
 }
 

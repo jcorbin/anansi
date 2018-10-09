@@ -8,6 +8,7 @@ import (
 
 	. "github.com/jcorbin/anansi"
 	"github.com/jcorbin/anansi/ansi"
+	anansitest "github.com/jcorbin/anansi/test"
 )
 
 func TestGrid_CopyIntoAt(t *testing.T) {
@@ -28,7 +29,7 @@ func TestGrid_CopyIntoAt(t *testing.T) {
 
 	over.CopyIntoAt(&under, image.Pt(3, 3))
 
-	lines := gridLines(under, '.')
+	lines := anansitest.GridLines(under, '.')
 	assert.Equal(t, []string{
 		"..........",
 		"..........",

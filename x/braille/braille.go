@@ -122,13 +122,19 @@ func (bi *Bitmap) GetRune(p image.Point) (c rune) {
 }
 
 // CopyInto copies the bitmap's rune representation into an anansi cell grid.
-func (bi *Bitmap) CopyInto(g *anansi.Grid, at image.Point, transparent bool, a ansi.SGRAttr) {
+// Passes the Style any prior grid attribute.
+// Only sets a cell value if the style returns a non-zero rune.
+//
+// NOTE The at argument is in grid cell space (1,1 origin-relative).
+// TODO eliminate the at argument once Grid gets refactor to be image-like.
+func (bi *Bitmap) CopyInto(g anansi.Grid, at image.Point, styles ...Style) {
+	style := Styles(styles...)
 	for gp, p := at, bi.Rect.Min; p.Y < bi.Rect.Max.Y; p.Y += 4 {
 		gp.X = at.X
 		for p.X = bi.Rect.Min.X; p.X < bi.Rect.Max.X; p.X += 2 {
-			r := bi.GetRune(p)
-			if !(r == 0x2800 && transparent) {
-				g.Cell(gp).Set(r, a)
+			cell := g.Cell(gp)
+			if r, a := style.Style(p, bi.GetRune(p), cell.Attr()); r != 0 {
+				cell.Set(r, a)
 			}
 			gp.X++
 		}
@@ -138,7 +144,8 @@ func (bi *Bitmap) CopyInto(g *anansi.Grid, at image.Point, transparent bool, a a
 
 // RenderInto renders the bitmap into an ansi buffer, optionally using raw
 // cursor position codes, rather than newlines.
-func (bi *Bitmap) RenderInto(buf *ansi.Buffer, rawMode bool, transparent bool) {
+func (bi *Bitmap) RenderInto(buf *ansi.Buffer, rawMode bool, styles ...Style) {
+	style := Styles(styles...)
 	for p := bi.Rect.Min; p.Y < bi.Rect.Max.Y; p.Y += 4 {
 		if p.Y > 0 {
 			if rawMode {
@@ -149,9 +156,93 @@ func (bi *Bitmap) RenderInto(buf *ansi.Buffer, rawMode bool, transparent bool) {
 			}
 		}
 		for p.X = bi.Rect.Min.X; p.X < bi.Rect.Max.X; p.X += 2 {
-			if r := bi.GetRune(p); !(r == 0x2800 && transparent) {
+			if r, a := style.Style(p, bi.GetRune(p), 0); r != 0 {
+				if a != 0 {
+					buf.WriteSGR(a)
+				}
 				buf.WriteRune(r)
+			} else {
+				buf.WriteRune(' ')
 			}
 		}
 	}
+}
+
+// Style allows styling of rendered braille runes. It's eponymous method gets
+// called with for each x,y point (in Bitmap space), rendered rune, and ansi
+// attr to be used; whatever rune and ansi attribute it returns is rendered.
+type Style interface {
+	Style(p image.Point, r rune, a ansi.SGRAttr) (rune, ansi.SGRAttr)
+}
+
+// Styles combines zero or more styles into a non-nil Style; if given none, it
+// returns a no-op Style; if given many, it returns a Style that calls each in
+// turn.
+func Styles(ss ...Style) Style {
+	var res styles
+	for _, s := range ss {
+		switch impl := s.(type) {
+		case _noopStyle:
+			continue
+		case styles:
+			res = append(res, impl...)
+		default:
+			res = append(res, s)
+		}
+	}
+	switch len(res) {
+	case 0:
+		return NoopStyle
+	case 1:
+		return res[0]
+	default:
+		return res
+	}
+}
+
+// StyleFunc is a convenience type alias for implementing Style.
+type StyleFunc func(p image.Point, r rune, a ansi.SGRAttr) (rune, ansi.SGRAttr)
+
+// Style calls the aliased function pointer
+func (f StyleFunc) Style(p image.Point, r rune, a ansi.SGRAttr) (rune, ansi.SGRAttr) {
+	return f(p, r, a)
+}
+
+type _noopStyle struct{}
+
+func (ns _noopStyle) Style(p image.Point, r rune, a ansi.SGRAttr) (rune, ansi.SGRAttr) { return r, 0 }
+
+// NoopStyle is a no-op style, used as a zero fill by Styles.
+var NoopStyle Style = _noopStyle{}
+
+type styles []Style
+
+func (ss styles) Style(p image.Point, r rune, a ansi.SGRAttr) (rune, ansi.SGRAttr) {
+	for _, s := range ss {
+		r, a = s.Style(p, r, a)
+	}
+	return r, a
+}
+
+// FillStyle implements a Style that fills empty runes with a fixed rune value.
+type FillStyle rune
+
+// Style replaces the passed rune with the receiver if the passed rune is 0 or
+// empty braille character.
+func (fs FillStyle) Style(p image.Point, r rune, a ansi.SGRAttr) (rune, ansi.SGRAttr) {
+	if r == 0 || r == 0x2800 {
+		r = rune(fs)
+	}
+	return r, a
+}
+
+// AttrStyle implements a Style that returns a fixed ansi attr for any non-zero runes.
+type AttrStyle ansi.SGRAttr
+
+// Style replaces the passed attr with the receiver if the passed rune is non-0.
+func (as AttrStyle) Style(p image.Point, r rune, a ansi.SGRAttr) (rune, ansi.SGRAttr) {
+	if r != 0 {
+		a = ansi.SGRAttr(as)
+	}
+	return r, a
 }
