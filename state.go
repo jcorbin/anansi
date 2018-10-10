@@ -380,7 +380,7 @@ func (scs *ScreenState) linefeed() {
 }
 
 func (scs *ScreenState) scrollBy(n int) {
-	i, ok := scs.index(image.Pt(1, 2))
+	i, ok := scs.index(scs.Point.Add(image.Pt(1, 2)))
 	if !ok {
 		return
 	}
