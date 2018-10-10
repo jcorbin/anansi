@@ -50,7 +50,7 @@ func (id Escape) WithInts(args ...int) Seq { return id.seq().WithInts(args...) }
 // ID returns the sequence's Escape identifier.
 func (seq Seq) ID() Escape { return seq.id }
 
-// With returns a copy of the sequence with the given argument bytes add.d
+// With returns a copy of the sequence with the given argument bytes added.
 // Argument bytes will be written immediately after the ESCape identifier
 // itself.
 func (seq Seq) With(arg ...byte) Seq {
