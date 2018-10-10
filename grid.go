@@ -35,19 +35,18 @@ func (g *Grid) Resize(size image.Point) bool {
 	return true
 }
 
-// Bounds returns the bounding rectangle of the grid in cell space: 1,1 origin,
-// with max of Size+1.
-func (g Grid) Bounds() image.Rectangle {
-	return image.Rectangle{image.Pt(1, 1), g.Size.Add(image.Pt(1, 1))}
+// Bounds returns the screen bounding rectangle of the grid.
+func (g Grid) Bounds() ansi.Rectangle {
+	return ansi.Rect(1, 1, g.Size.X+1, g.Size.Y+1)
 }
 
 // CellOffset returns the offset of the screen cell and true if it's
 // within the Grid's Bounds().
-func (g Grid) CellOffset(pt image.Point) (int, bool) {
+func (g Grid) CellOffset(pt ansi.Point) (int, bool) {
 	if !pt.In(g.Bounds()) {
 		return 0, false
 	}
-	p := pt.Sub(image.Pt(1, 1)) // convert to normal 0-indexed point
+	p := pt.ToImage() // convert to normal 0-indexed point
 	return p.Y*g.Size.X + p.X, true
 }
 
@@ -66,7 +65,7 @@ func (g Grid) Update(cur CursorState, buf *ansi.Buffer, prior Grid) (n int, _ Cu
 		n += buf.WriteSeq(ansi.ED.With('2'))
 	}
 
-	for i, pt := 0, image.Pt(1, 1); i < len(g.Rune); /* next: */ {
+	for i, pt := 0, ansi.Pt(1, 1); i < len(g.Rune); /* next: */ {
 		gr, ga := g.Rune[i], g.Attr[i]
 
 		if diffing {

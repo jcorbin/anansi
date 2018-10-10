@@ -18,7 +18,7 @@ var cursorMoves = [4]image.Point{
 // CursorState represents cursor state, allowing consumers to reason virtually
 // about it (e.g. to affect relative movement and SGR changes).
 type CursorState struct {
-	image.Point
+	ansi.Point
 	Attr    ansi.SGRAttr
 	Visible bool
 
@@ -50,7 +50,7 @@ func (scs *ScreenState) Clear() {
 		scs.Grid.Rune[i] = 0
 		scs.Grid.Attr[i] = 0
 	}
-	scs.CursorState.Point = image.Pt(0, 0)
+	scs.Point.Point = image.ZP
 	scs.CursorState.Attr = 0
 	scs.UserCursor = CursorState{}
 }
@@ -60,7 +60,7 @@ func (scs *ScreenState) Clear() {
 func (scs *ScreenState) Resize(size image.Point) bool {
 	if scs.Grid.Resize(size) {
 		if !scs.Point.In(scs.Bounds()) {
-			scs.Point = image.ZP
+			scs.Point.Point = image.ZP
 		}
 		return true
 	}
@@ -104,13 +104,14 @@ func (cs *CursorState) MergeSGR(attr ansi.SGRAttr) ansi.SGRAttr {
 }
 
 // To constructs an ansi control sequence that will move the cursor to the
-// given point using absolute (ansi.CUP) or relative (ansi.{CUU,CUD,CUF,CUD})
-// if possible. Returns a zero sequence if the cursor is already at the given
-// point.
-func (cs *CursorState) To(pt image.Point) ansi.Seq {
-	if cs.Point == image.ZP {
+// given screen point using absolute (ansi.CUP) or relative
+// (ansi.{CUU,CUD,CUF,CUD}) if possible. Returns a zero sequence if the cursor
+// is already at the given point.
+func (cs *CursorState) To(pt ansi.Point) ansi.Seq {
+	if !cs.Point.Valid() {
+		// TODO more nuanced: if X in unknown / Y is unknown?
 		cs.X, cs.Y = pt.X, pt.Y
-		return ansi.CUP.WithInts(pt.Y, pt.X)
+		return ansi.CUP.WithPoint(pt)
 	}
 	if pt.Y == cs.Y+1 && pt.X == 1 {
 		cs.X, cs.Y = pt.X, pt.Y
@@ -118,7 +119,7 @@ func (cs *CursorState) To(pt image.Point) ansi.Seq {
 	}
 	if pt.X != cs.X && pt.Y != cs.Y {
 		cs.X, cs.Y = pt.X, pt.Y
-		return ansi.CUP.WithInts(pt.Y, pt.X)
+		return ansi.CUP.WithPoint(pt)
 	}
 
 	dx := pt.X - cs.X
@@ -152,7 +153,7 @@ func (cs *CursorState) To(pt image.Point) ansi.Seq {
 	return ansi.Seq{}
 }
 
-func (scs *ScreenState) clamp(pt image.Point) image.Point {
+func (scs *ScreenState) clamp(pt ansi.Point) ansi.Point {
 	r := scs.Bounds()
 	if pt.X < r.Min.X {
 		pt.X = r.Min.X
@@ -168,7 +169,7 @@ func (scs *ScreenState) clamp(pt image.Point) image.Point {
 }
 
 // To sets the virtual cursor point to the supplied one.
-func (scs *ScreenState) To(pt image.Point) {
+func (scs *ScreenState) To(pt ansi.Point) {
 	scs.Point = scs.clamp(pt)
 }
 
@@ -176,7 +177,7 @@ func (scs *ScreenState) To(pt image.Point) {
 // writing any necessary control sequences into the provided buffer. Returns
 // the number of bytes written, and the updated cursor state.
 func (cs *CursorState) ApplyTo(cur CursorState, buf *ansi.Buffer) (n int, _ CursorState) {
-	if cs.Visible && cs.Point != image.ZP {
+	if cs.Visible && cs.Point.Valid() {
 		n += buf.WriteSeq(cur.To(cs.Point))
 		n += buf.WriteSGR(cur.MergeSGR(cs.Attr))
 		n += buf.WriteSeq(cur.Show())
@@ -227,11 +228,9 @@ func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
 
 	case ansi.CUP: // absolute cursor motion
 		if len(a) == 0 {
-			cs.Point = image.Pt(1, 1)
-		} else if y, n, err := ansi.DecodeNumber(a); err == nil {
-			if x, _, err := ansi.DecodeNumber(a[n:]); err == nil {
-				cs.Point = image.Pt(x, y)
-			}
+			cs.Point = ansi.Pt(1, 1)
+		} else if p, _, err := ansi.DecodePoint(a); err == nil {
+			cs.Point = p
 		}
 
 	case ansi.SGR:
@@ -309,11 +308,9 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 
 	case ansi.CUP: // absolute cursor motion
 		if len(a) == 0 {
-			scs.Point = scs.clamp(image.Pt(1, 1))
-		} else if y, n, err := ansi.DecodeNumber(a); err == nil {
-			if x, _, err := ansi.DecodeNumber(a[n:]); err == nil {
-				scs.Point = scs.clamp(image.Pt(x, y))
-			}
+			scs.Point = scs.clamp(ansi.Pt(1, 1))
+		} else if p, _, err := ansi.DecodePoint(a); err == nil {
+			scs.Point = scs.clamp(p)
 		}
 
 	case ansi.SGR:

@@ -157,7 +157,7 @@ var errExtraBytes = errors.New("unexpected extra argument bytes")
 //
 // 	CSI < Cb ; Cx ; Cy M
 // 	CSI < Cb ; Cx ; Cy m
-func DecodeXtermExtendedMouse(id Escape, arg []byte) (b MouseState, x, y int, err error) {
+func DecodeXtermExtendedMouse(id Escape, arg []byte) (b MouseState, p Point, err error) {
 	if (id == CSI('M') || id == CSI('m')) && len(arg) > 0 && arg[0] == '<' {
 		arg0 := arg
 		arg = arg[1:]
@@ -167,7 +167,7 @@ func DecodeXtermExtendedMouse(id Escape, arg []byte) (b MouseState, x, y int, er
 			err = errRange
 		}
 		if err != nil {
-			return 0, 0, 0, MouseDecodeError{id, arg0, "Cb", err}
+			return 0, p, MouseDecodeError{id, arg0, "Cb", err}
 		}
 		b = MouseState(v)
 		if id == CSI('m') {
@@ -175,23 +175,23 @@ func DecodeXtermExtendedMouse(id Escape, arg []byte) (b MouseState, x, y int, er
 		}
 		arg = arg[n:]
 
-		x, n, err = DecodeNumber(arg)
+		p.X, n, err = DecodeNumber(arg)
 		if err != nil {
-			return 0, 0, 0, MouseDecodeError{id, arg0, "Cx", err}
+			return 0, p, MouseDecodeError{id, arg0, "Cx", err}
 		}
 		arg = arg[n:]
 
-		y, n, err = DecodeNumber(arg)
+		p.Y, n, err = DecodeNumber(arg)
 		if err != nil {
-			return 0, 0, 0, MouseDecodeError{id, arg0, "Cy", err}
+			return 0, p, MouseDecodeError{id, arg0, "Cy", err}
 		}
 		arg = arg[n:]
 
 		if len(arg) > 0 {
-			return 0, 0, 0, MouseDecodeError{id, arg0, "sequence", errExtraBytes}
+			return 0, p, MouseDecodeError{id, arg0, "sequence", errExtraBytes}
 		}
 	}
-	return b, x, y, nil
+	return b, p, nil
 }
 
 // TODO support more than just extended xterm mouse decoding?

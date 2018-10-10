@@ -47,6 +47,10 @@ func (id Escape) With(arg ...byte) Seq { return id.seq().With(arg...) }
 // See Seq.WithInts for details.
 func (id Escape) WithInts(args ...int) Seq { return id.seq().WithInts(args...) }
 
+// WithPoint contstructs an escape sequence with an screen point component
+// values added as integer arguments in column,row (Y,X) order.
+func (id Escape) WithPoint(p Point) Seq { return id.WithInts(p.Y, p.X) }
+
 // ID returns the sequence's Escape identifier.
 func (seq Seq) ID() Escape { return seq.id }
 
@@ -109,6 +113,10 @@ func (seq Seq) WithInts(args ...int) Seq {
 	seq.numInts = n
 	return seq
 }
+
+// WithPoint returns a copy of the sequence with the given screen point
+// component values added as integer arguments in column,row (Y,X) order.
+func (seq Seq) WithPoint(p Point) Seq { return seq.WithInts(p.Y, p.X) }
 
 // AppendTo appends the escape code to the given byte slice.
 func (id Escape) AppendTo(p []byte) []byte {

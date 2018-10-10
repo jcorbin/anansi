@@ -34,22 +34,22 @@ func TestScreen(t *testing.T) {
 			}, ""},
 			{func(sc *Screen) {
 				sc.Clear()
-				i, _ := sc.CellOffset(image.Pt(3, 3))
+				i, _ := sc.CellOffset(ansi.Pt(3, 3))
 				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRBrightGreen.FG()
 			}, "\x1b[3;3H\x1b[0;92m@"},
 			{func(sc *Screen) {
 				sc.Clear()
-				i, _ := sc.CellOffset(image.Pt(4, 3))
+				i, _ := sc.CellOffset(ansi.Pt(4, 3))
 				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRBrightYellow.FG()
 			}, "\x1b[D\x1b[0m \x1b[93m@"},
 			{func(sc *Screen) {
 				sc.Clear()
-				i, _ := sc.CellOffset(image.Pt(4, 4))
+				i, _ := sc.CellOffset(ansi.Pt(4, 4))
 				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRGreen.FG()
 			}, "\x1b[D\x1b[0m \x1b[4;4H\x1b[32m@"}, // 5,4
 			{func(sc *Screen) {
 				sc.Clear()
-				i, _ := sc.CellOffset(image.Pt(3, 4))
+				i, _ := sc.CellOffset(ansi.Pt(3, 4))
 				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRYellow.FG()
 			}, "\x1b[2D\x1b[33m@\x1b[0m "},
 		}},
@@ -57,17 +57,17 @@ func TestScreen(t *testing.T) {
 		{"write over", []step{
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello world!")
 			}, "\x1b[?25l\x1b[2J\x1b[1;1H\x1b[0mhello worl\r\nd!"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("\x1b[34mhello world!")
 			}, "\x1b[1;1H\x1b[34mhello worl\r\nd!"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("\x1b[34mhello\x1b[0m")
 				sc.WriteString(" ")
 				sc.WriteString("\x1b[33mworld!\x1b[0m")
@@ -77,18 +77,18 @@ func TestScreen(t *testing.T) {
 		{"dangling style", []step{
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("0) --")
 			}, "\x1b[?25l\x1b[2J\x1b[1;1H\x1b[0m0) --"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("1) ")
 				sc.WriteString("\x1b[31mred")
 			}, "\x1b[5D1\x1b[2C\x1b[31mred"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("2) ")
 				sc.WriteString("\x1b[32mgreen")
 			}, "\x1b[6D\x1b[0m2\x1b[2C\x1b[32mgreen"},
@@ -100,32 +100,32 @@ func TestScreen(t *testing.T) {
 			}, "\x1b[?25l\x1b[2J"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello world")
 			}, "\x1b[1;1H\x1b[0mhello\x1b[Cworl\r\nd"},
 			{func(sc *Screen) {
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello ")
 				sc.WriteSGR(ansi.SGRRed.FG())
 				sc.WriteString("world")
 			}, "\x1b[1;7H\x1b[31mworl\r\nd"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello ")
 				sc.WriteString("\x1b[32mworld")
 			}, "\x1b[1;7H\x1b[32mworl\r\nd"},
 			{func(sc *Screen) {
 				sc.Clear()
 				sc.Invalidate()
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello ")
 				sc.WriteString("\x1b[33mworld")
 			}, "\x1b[2J\x1b[1;1H\x1b[0mhello \x1b[33mworl\r\nd"},
 			{func(sc *Screen) {
 				sc.Clear()
 				sc.Resize(image.Pt(20, 10))
-				sc.To(image.Pt(1, 1))
+				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello ")
 				sc.WriteString("\x1b[34mworld")
 			}, "\x1b[2J\x1b[1;1H\x1b[0mhello \x1b[34mworld"},

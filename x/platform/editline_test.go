@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/jcorbin/anansi/ansi"
 	. "github.com/jcorbin/anansi/x/platform"
 )
 
@@ -52,7 +53,7 @@ func TestEditLine(t *testing.T) {
 	var edl EditLine
 	client := ClientFunc(func(ctx *Context) error {
 		sz := ctx.Output.Bounds().Size()
-		edl.Box = image.Rect(sz.X/4, sz.Y/2, 3*sz.X/4, sz.Y/2+1)
+		edl.Box = ansi.Rect(sz.X/4, sz.Y/2, 3*sz.X/4, sz.Y/2+1)
 		edl.Update(ctx)
 		if edl.Done() {
 			result = string(edl.Buf)
