@@ -203,9 +203,8 @@ func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ 
 
 	next:
 		i++
-		pt.X++
-		for pt.X > g.Size.X {
-			pt.X -= g.Size.X
+		if pt.X++; pt.X > g.Size.X {
+			pt.X = 1
 			pt.Y++
 		}
 	}
