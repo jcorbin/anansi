@@ -29,14 +29,6 @@ func (g *Grid) Clear() {
 	}
 }
 
-// ClearRegion within the grid, setting all runes and attrs within it to 0.
-func (g *Grid) ClearRegion(i, max int) {
-	for ; i < max; i++ {
-		g.Rune[i] = 0
-		g.Attr[i] = 0
-	}
-}
-
 // Resize the grid to have room for n cells.
 // Returns true only if the resize was a change, false if it was a no-op.
 func (g *Grid) Resize(size image.Point) bool {

@@ -324,14 +324,14 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 		switch val {
 		case '0': // Erase from current position to bottom of screen inclusive
 			if i, ok := scs.index(scs.Point); ok {
-				scs.ClearRegion(i+1, len(scs.Rune))
+				scs.clearRegion(i+1, len(scs.Rune))
 			}
 		case '1': // Erase from top of screen to current position inclusive
 			if i, ok := scs.index(scs.Point); ok {
-				scs.ClearRegion(0, i+1)
+				scs.clearRegion(0, i+1)
 			}
 		case '2': // Erase entire screen (without moving the cursor)
-			scs.ClearRegion(0, len(scs.Rune))
+			scs.clearRegion(0, len(scs.Rune))
 		}
 
 	case ansi.EL:
@@ -360,7 +360,7 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 		i, iok := scs.index(lo)
 		j, jok := scs.index(hi)
 		if iok && jok {
-			scs.ClearRegion(i, j+1)
+			scs.clearRegion(i, j+1)
 		}
 
 		// case ansi.DECSTBM: TODO
@@ -370,6 +370,13 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 		//         received while on line 12, a blank line is inserted there as
 		//         rows 12-13 move down.  All VT100 compatible terminals (except
 		//         GIGI) have this feature.
+	}
+}
+
+func (scs *ScreenState) clearRegion(i, max int) {
+	for ; i < max; i++ {
+		scs.Grid.Rune[i] = 0
+		scs.Grid.Attr[i] = 0
 	}
 }
 
