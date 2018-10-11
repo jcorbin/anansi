@@ -6,6 +6,8 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
+// TODO grid composition/copy function
+
 // Grid is a grid of screen cells.
 type Grid struct {
 	Size image.Point
@@ -40,40 +42,10 @@ func (g *Grid) Resize(size image.Point) bool {
 	return true
 }
 
-// CopyTo resizes the dest grid to match the receiver, and copies all receiver
-// rune and attr data into it.
-func (g *Grid) CopyTo(dest *Grid) {
-	dest.Resize(g.Size)
-	copy(dest.Rune, g.Rune)
-	copy(dest.Attr, g.Attr)
-}
-
 // Bounds returns the bounding rectangle of the grid in cell space: 1,1 origin,
 // with max of Size+1.
 func (g *Grid) Bounds() image.Rectangle {
 	return image.Rectangle{image.Pt(1, 1), g.Size.Add(image.Pt(1, 1))}
-}
-
-// CopyIntoAt is a convenience for calling CopyInto with a bounding rectangle
-// starting at a given point and maxing at bounds.
-func (g *Grid) CopyIntoAt(dest *Grid, at image.Point) {
-	r := dest.Bounds()
-	r = r.Intersect(image.Rect(at.X, at.Y, at.X+g.Size.X+1, at.Y+g.Size.Y+1))
-	if dx := r.Dx() - g.Size.X; dx > 0 {
-		r.Max.X -= dx
-	}
-	if dy := r.Dy() - g.Size.Y; dy > 0 {
-		r.Max.Y -= dy
-	}
-	stride := r.Dx()
-	i := 0
-	j, _ := dest.index(r.Min)
-	for i < len(g.Rune) && j < len(dest.Rune) {
-		copy(dest.Rune[j:j+stride], g.Rune[i:])
-		copy(dest.Attr[j:j+stride], g.Attr[i:])
-		i += g.Size.X
-		j += dest.Size.X
-	}
 }
 
 // Cell returns the grid cell for the given point, which will be the Cell zero
