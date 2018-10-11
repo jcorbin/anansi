@@ -21,14 +21,6 @@ type Cell struct {
 	I    int
 }
 
-// Clear the grid, setting all runes and attrs to 0.
-func (g *Grid) Clear() {
-	for i := range g.Rune {
-		g.Rune[i] = 0
-		g.Attr[i] = 0
-	}
-}
-
 // Resize the grid to have room for n cells.
 // Returns true only if the resize was a change, false if it was a no-op.
 func (g *Grid) Resize(size image.Point) bool {

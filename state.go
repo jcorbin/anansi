@@ -46,7 +46,10 @@ func (scs ScreenState) String() string {
 
 // Clear the screen grid, and reset the UserCursor (to invisible nowhere).
 func (scs *ScreenState) Clear() {
-	scs.Grid.Clear()
+	for i := range scs.Grid.Rune {
+		scs.Grid.Rune[i] = 0
+		scs.Grid.Attr[i] = 0
+	}
 	scs.CursorState.Point = image.Pt(0, 0)
 	scs.CursorState.Attr = 0
 	scs.UserCursor = CursorState{}
