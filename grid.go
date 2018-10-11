@@ -152,7 +152,8 @@ func (g *Grid) index(pt image.Point) (int, bool) {
 		pt.Y < 1 || pt.Y > g.Size.Y {
 		return 0, false
 	}
-	return (pt.Y-1)*g.Size.X + pt.X - 1, true
+	p := pt.Sub(image.Pt(1, 1)) // convert to normal 0-indexed point
+	return p.Y*g.Size.X + p.X, true
 }
 
 // Update writes the escape sequences and runes into the given buffer necessary
