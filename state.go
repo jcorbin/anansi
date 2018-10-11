@@ -149,9 +149,23 @@ func (cs *CursorState) To(pt image.Point) ansi.Seq {
 	return ansi.Seq{}
 }
 
+func (scs *ScreenState) clamp(pt image.Point) image.Point {
+	if pt.X < 1 {
+		pt.X = 1
+	} else if pt.X > scs.Size.X {
+		pt.X = scs.Size.X
+	}
+	if pt.Y < 1 {
+		pt.Y = 1
+	} else if pt.Y > scs.Size.Y {
+		pt.Y = scs.Size.Y
+	}
+	return pt
+}
+
 // To sets the virtual cursor point to the supplied one.
 func (scs *ScreenState) To(pt image.Point) {
-	scs.Point = clampToScreen(scs.Size, pt)
+	scs.Point = scs.clamp(pt)
 }
 
 // ApplyTo applies the receiver cursor state into the passed state value,
@@ -178,20 +192,6 @@ func (scs *ScreenState) Update(cur CursorState, buf *ansi.Buffer, p *Grid) (n in
 	m, cur = scs.UserCursor.ApplyTo(cur, buf)
 	n += m
 	return n, cur
-}
-
-func clampToScreen(pt, size image.Point) image.Point {
-	if pt.X < 1 {
-		pt.X = 1
-	} else if pt.X > size.X {
-		pt.X = size.X
-	}
-	if pt.Y < 1 {
-		pt.Y = 1
-	} else if pt.Y > size.Y {
-		pt.Y = size.Y
-	}
-	return pt
 }
 
 // ProcessRune updates the cursor position by the graphic width of the rune.
@@ -294,18 +294,18 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 	case ansi.CUU, ansi.CUD, ansi.CUF, ansi.CUB: // relative cursor motion
 		b, _ := e.CSI()
 		if d := cursorMoves[b-'A']; len(a) == 0 {
-			scs.Point = clampToScreen(scs.Point.Add(d), scs.Size)
+			scs.Point = scs.clamp(scs.Point.Add(d))
 		} else if n, _, err := ansi.DecodeNumber(a); err == nil {
 			d = d.Mul(n)
-			scs.Point = clampToScreen(scs.Point.Add(d), scs.Size)
+			scs.Point = scs.clamp(scs.Point.Add(d))
 		}
 
 	case ansi.CUP: // absolute cursor motion
 		if len(a) == 0 {
-			scs.Point = clampToScreen(image.Pt(1, 1), scs.Size)
+			scs.Point = scs.clamp(image.Pt(1, 1))
 		} else if y, n, err := ansi.DecodeNumber(a); err == nil {
 			if x, _, err := ansi.DecodeNumber(a[n:]); err == nil {
-				scs.Point = clampToScreen(image.Pt(x, y), scs.Size)
+				scs.Point = scs.clamp(image.Pt(x, y))
 			}
 		}
 
