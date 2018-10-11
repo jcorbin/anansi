@@ -174,10 +174,9 @@ func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ 
 		gr, ga := g.Rune[i], g.Attr[i]
 
 		if diffing {
-			if pt.Y > prior.Size.Y {
-				diffing = false // nothing left to diff with
-			} else if pt.X <= prior.Size.X {
-				j := prior.Size.X*(pt.Y-1) + pt.X - 1
+			if j, ok := prior.index(pt); !ok {
+				diffing = false // out-of-bounds disengages diffing
+			} else {
 				pr, pa := prior.Rune[j], prior.Attr[j] // NOTE range ok since pt <= prior.Size
 				if gr == 0 {
 					gr, ga = ' ', 0
