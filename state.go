@@ -342,21 +342,23 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 			return
 		}
 
-		var i, j int
-		var iok, jok bool
+		lo := scs.Point
+		hi := scs.Size
 		switch val {
 		case '0': // Erase from current position to end of line inclusive
-			i, iok = scs.index(scs.Point)
-			j, jok = scs.index(image.Pt(scs.Size.X, scs.Y))
+			hi.Y = scs.Y
 		case '1': // Erase from beginning of line to current position inclusive
-			i, iok = scs.index(image.Pt(1, scs.Y))
-			j, jok = scs.index(image.Pt(scs.X, scs.Y))
+			lo.X = 1
+			hi = scs.Point
 		case '2': // Erase entire line (without moving cursor)
-			i, iok = scs.index(image.Pt(1, scs.Y))
-			j, jok = scs.index(image.Pt(scs.Size.X, scs.Y))
+			lo.X = 1
+			hi.Y = scs.Y
 		default:
 			return
 		}
+
+		i, iok := scs.index(lo)
+		j, jok := scs.index(hi)
 		if iok && jok {
 			scs.ClearRegion(i, j+1)
 		}
