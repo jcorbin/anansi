@@ -104,7 +104,8 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 ### WIP
 
-- `anansi/x/braille` supports rendering a bitmap image to unicode braiile runes ([rc][rc])
+- `anansi/x/braille` supports rendering a bitmap image to unicode braiile runes ([dev][dev])
+- `anansi/ansi.Point` supports type checked handling of 1,1-origin-relative screen point semantics ([dev][dev])
 
 ### TODO
 
