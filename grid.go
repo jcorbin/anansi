@@ -73,28 +73,14 @@ func (g *Grid) Bounds() image.Rectangle {
 // CopyIntoAt is a convenience for calling CopyInto with a bounding rectangle
 // starting at a given point and maxing at bounds.
 func (g *Grid) CopyIntoAt(dest *Grid, at image.Point) {
-	if at == image.ZP {
-		g.CopyInto(dest, image.ZR)
-	} else {
-		g.CopyInto(dest, image.Rectangle{at, at.Add(g.Size).Add(image.Pt(1, 1))})
-	}
-}
-
-// CopyInto copies the receivers data into a region within the destination
-// grid, clipping if necessary.
-func (g *Grid) CopyInto(dest *Grid, r image.Rectangle) {
-	if r == image.ZR {
-		r = dest.Bounds()
-	} else {
-		r = r.Intersect(dest.Bounds())
-	}
+	r := dest.Bounds()
+	r = r.Intersect(image.Rect(at.X, at.Y, at.X+g.Size.X+1, at.Y+g.Size.Y+1))
 	if dx := r.Dx() - g.Size.X; dx > 0 {
 		r.Max.X -= dx
 	}
 	if dy := r.Dy() - g.Size.Y; dy > 0 {
 		r.Max.Y -= dy
 	}
-
 	stride := r.Dx()
 	i := 0
 	j, _ := dest.index(r.Min)
