@@ -148,8 +148,7 @@ func (c Cell) SetAttr(a ansi.SGRAttr) {
 }
 
 func (g *Grid) index(pt image.Point) (int, bool) {
-	if pt.X < 1 || pt.X > g.Size.X ||
-		pt.Y < 1 || pt.Y > g.Size.Y {
+	if !pt.In(image.Rect(1, 1, g.Size.X+1, pt.Y+1)) {
 		return 0, false
 	}
 	p := pt.Sub(image.Pt(1, 1)) // convert to normal 0-indexed point
