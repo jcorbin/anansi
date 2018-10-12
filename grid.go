@@ -16,13 +16,6 @@ type Grid struct {
 	// TODO []string for multi-rune glyphs
 }
 
-// Cell is a reference to a positioned cell within a Grid.
-type Cell struct {
-	image.Point
-	Grid *Grid
-	I    int
-}
-
 // Resize the grid to have room for n cells.
 // Returns true only if the resize was a change, false if it was a no-op.
 func (g *Grid) Resize(size image.Point) bool {
@@ -48,62 +41,9 @@ func (g *Grid) Bounds() image.Rectangle {
 	return image.Rectangle{image.Pt(1, 1), g.Size.Add(image.Pt(1, 1))}
 }
 
-// Cell returns the grid cell for the given point, which will be the Cell zero
-// value if outside the grid.
-func (g *Grid) Cell(pt image.Point) Cell {
-	if i, ok := g.index(pt); ok {
-		return Cell{pt, g, i}
-	}
-	return Cell{}
-}
-
-// Get returns the cell's rune value and SGR attributes.
-func (c Cell) Get() (rune, ansi.SGRAttr) {
-	if c.Grid != nil {
-		return c.Grid.Rune[c.I], c.Grid.Attr[c.I]
-	}
-	return 0, 0
-}
-
-// Set sets both the cell's rune value and its SGR attributes.
-func (c Cell) Set(r rune, a ansi.SGRAttr) {
-	if c.Grid != nil {
-		c.Grid.Rune[c.I] = r
-		c.Grid.Attr[c.I] = a
-	}
-}
-
-// Rune returns the cell's rune value.
-func (c Cell) Rune() rune {
-	if c.Grid != nil {
-		return c.Grid.Rune[c.I]
-	}
-	return 0
-}
-
-// Attr returns the cell's SGR attributes.
-func (c Cell) Attr() ansi.SGRAttr {
-	if c.Grid != nil {
-		return c.Grid.Attr[c.I]
-	}
-	return 0
-}
-
-// SetRune sets the cell's rune value.
-func (c Cell) SetRune(r rune) {
-	if c.Grid != nil {
-		c.Grid.Rune[c.I] = r
-	}
-}
-
-// SetAttr sets the cell's SGR attributes.
-func (c Cell) SetAttr(a ansi.SGRAttr) {
-	if c.Grid != nil {
-		c.Grid.Attr[c.I] = a
-	}
-}
-
-func (g *Grid) index(pt image.Point) (int, bool) {
+// CellOffset returns the offset of the screen cell and true if it's
+// within the Grid's Bounds().
+func (g *Grid) CellOffset(pt image.Point) (int, bool) {
 	if !pt.In(image.Rect(1, 1, g.Size.X+1, pt.Y+1)) {
 		return 0, false
 	}
@@ -130,7 +70,7 @@ func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ 
 		gr, ga := g.Rune[i], g.Attr[i]
 
 		if diffing {
-			if j, ok := prior.index(pt); !ok {
+			if j, ok := prior.CellOffset(pt); !ok {
 				diffing = false // out-of-bounds disengages diffing
 			} else {
 				pr, pa := prior.Rune[j], prior.Attr[j] // NOTE range ok since pt <= prior.Size

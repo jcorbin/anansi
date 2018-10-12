@@ -278,7 +278,9 @@ func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
 func (scs *ScreenState) ProcessRune(r rune) {
 	switch {
 	case unicode.IsGraphic(r):
-		scs.Grid.Cell(scs.Point).Set(r, scs.CursorState.Attr)
+		if i, ok := scs.Grid.CellOffset(scs.Point); ok {
+			scs.Grid.Rune[i], scs.Grid.Attr[i] = r, scs.CursorState.Attr
+		}
 		if scs.X++; scs.X > scs.Size.X {
 			scs.X = 1
 			scs.linefeed()
@@ -326,11 +328,11 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 		}
 		switch val {
 		case '0': // Erase from current position to bottom of screen inclusive
-			if i, ok := scs.index(scs.Point); ok {
+			if i, ok := scs.CellOffset(scs.Point); ok {
 				scs.clearRegion(i+1, len(scs.Rune))
 			}
 		case '1': // Erase from top of screen to current position inclusive
-			if i, ok := scs.index(scs.Point); ok {
+			if i, ok := scs.CellOffset(scs.Point); ok {
 				scs.clearRegion(0, i+1)
 			}
 		case '2': // Erase entire screen (without moving the cursor)
@@ -360,8 +362,8 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 			return
 		}
 
-		i, iok := scs.index(lo)
-		j, jok := scs.index(hi)
+		i, iok := scs.CellOffset(lo)
+		j, jok := scs.CellOffset(hi)
 		if iok && jok {
 			scs.clearRegion(i, j+1)
 		}
@@ -392,7 +394,7 @@ func (scs *ScreenState) linefeed() {
 }
 
 func (scs *ScreenState) scrollBy(n int) {
-	i, ok := scs.index(scs.Point.Add(image.Pt(1, 2)))
+	i, ok := scs.CellOffset(scs.Point.Add(image.Pt(1, 2)))
 	if !ok {
 		return
 	}

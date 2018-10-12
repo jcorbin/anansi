@@ -99,7 +99,10 @@ func (d *demo) Update(ctx *platform.Context) (err error) {
 		if r == 0 {
 			r = def
 		}
-		ctx.Output.Cell(p).Set(r, d.Grid.Attr[i])
+		if j, ok := ctx.Output.CellOffset(p); ok {
+			ctx.Output.Grid.Rune[j] = r
+			ctx.Output.Grid.Attr[j] = d.Grid.Attr[i]
+		}
 		if p.X++; p.X > d.Grid.Size.X {
 			p.X = 1
 			p.Y++

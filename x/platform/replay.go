@@ -131,7 +131,10 @@ func (rep *replay) drawOverlay(ctx *Context) {
 
 	if rep.mouse.Mouse != ZM {
 		// TODO better mouse cursor drawing
-		ctx.Output.Cell(rep.mouse.Point).Set('X', buttonAttrs[rep.mouse.State.ButtonID()])
+		if i, ok := ctx.Output.CellOffset(rep.mouse.Point); ok {
+			ctx.Output.Grid.Rune[i] = 'X'
+			ctx.Output.Grid.Attr[i] = buttonAttrs[rep.mouse.State.ButtonID()]
+		}
 	}
 
 	// TODO OSD for keyboard events?

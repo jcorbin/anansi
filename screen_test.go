@@ -34,19 +34,23 @@ func TestScreen(t *testing.T) {
 			}, ""},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.Cell(image.Pt(3, 3)).Set('@', ansi.SGRBrightGreen.FG())
+				i, _ := sc.CellOffset(image.Pt(3, 3))
+				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRBrightGreen.FG()
 			}, "\x1b[3;3H\x1b[0;92m@"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.Cell(image.Pt(4, 3)).Set('@', ansi.SGRBrightYellow.FG())
+				i, _ := sc.CellOffset(image.Pt(4, 3))
+				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRBrightYellow.FG()
 			}, "\x1b[D\x1b[0m \x1b[93m@"},
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.Cell(image.Pt(4, 4)).Set('@', ansi.SGRGreen.FG())
+				i, _ := sc.CellOffset(image.Pt(4, 4))
+				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRGreen.FG()
 			}, "\x1b[D\x1b[0m \x1b[4;4H\x1b[32m@"}, // 5,4
 			{func(sc *Screen) {
 				sc.Clear()
-				sc.Cell(image.Pt(3, 4)).Set('@', ansi.SGRYellow.FG())
+				i, _ := sc.CellOffset(image.Pt(3, 4))
+				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRYellow.FG()
 			}, "\x1b[2D\x1b[33m@\x1b[0m "},
 		}},
 
