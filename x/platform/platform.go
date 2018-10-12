@@ -240,18 +240,12 @@ func (p *Platform) readSize() error {
 		return errNoTerm
 	}
 	sz, err := p.term.Size()
-	if err != nil {
-		return err
-	}
-	if changed := sz != p.screen.Size; changed {
-		p.screen.Resize(sz) // TODO what if it returned changed bool?
-		if p.recording != nil && changed {
-			if err := p.recordSize(); err != nil {
-				return err
-			}
+	if err == nil {
+		if p.screen.Resize(sz) && p.recording != nil {
+			err = p.recordSize()
 		}
 	}
-	return nil
+	return err
 }
 
 // Enter applies terminal context, including raw mode and ansi mode sequences,
