@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"image"
 	"io"
 	"log"
 	"os"
@@ -71,13 +70,15 @@ func (d *demo) Update(ctx *platform.Context) (err error) {
 
 	// TODO a readline utility
 
-	d.Grid.Resize(ctx.Output.Size)
+	d.Grid.Resize(ctx.Output.Bounds().Size())
 
 	sweep := 10*ctx.Time.Second() + ctx.Time.Nanosecond()/int(time.Millisecond)/100
-	for i, y := 0, 1; y <= ctx.Output.Size.Y; y++ {
-		line := y%16 == 0
-		for x := 0; x < ctx.Output.Size.X; x++ {
-			a := ansi.RGB(0, uint8(x), uint8(y)).BG()
+	r := ctx.Output.Bounds()
+	for p := r.Min; p.Y < r.Max.Y; p.Y++ {
+		line := p.Y%16 == 0
+		i, _ := d.Grid.CellOffset(p)
+		for p.X = r.Min.X; p.X < r.Max.X; p.X++ {
+			a := ansi.RGB(0, uint8(p.X), uint8(p.Y)).BG()
 			var r rune
 			if line {
 				a |= ansi.RGB(uint8(sweep), 0, 0).BG()
@@ -94,17 +95,18 @@ func (d *demo) Update(ctx *platform.Context) (err error) {
 	// model := ansi.ColorModelID
 	// at := image.Pt(1, 1)
 	def := ' '
-	p := image.Pt(1, 1)
-	for i, r := range d.Grid.Rune {
-		if r == 0 {
-			r = def
+	r = d.Grid.Bounds()
+	p := r.Min
+	for i, ch := range d.Grid.Rune {
+		if ch == 0 {
+			ch = def
 		}
 		if j, ok := ctx.Output.CellOffset(p); ok {
-			ctx.Output.Grid.Rune[j] = r
+			ctx.Output.Grid.Rune[j] = ch
 			ctx.Output.Grid.Attr[j] = d.Grid.Attr[i]
 		}
-		if p.X++; p.X > d.Grid.Size.X {
-			p.X = 1
+		if p.X++; p.X >= r.Max.X {
+			p.X = r.Min.X
 			p.Y++
 		}
 	}
