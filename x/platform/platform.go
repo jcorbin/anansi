@@ -320,14 +320,15 @@ func (p *Platform) Exit(term *anansi.Term) (err error) {
 // - flushes screen buffer
 func (ctx *Context) Update() {
 	ctx.Output.Reset()
+	outBounds := ctx.Output.Bounds()
 
 	// Ctrl-L forces a size refresh
 	ctx.Redraw = ctx.Input.CountRune('\x0c') > 0
 
 	// Resize causes a redraw
 	ctx.Redraw = ctx.Redraw ||
-		ctx.Output.Size == image.ZP ||
-		ctx.Output.Size != ctx.LastSize
+		outBounds.Size() == image.ZP ||
+		outBounds.Size() != ctx.LastSize
 
 	if ctx.Redraw {
 		ctx.Output.Invalidate()
@@ -358,7 +359,7 @@ func (ctx *Context) runClient() error {
 	}
 	err := ctx.HUD.Update(ctx, ctx.client)
 	ctx.Platform.LastTime = ctx.Time
-	ctx.Platform.LastSize = ctx.Output.Size
+	ctx.Platform.LastSize = ctx.Output.Bounds().Size()
 	return err
 }
 

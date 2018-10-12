@@ -66,6 +66,8 @@ func (hud *HUD) nextID() UIID {
 
 // Update the HUD (only if visible).
 func (hud *HUD) Update(ctx *Context, client Client) error {
+	outBounds := ctx.Output.Bounds()
+
 	hud.uicur = 0
 
 	if m, have := ctx.Input.LastMouse(false); have {
@@ -91,7 +93,7 @@ func (hud *HUD) Update(ctx *Context, client Client) error {
 
 	ctx.Output.WriteESC(ansi.DECSC)
 
-	ctx.Output.To(image.Pt(ctx.Output.Size.X+1, 1))
+	ctx.Output.To(image.Pt(outBounds.Max.X, 1))
 
 	box := hud.rightSegment(ctx, ctx.Time.Format(hudTimeFmt))
 	if box != hud.bla {
@@ -117,7 +119,7 @@ func (hud *HUD) Update(ctx *Context, client Client) error {
 		hud.ProfDetail = !hud.ProfDetail
 	}
 
-	hud.rightSegment(ctx, fmt.Sprintf("%vx%v", ctx.Output.Size.X, ctx.Output.Size.Y))
+	hud.rightSegment(ctx, outBounds.Size().String())
 	hud.rightSegment(ctx, fmt.Sprintf("W:% 5v", ctx.Platform.output.Flushed))
 	hud.rightSegment(ctx, hud.Mouse.String())
 
@@ -132,7 +134,7 @@ func (hud *HUD) Update(ctx *Context, client Client) error {
 
 	if hud.TimeDetail || hud.ProfDetail || hud.FPSDetail {
 		var derr error
-		ctx.Output.To(image.Pt(ctx.Output.Size.X+1, 2))
+		ctx.Output.To(image.Pt(outBounds.Max.X, 2))
 		derr = hud.drawTimingDetail(ctx)
 
 		if hud.TimeDetail || hud.FPSDetail {
@@ -175,9 +177,10 @@ func (hud *HUD) updateProfilers(p *Platform) {
 }
 
 func (hud *HUD) calcKVBox(ctx *Context, key string) (kbox, vbox image.Rectangle) {
+	outBounds := ctx.Output.Bounds()
 	n := utf8.RuneCountInString(key)
-	kbox.Min = image.Pt(ctx.Output.Size.X+1-hud.detailWidth-n-1, ctx.Output.Y)
-	vbox.Min = image.Pt(ctx.Output.Size.X+1-hud.detailWidth, ctx.Output.Y)
+	kbox.Min = image.Pt(outBounds.Max.X-hud.detailWidth-n-1, ctx.Output.Y)
+	vbox.Min = image.Pt(outBounds.Max.X-hud.detailWidth, ctx.Output.Y)
 	kbox.Max = image.Pt(kbox.Min.X+n, ctx.Output.Y+1)
 	vbox.Max = image.Pt(vbox.Min.X+hud.detailWidth, ctx.Output.Y+1)
 	return kbox, vbox
@@ -213,8 +216,9 @@ func (hud *HUD) detailRow(ctx *Context, key string, val string) (box image.Recta
 }
 
 func (hud *HUD) rightSegment(ctx *Context, s string) (box image.Rectangle) {
+	outBounds := ctx.Output.Bounds()
 	box.Min = ctx.Output.Point
-	if box.Min.X < ctx.Output.Size.X {
+	if box.Min.X+1 < outBounds.Max.X {
 		box.Min.X--
 	}
 	box.Max = image.Pt(box.Min.X, box.Min.Y+1)
@@ -296,6 +300,8 @@ func (hud *HUD) drawProfDetail(ctx *Context) {
 }
 
 func (hud *HUD) drawPProfSelector(ctx *Context) {
+	outBounds := ctx.Output.Bounds()
+
 	kbox, box := hud.calcKVBox(ctx, "PProf")
 	ctx.Output.To(kbox.Min)
 	ctx.Output.WriteString("PProf ")
@@ -337,7 +343,7 @@ func (hud *HUD) drawPProfSelector(ctx *Context) {
 					hud.ButtonAttr, hud.SelectAttr,
 					func(ctx *Context, _ bool) {
 						ctx.Output.WriteString(prof.Name())
-						ctx.Output.WriteString(strings.Repeat(" ", ctx.Output.Size.X-ctx.Output.X))
+						ctx.Output.WriteString(strings.Repeat(" ", outBounds.Max.X-1-ctx.Output.X))
 					})
 				ctx.Output.To(image.Pt(box.Min.X, ctx.Output.Y+1))
 				box.Max.Y = ctx.Output.Y
@@ -612,6 +618,8 @@ func NewLogView(logs *LogSink) *LogView {
 
 // Update the log view, processing input, and drawing.
 func (lv *LogView) Update(ctx *Context) error {
+	outBounds := ctx.Output.Bounds()
+
 	// view calc input handling
 	viewLines := lv.ViewLines
 	if viewLines == 0 {
@@ -620,7 +628,7 @@ func (lv *LogView) Update(ctx *Context) error {
 	}
 	height := viewLines
 
-	topLeft := image.Pt(1, ctx.Output.Size.Y)
+	topLeft := image.Pt(1, outBounds.Max.Y-1)
 	if lv.Expanded {
 		height++
 		topLeft.Y -= height - 1
@@ -629,20 +637,20 @@ func (lv *LogView) Update(ctx *Context) error {
 	}
 
 	// TODO drag resizing
-	if n := ctx.Input.CountPressesIn(image.Rectangle{topLeft, image.Pt(ctx.Output.Size.X+1, topLeft.Y+1)}, 1); n%2 == 1 {
-		topLeft.Y = ctx.Output.Size.Y
+	if n := ctx.Input.CountPressesIn(image.Rect(topLeft.X, topLeft.Y, outBounds.Max.X, topLeft.Y+1), 1); n%2 == 1 {
+		topLeft.Y = outBounds.Max.Y - 1
 		height = 1
 		if lv.Expanded = !lv.Expanded; lv.Expanded {
 			height += viewLines
 		}
-		topLeft.Y = ctx.Output.Size.Y - (height - 1)
+		topLeft.Y -= height - 1
 	}
 
 	if !lv.Expanded {
 		viewLines = 1
 	}
 
-	bounds := image.Rectangle{topLeft, ctx.Output.Size}
+	bounds := image.Rectangle{Min: topLeft, Max: outBounds.Max}
 	bounds.Max = bounds.Max.Add(image.Pt(0, 1)) // TODO ideally utilize the final column too
 
 	content, eolOffsets := lv.logs.Contents()

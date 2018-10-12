@@ -51,10 +51,8 @@ func TestEditLine(t *testing.T) {
 
 	var edl EditLine
 	client := ClientFunc(func(ctx *Context) error {
-		edl.Box = image.Rect(
-			ctx.Output.Size.X/4, ctx.Output.Size.Y/2,
-			3*ctx.Output.Size.X/4, ctx.Output.Size.Y/2+1,
-		)
+		sz := ctx.Output.Bounds().Size()
+		edl.Box = image.Rect(sz.X/4, sz.Y/2, 3*sz.X/4, sz.Y/2+1)
 		edl.Update(ctx)
 		if edl.Done() {
 			result = string(edl.Buf)

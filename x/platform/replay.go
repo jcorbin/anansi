@@ -217,9 +217,8 @@ func (p *Platform) toggleRecRep() error {
 func (p *Platform) recordSize() error {
 	// APC "resize:" width "," height ST
 	if p.recording != nil {
-		if _, err := fmt.Fprintf(p.recording,
-			"\x1b_resize:%d,%d\x1b\\",
-			p.screen.Size.X, p.screen.Size.Y); err != nil {
+		sz := p.screen.Bounds().Size()
+		if _, err := fmt.Fprintf(p.recording, "\x1b_resize:%d,%d\x1b\\", sz.X, sz.Y); err != nil {
 			return fmt.Errorf("failed to record size: %v", err)
 		}
 	}
