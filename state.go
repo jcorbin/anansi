@@ -41,7 +41,7 @@ func (cs CursorState) String() string {
 }
 
 func (scs ScreenState) String() string {
-	return fmt.Sprintf("%v uc:(%v) gsz:%v", scs.CursorState, scs.UserCursor, scs.Grid.Size)
+	return fmt.Sprintf("%v uc:(%v) gridBounds:%v", scs.CursorState, scs.UserCursor, scs.Grid.Bounds())
 }
 
 // Clear the screen grid, and reset the UserCursor (to invisible nowhere).
@@ -59,7 +59,7 @@ func (scs *ScreenState) Clear() {
 // Returns true only if the resize was a change, false if it was a no-op.
 func (scs *ScreenState) Resize(size image.Point) bool {
 	if scs.Grid.Resize(size) {
-		if scs.X > scs.Size.X || scs.Y > scs.Size.Y {
+		if !scs.Point.In(scs.Bounds()) {
 			scs.Point = image.ZP
 		}
 		return true
@@ -153,15 +153,16 @@ func (cs *CursorState) To(pt image.Point) ansi.Seq {
 }
 
 func (scs *ScreenState) clamp(pt image.Point) image.Point {
-	if pt.X < 1 {
-		pt.X = 1
-	} else if pt.X > scs.Size.X {
-		pt.X = scs.Size.X
+	r := scs.Bounds()
+	if pt.X < r.Min.X {
+		pt.X = r.Min.X
+	} else if pt.X >= r.Max.X {
+		pt.X = r.Max.X - 1
 	}
-	if pt.Y < 1 {
-		pt.Y = 1
-	} else if pt.Y > scs.Size.Y {
-		pt.Y = scs.Size.Y
+	if pt.Y < r.Min.Y {
+		pt.Y = r.Min.Y
+	} else if pt.Y >= r.Max.Y {
+		pt.Y = r.Max.Y - 1
 	}
 	return pt
 }
@@ -276,13 +277,14 @@ func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
 
 // ProcessRune sets the rune into the virtual screen grid.
 func (scs *ScreenState) ProcessRune(r rune) {
+	br := scs.Bounds()
 	switch {
 	case unicode.IsGraphic(r):
 		if i, ok := scs.Grid.CellOffset(scs.Point); ok {
 			scs.Grid.Rune[i], scs.Grid.Attr[i] = r, scs.CursorState.Attr
 		}
-		if scs.X++; scs.X > scs.Size.X {
-			scs.X = 1
+		if scs.X++; scs.X >= br.Max.X {
+			scs.X = br.Min.X
 			scs.linefeed()
 		}
 	case r == '\x0A':
@@ -348,7 +350,7 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 		}
 
 		lo := scs.Point
-		hi := scs.Size
+		hi := scs.Bounds().Max.Sub(image.Pt(1, 1))
 		switch val {
 		case '0': // Erase from current position to end of line inclusive
 			hi.Y = scs.Y
@@ -386,7 +388,7 @@ func (scs *ScreenState) clearRegion(i, max int) {
 }
 
 func (scs *ScreenState) linefeed() {
-	if scs.Y < scs.Size.Y {
+	if scs.Y+1 < scs.Bounds().Max.Y {
 		scs.Y++
 	} else {
 		scs.scrollBy(1)
