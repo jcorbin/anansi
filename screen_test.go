@@ -13,6 +13,7 @@ import (
 
 	. "github.com/jcorbin/anansi"
 	"github.com/jcorbin/anansi/ansi"
+	anansitest "github.com/jcorbin/anansi/test"
 )
 
 func TestScreen(t *testing.T) {
@@ -225,9 +226,9 @@ func Test_gridLines(t *testing.T) {
 	} {
 		t.Run(tc.name, logBuf.With(func(t *testing.T) {
 			g := parseGrid(tc.in, tc.size)
-			assert.Equal(t, tc.lines, gridLines(g, ' '))
+			assert.Equal(t, tc.lines, anansitest.GridLines(g, ' '))
 			if t.Failed() {
-				rs, as := gridRowData(g)
+				rs, as := anansitest.GridRowData(g)
 				for i := range rs {
 					t.Logf("rs[%v]: %q", i, rs[i])
 				}
@@ -244,40 +245,6 @@ func parseGrid(s string, sz image.Point) Grid {
 	sc.Resize(sz)
 	sc.WriteString(s)
 	return sc.Grid
-}
-
-func gridLines(g Grid, fill rune) (lines []string) {
-	var ca ansi.SGRAttr
-	for i, p := 0, image.ZP; p.Y < g.Size.Y; p.Y++ {
-		var b []byte
-		for p.X = 0; p.X < g.Size.X; p.X++ {
-			r, a := g.Rune[i], g.Attr[i]
-			if a != ca {
-				a = ca.Diff(a)
-				b = a.AppendTo(b)
-				ca = ca.Merge(a)
-			}
-			var tmp [4]byte
-			if r == 0 {
-				r = fill
-			}
-			b = append(b, tmp[:utf8.EncodeRune(tmp[:], r)]...)
-			i++
-		}
-		lines = append(lines, string(b))
-	}
-	return lines
-}
-
-func gridRowData(g Grid) (rs [][]rune, as [][]ansi.SGRAttr) {
-	// NOTE p is in array space, not 1,1-based screen space
-	for i, p := 0, image.ZP; p.Y < g.Size.Y; p.Y++ {
-		j := p.Y * g.Size.X
-		rs = append(rs, g.Rune[i:j])
-		as = append(as, g.Attr[i:j])
-		i = j
-	}
-	return rs, as
 }
 
 // TestScreen_equiv tests screen grid diffing by functional equivalence with a
@@ -331,12 +298,12 @@ func TestScreen_equiv(t *testing.T) {
 
 					_, err := a.WriteTo(&aout)
 					require.NoError(t, err, "unexpected write error")
-					aLines := gridLines(aout.Grid, ' ')
+					aLines := anansitest.GridLines(aout.Grid, ' ')
 
 					b.Invalidate()
 					_, err = b.WriteTo(&bout)
 					require.NoError(t, err, "unexpected write error")
-					bLines := gridLines(bout.Grid, ' ')
+					bLines := anansitest.GridLines(bout.Grid, ' ')
 
 					var aw, bw int
 					for i := range aLines {
