@@ -630,13 +630,12 @@ func (lv *LogView) Update(ctx *Context) error {
 
 	// TODO drag resizing
 	if n := ctx.Input.CountPressesIn(image.Rectangle{topLeft, image.Pt(ctx.Output.Size.X+1, topLeft.Y+1)}, 1); n%2 == 1 {
+		topLeft.Y = ctx.Output.Size.Y
+		height = 1
 		if lv.Expanded = !lv.Expanded; lv.Expanded {
-			height = viewLines + 1
-			topLeft.Y = ctx.Output.Size.Y - height + 1
-		} else {
-			height = 1
-			topLeft.Y = ctx.Output.Size.Y
+			height += viewLines
 		}
+		topLeft.Y = ctx.Output.Size.Y - (height - 1)
 	}
 
 	if !lv.Expanded {
