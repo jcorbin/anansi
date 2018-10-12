@@ -94,15 +94,15 @@ func (d *demo) Update(ctx *platform.Context) (err error) {
 	// model := ansi.ColorModelID
 	// at := image.Pt(1, 1)
 	def := ' '
-	x, y := 1, 1
+	p := image.Pt(1, 1)
 	for i, r := range d.Grid.Rune {
 		if r == 0 {
 			r = def
 		}
-		ctx.Output.Cell(image.Pt(x, y)).Set(r, d.Grid.Attr[i])
-		if x++; x > d.Grid.Size.X {
-			x = 1
-			y++
+		ctx.Output.Cell(p).Set(r, d.Grid.Attr[i])
+		if p.X++; p.X > d.Grid.Size.X {
+			p.X = 1
+			p.Y++
 		}
 	}
 
