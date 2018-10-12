@@ -1,7 +1,6 @@
 package anansitest
 
 import (
-	"image"
 	"unicode/utf8"
 
 	"github.com/jcorbin/anansi"
@@ -11,11 +10,12 @@ import (
 // GridLines returns a slice of line strings built from the grid's cell data.
 func GridLines(g anansi.Grid, fill rune) (lines []string) {
 	var ca ansi.SGRAttr
-	p := image.ZP
-	for ; p.Y < g.Size.Y; p.Y++ {
+	r := g.Bounds()
+	p := r.Min
+	for ; p.Y < r.Max.Y; p.Y++ {
 		var b []byte
-		p.X = 0
-		for i := p.Y * g.Size.X; p.X < g.Size.X; p.X++ {
+		p.X = r.Min.X
+		for i, _ := g.CellOffset(p); p.X < r.Max.X; p.X++ {
 			r, a := g.Rune[i], g.Attr[i]
 			if a != ca {
 				a = ca.Diff(a)
@@ -36,13 +36,14 @@ func GridLines(g anansi.Grid, fill rune) (lines []string) {
 
 // GridRowData the grid''s cell data in two slices-of-slices.
 func GridRowData(g anansi.Grid) (rs [][]rune, as [][]ansi.SGRAttr) {
-	// NOTE p is in array space, not 1,1-based screen space
-	p := image.ZP
-	i := 0
-	for ; p.Y < g.Size.Y; p.Y++ {
-		rs = append(rs, g.Rune[i:i+g.Size.X])
-		as = append(as, g.Attr[i:i+g.Size.X])
-		i += g.Size.X
+	r := g.Bounds()
+	stride := r.Dx()
+	p := r.Min
+	i, _ := g.CellOffset(p)
+	for ; p.Y < r.Max.Y; p.Y++ {
+		rs = append(rs, g.Rune[i:i+stride])
+		as = append(as, g.Attr[i:i+stride])
+		i += stride
 	}
 	return rs, as
 }
