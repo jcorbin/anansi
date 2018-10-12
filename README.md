@@ -106,6 +106,12 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 - `anansi/x/braille` supports rendering a bitmap image to unicode braiile runes ([dev][dev])
 - `anansi/ansi.Point` supports type checked handling of 1,1-origin-relative screen point semantics ([dev][dev])
+- `anansi.Grid` is being refactored to be more like a pixel `image` implementation ([dev][dev])
+  - `Grid.Size` will be replaced by `Grid.Stride` and `Grid.Rect`
+  - **switch now** to `Grid.Bounds().Size` to be future safe
+- an [interact command demo](../../tree/interact/cmd/interact/main.go) which
+  allows you to interactively manipulate arguments passed to a dynamically
+  executed command
 
 ### TODO
 
