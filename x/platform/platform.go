@@ -322,10 +322,14 @@ func (ctx *Context) Update() {
 	ctx.Output.Reset()
 
 	// Ctrl-L forces a size refresh
-	if ctx.Redraw =
-		ctx.Input.CountRune('\x0c') > 0 ||
-			ctx.Output.Size == image.ZP ||
-			ctx.Output.Size != ctx.LastSize; ctx.Redraw {
+	ctx.Redraw = ctx.Input.CountRune('\x0c') > 0
+
+	// Resize causes a redraw
+	ctx.Redraw = ctx.Redraw ||
+		ctx.Output.Size == image.ZP ||
+		ctx.Output.Size != ctx.LastSize
+
+	if ctx.Redraw {
 		ctx.Output.Invalidate()
 	}
 
