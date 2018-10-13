@@ -189,9 +189,9 @@ func (cs *CursorState) ApplyTo(cur CursorState, buf *ansi.Buffer) (n int, _ Curs
 // Update performs a Grid differential update with the cursor hidden, and then
 // applies any non-zero UserCursor, returning the number of bytes written into
 // the given buffer, and the final cursor state.
-func (scs *ScreenState) Update(cur CursorState, buf *ansi.Buffer, p *Grid) (n int, _ CursorState) {
+func (scs *ScreenState) Update(cur CursorState, buf *ansi.Buffer, prior Grid) (n int, _ CursorState) {
 	n += buf.WriteSeq(cur.Hide())
-	m, cur := scs.Grid.Update(cur, buf, p)
+	m, cur := scs.Grid.Update(cur, buf, prior)
 	n += m
 	m, cur = scs.UserCursor.ApplyTo(cur, buf)
 	n += m

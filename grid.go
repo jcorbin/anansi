@@ -37,13 +37,13 @@ func (g *Grid) Resize(size image.Point) bool {
 
 // Bounds returns the bounding rectangle of the grid in cell space: 1,1 origin,
 // with max of Size+1.
-func (g *Grid) Bounds() image.Rectangle {
+func (g Grid) Bounds() image.Rectangle {
 	return image.Rectangle{image.Pt(1, 1), g.Size.Add(image.Pt(1, 1))}
 }
 
 // CellOffset returns the offset of the screen cell and true if it's
 // within the Grid's Bounds().
-func (g *Grid) CellOffset(pt image.Point) (int, bool) {
+func (g Grid) CellOffset(pt image.Point) (int, bool) {
 	if !pt.In(image.Rect(1, 1, g.Size.X+1, pt.Y+1)) {
 		return 0, false
 	}
@@ -56,7 +56,7 @@ func (g *Grid) CellOffset(pt image.Point) (int, bool) {
 // any prior Grid state. If the prior is empty, then a full display erase and
 // redraw is done. Returns the number of bytes written into the buffer, and the
 // final cursor state.
-func (g *Grid) Update(cur CursorState, buf *ansi.Buffer, prior *Grid) (n int, _ CursorState) {
+func (g Grid) Update(cur CursorState, buf *ansi.Buffer, prior Grid) (n int, _ CursorState) {
 	if len(g.Attr) == 0 || len(g.Rune) == 0 {
 		return n, cur
 	}
