@@ -13,11 +13,14 @@ import (
 // Panics if the lines contain any non-SGR ansi escape sequences.
 // Panics if every line after the first isn't the same width as the first.
 func ParseGridLines(lines []string) (g anansi.Grid) {
-	var at ansi.SGRAttr
+	var (
+		rs []rune
+		as []ansi.SGRAttr
+		at ansi.SGRAttr
+	)
 	g.Stride = -1
 	for _, line := range lines {
-		rs, as := parseGridLine(line, at)
-		at = as[len(as)-1]
+		rs, as, at = parseGridLine(line, at)
 		if g.Stride < 0 {
 			g.Stride = len(rs)
 		} else if len(rs) != g.Stride {
@@ -30,7 +33,7 @@ func ParseGridLines(lines []string) (g anansi.Grid) {
 	return g
 }
 
-func parseGridLine(line string, at ansi.SGRAttr) (rs []rune, as []ansi.SGRAttr) {
+func parseGridLine(line string, at ansi.SGRAttr) (rs []rune, as []ansi.SGRAttr, _ ansi.SGRAttr) {
 	b := []byte(line)
 	for len(b) > 0 {
 		e, a, n := ansi.DecodeEscape(b)
@@ -56,7 +59,7 @@ func parseGridLine(line string, at ansi.SGRAttr) (rs []rune, as []ansi.SGRAttr) 
 			panic(fmt.Sprintf("unexpected %v escape", e))
 		}
 	}
-	return rs, as
+	return rs, as, at
 }
 
 // GridLines returns a slice of line strings built from the grid's cell data.
