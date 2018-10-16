@@ -65,68 +65,6 @@ func (g Grid) CellOffset(pt ansi.Point) (int, bool) {
 	return p.Y*g.Stride + p.X, true
 }
 
-// Update writes the escape sequences and runes into the given buffer necessary
-// to affect the receiver Grid's state, relative to the given cursor state, and
-// any prior Grid state. If the prior is empty, then a full display erase and
-// redraw is done. Returns the number of bytes written into the buffer, and the
-// final cursor state.
-func (g Grid) Update(cur CursorState, buf *ansi.Buffer, prior Grid) (n int, _ CursorState) {
-	if g.Stride != g.Rect.Dx() {
-		panic("sub-grid update not implemented")
-	}
-	if g.Rect.Min != ansi.Pt(1, 1) {
-		panic("sub-screen update not implemented")
-	}
-
-	if len(g.Attr) == 0 || len(g.Rune) == 0 {
-		return n, cur
-	}
-	diffing := true
-	if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Rect.Empty() || !prior.Rect.Eq(g.Rect) {
-		diffing = false
-		n += buf.WriteSeq(ansi.ED.With('2'))
-	}
-
-	for i, pt := 0, ansi.Pt(1, 1); i < len(g.Rune); /* next: */ {
-		gr, ga := g.Rune[i], g.Attr[i]
-
-		if diffing {
-			if j, ok := prior.CellOffset(pt); !ok {
-				diffing = false // out-of-bounds disengages diffing
-			} else {
-				pr, pa := prior.Rune[j], prior.Attr[j] // NOTE range ok since pt <= prior.Size
-				if gr == 0 {
-					gr, ga = ' ', 0
-				}
-				if pr == 0 {
-					pr, pa = ' ', 0
-				}
-				if gr == pr && ga == pa {
-					goto next // continue
-				}
-			}
-		}
-
-		if gr != 0 {
-			mv := cur.To(pt)
-			ad := cur.MergeSGR(ga)
-			n += buf.WriteSeq(mv)
-			n += buf.WriteSGR(ad)
-			m, _ := buf.WriteRune(gr)
-			n += m
-			cur.ProcessRune(gr)
-		}
-
-	next:
-		i++
-		if pt.X++; pt.X >= g.Rect.Max.X {
-			pt.X = g.Rect.Min.X
-			pt.Y++
-		}
-	}
-	return n, cur
-}
-
 // SubAt is a convenience for calling SubRect with at as the new Min point, and
 // the receiver's Rect.Max point.
 func (g Grid) SubAt(at ansi.Point) Grid {

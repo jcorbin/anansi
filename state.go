@@ -192,7 +192,7 @@ func (cs *CursorState) ApplyTo(cur CursorState, buf *ansi.Buffer) (n int, _ Curs
 // the given buffer, and the final cursor state.
 func (scs *ScreenState) Update(cur CursorState, buf *ansi.Buffer, prior Grid) (n int, _ CursorState) {
 	n += buf.WriteSeq(cur.Hide())
-	m, cur := scs.Grid.Update(cur, buf, prior)
+	m, cur := RenderGrid(buf, cur, scs.Grid, prior)
 	n += m
 	m, cur = scs.UserCursor.ApplyTo(cur, buf)
 	n += m
