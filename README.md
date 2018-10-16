@@ -57,6 +57,9 @@ Toplevel [`anansi`][anansi_pkg] package:
 - [`anansi.Cursor`][anansi_cursor] represents cursor state including position,
   visibility, and SGR attribute(s); it supports processing under an
   [`ansi.Buffer`][ansi_buffer]
+- [`anansi/ansi.Point`][anansi_point] and
+  [`anansi/ansi.Rectangle`][anansi_rectangle] support sane handling of
+  1,1-originated screen geometry
 - [`anansi.Grid`][anansi_grid] provides a 2d array of `rune` and`ansi.SGRAttr`
   data; it supports processing under an [`ansi.Buffer`][ansi_buffer]. It also
   supports computing differential updates if you provide it a prior / reference
@@ -104,11 +107,14 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 ### WIP
 
-- `anansi/x/braille` supports rendering a bitmap image to unicode braiile runes ([dev][dev])
-- `anansi/ansi.Point` supports type checked handling of 1,1-origin-relative screen point semantics ([dev][dev])
-- `anansi.Grid` is being refactored to be more like a pixel `image` implementation ([dev][dev])
-  - `Grid.Size` will be replaced by `Grid.Stride` and `Grid.Rect`
-  - **switch now** to `Grid.Bounds().Size` to be future safe
+- `anansi.Grid` has been refactored to be more like a pixel `image` implementation ([rc][rc])
+  - `Grid.Size` will be replaced by `Grid.Stride` and `Grid.Rect`; use
+    `Grid.Bounds().Size()` going forward for the size of a grid
+- drawing one `anansi.Grid` into another, leveraging sub-grid support
+  introduced by the image-like refactor ([dev][dev])
+- refactor `anansi.Grid.Update` into `anansi.RenderGrid` ([dev][dev])
+- `anansi.Bitmap` for targeting braille runes, supporting both `DrawBitmap`
+  into a `Grid`, and `RenderBitmap` into an ansi buffer ([dev][dev])
 - an [interact command demo](../../tree/interact/cmd/interact/main.go) which
   allows you to interactively manipulate arguments passed to a dynamically
   executed command
@@ -174,6 +180,8 @@ useful:
 [anansi_grid]: https://godoc.org/github.com/jcorbin/anansi#Grid
 [anansi_input]: https://godoc.org/github.com/jcorbin/anansi#Input
 [anansi_output]: https://godoc.org/github.com/jcorbin/anansi#Output
+[anansi_point]: https://godoc.org/github.com/jcorbin/anansi#Point
+[anansi_rectangle]: https://godoc.org/github.com/jcorbin/anansi#Rectangle
 [anansi_screen]: https://godoc.org/github.com/jcorbin/anansi#Screen
 [anansi_term]: https://godoc.org/github.com/jcorbin/anansi#Term
 [ansi_buffer]: https://godoc.org/github.com/jcorbin/anansi/ansi#Buffer
