@@ -44,7 +44,7 @@ func (g Grid) Bounds() image.Rectangle {
 // CellOffset returns the offset of the screen cell and true if it's
 // within the Grid's Bounds().
 func (g Grid) CellOffset(pt image.Point) (int, bool) {
-	if !pt.In(image.Rect(1, 1, g.Size.X+1, pt.Y+1)) {
+	if !pt.In(g.Bounds()) {
 		return 0, false
 	}
 	p := pt.Sub(image.Pt(1, 1)) // convert to normal 0-indexed point
