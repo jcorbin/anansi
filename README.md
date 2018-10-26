@@ -23,6 +23,9 @@ things on master are reasonably stable, there's no guarantees yet.
 That said, there is a working [demo][demo], which may be a better place to
 start reading than from the various code-level docs linked below.
 
+There's also a [lolwut][lolwut] demo, which is a port of antirez's,
+demonstrating braille-bitmap rendering capability.
+
 ### Done
 
 A 60fps [demo][demo] that draws an animated test pattern, demonstrating the:
@@ -61,12 +64,15 @@ Toplevel [`anansi`][anansi_pkg] package:
   [`anansi/ansi.Rectangle`][anansi_rectangle] support sane handling of
   1,1-originated screen geometry
 - [`anansi.Grid`][anansi_grid] provides a 2d array of `rune` and`ansi.SGRAttr`
-  data; it supports processing under an [`ansi.Buffer`][ansi_buffer]. It also
-  supports computing differential updates if you provide it a prior / reference
-  `Grid`
+  data; it supports processing under an [`ansi.Buffer`][ansi_buffer].
 - [`anansi.Screen`][anansi_screen] combines an `anansi.Cursor` with
   `anansi.Grid`, supporting differential screen updates and final post-update
   cursor display
+- [`anansi.Bitmap`][anansi_bitmap] provides a 2d bitmap that can be rendered or
+  drawn into braille runes.
+- Both `anansi.Grid` and `anansi.Bitmap` support `anansi.Style`d
+  [render][render_grid]ing into an `ansi.Buffer`, or [draw][draw_grid]ing into an (other)
+  `anansi.Grid`.
 
 Core [`anansi/ansi`][ansi_pkg] package:
 - [`ansi.DecodeEscape`][ansi_decode_escape] provides escape sequence decoding
@@ -175,13 +181,16 @@ useful:
 [ansi_pkg]: https://godoc.org/github.com/jcorbin/anansi/ansi
 
 [anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
+[anansi_bitmap]: https://godoc.org/github.com/jcorbin/anansi#Bitmap
 [anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
 [anansi_cursor]: https://godoc.org/github.com/jcorbin/anansi#Cursor
+[anansi_draw_grid]: https://godoc.org/github.com/jcorbin/anansi#DrawGrid
 [anansi_grid]: https://godoc.org/github.com/jcorbin/anansi#Grid
 [anansi_input]: https://godoc.org/github.com/jcorbin/anansi#Input
 [anansi_output]: https://godoc.org/github.com/jcorbin/anansi#Output
 [anansi_point]: https://godoc.org/github.com/jcorbin/anansi#Point
 [anansi_rectangle]: https://godoc.org/github.com/jcorbin/anansi#Rectangle
+[anansi_render_grid]: https://godoc.org/github.com/jcorbin/anansi#RenderGrid
 [anansi_screen]: https://godoc.org/github.com/jcorbin/anansi#Screen
 [anansi_term]: https://godoc.org/github.com/jcorbin/anansi#Term
 [ansi_buffer]: https://godoc.org/github.com/jcorbin/anansi/ansi#Buffer
@@ -209,7 +218,8 @@ useful:
 [vt100]: https://www.vt100.net
 [xterm_ctl]: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 
-[master]: ../../tree/master
 [demo]: ../../tree/master/cmd/demo
+[lolwut]: ../../tree/master/cmd/lolwut/main.go
+[master]: ../../tree/master
 [rc]: ../../tree/rc
 [dev]: ../../tree/dev
