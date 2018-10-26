@@ -71,8 +71,8 @@ Toplevel [`anansi`][anansi_pkg] package:
 - [`anansi.Bitmap`][anansi_bitmap] provides a 2d bitmap that can be rendered or
   drawn into braille runes.
 - Both `anansi.Grid` and `anansi.Bitmap` support `anansi.Style`d
-  [render][render_grid]ing into an `ansi.Buffer`, or [draw][draw_grid]ing into an (other)
-  `anansi.Grid`.
+  [render][anansi_render_grid]ing into an `ansi.Buffer`, or
+  [draw][anansi_draw_grid]ing into an (other) `anansi.Grid`.
 
 Core [`anansi/ansi`][ansi_pkg] package:
 - [`ansi.DecodeEscape`][ansi_decode_escape] provides escape sequence decoding
