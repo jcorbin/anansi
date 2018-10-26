@@ -85,7 +85,8 @@ func DrawBitmap(dst Grid, src *Bitmap, styles ...Style) {
 			if i, ok := dst.CellOffset(gp); ok {
 				r, a := src.Rune(bp), dst.Attr[i]
 				sp := ansi.PtFromImage(bp)
-				if r, a = style.Style(sp, 0, r, 0, a); r != 0 {
+				pr, pa := dst.Rune[i], dst.Attr[i]
+				if r, a = style.Style(sp, pr, r, pa, a); r != 0 {
 					dst.Rune[i], dst.Attr[i] = r, a
 				}
 			}
