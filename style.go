@@ -76,6 +76,9 @@ func (ss styles) Style(p ansi.Point, pr, r rune, pa, a ansi.SGRAttr) (rune, ansi
 // of rune values, e.g. space space characters or empty braille cells.
 type ZeroRuneStyle rune
 
+// TransparentBrailleRunes maps the empty braille rune to (U+2800) to 0.
+var TransparentBrailleRunes = ZeroRuneStyle('\u2800')
+
 // Style replaces the passed rune with 0 if it equals the receiver.
 func (es ZeroRuneStyle) Style(p ansi.Point, pr, r rune, pa, a ansi.SGRAttr) (rune, ansi.SGRAttr) {
 	if r == rune(es) {
