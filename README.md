@@ -113,24 +113,14 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 ### WIP
 
-- `anansi.Grid` has been refactored to be more like a pixel `image` implementation ([rc][rc])
-  - `Grid.Size` will be replaced by `Grid.Stride` and `Grid.Rect`; use
-    `Grid.Bounds().Size()` going forward for the size of a grid
-- drawing one `anansi.Grid` into another, leveraging sub-grid support
-  introduced by the image-like refactor ([dev][dev])
-- refactor `anansi.Grid.Update` into `anansi.RenderGrid` ([dev][dev])
-- `anansi.Bitmap` for targeting braille runes, supporting both `DrawBitmap`
-  into a `Grid`, and `RenderBitmap` into an ansi buffer ([dev][dev])
 - an [interact command demo](../../tree/interact/cmd/interact/main.go) which
   allows you to interactively manipulate arguments passed to a dynamically
   executed command
 
 ### TODO
 
-- `anansi.Grid` should be refactored around an `image`-like `Stride` and `Rect` field
 - platform "middleware", i.e. for re-usable Ctrl-C and Ctrl-Z behavior (ideally
   making current builtins like Ctrl-L and record/replay pluggable)
-- fancier image composition tricks (ala [COPS][cops])
 - fancier image rendition (e.g. leveraging iTerm2's image support)
 - special decoding for CSI M, whose arg follows AFTER
 - provide `DecodeEscapeInString(s string)` for completeness
