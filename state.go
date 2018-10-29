@@ -208,7 +208,7 @@ func (cs *CursorState) ProcessRune(r rune) {
 	case r == '\x0A': // LF
 		cs.Y++
 	case r == '\x0D': // CR
-		cs.X = 0
+		cs.X = 1
 	}
 }
 
