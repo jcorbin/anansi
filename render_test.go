@@ -13,22 +13,22 @@ import (
 func TestRenderBitmap(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
-		inLines  []string
+		bi       *Bitmap
 		outLines []string
 		styles   []Style
 	}{
 		{
 			name: "basic test pattern",
-			inLines: []string{
-				"#.#.",
-				".#.#",
-				"#.#.",
-				".#.#",
-				"#.#.",
-				".#.#",
-				"#.#.",
-				".#.#",
-			},
+			bi: NewBitmap(MustParseBitmap("# ",
+				"# . # . ",
+				". # . # ",
+				"# . # . ",
+				". # . # ",
+				"# . # . ",
+				". # . # ",
+				"# . # . ",
+				". # . # ",
+			)),
 			outLines: []string{
 				"⢕⢕",
 				"⢕⢕",
@@ -37,8 +37,7 @@ func TestRenderBitmap(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf ansi.Buffer
-			bi := NewBitmapString('#', tc.inLines...)
-			RenderBitmap(&buf, bi, tc.styles...)
+			RenderBitmap(&buf, tc.bi, tc.styles...)
 			assert.Equal(t, tc.outLines, strings.Split(string(buf.Bytes()), "\n"))
 		})
 	}

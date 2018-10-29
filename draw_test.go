@@ -163,7 +163,7 @@ func TestDrawBitmap(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		gridSize image.Point
-		inLines  []string
+		bi       *Bitmap
 		outLines []string
 		at       ansi.Point
 		styles   []Style
@@ -172,7 +172,7 @@ func TestDrawBitmap(t *testing.T) {
 			name:     "basic test pattern",
 			gridSize: image.Pt(3, 3),
 			at:       ansi.Pt(1, 1), // cell space origin
-			inLines: []string{
+			bi: NewBitmap(MustParseBitmap("#",
 				"#.#.",
 				".#.#",
 				"#.#.",
@@ -181,7 +181,7 @@ func TestDrawBitmap(t *testing.T) {
 				".#.#",
 				"#.#.",
 				".#.#",
-			},
+			)),
 			outLines: []string{
 				"⢕⢕_",
 				"⢕⢕_",
@@ -192,8 +192,7 @@ func TestDrawBitmap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var g Grid
 			g.Resize(tc.gridSize)
-			bi := NewBitmapString('#', tc.inLines...)
-			DrawBitmap(g.SubAt(tc.at), bi, tc.styles...)
+			DrawBitmap(g.SubAt(tc.at), tc.bi, tc.styles...)
 			assert.Equal(t, tc.outLines, anansitest.GridLines(g, '_'))
 		})
 	}
