@@ -14,7 +14,6 @@ import (
 type Telemetry struct {
 	TelemetryState
 
-	LastTick    TicksMetric
 	FPSEstimate FPSEstimate
 	Timing      TimingData
 	Stalls      StallsData
@@ -26,7 +25,6 @@ type Telemetry struct {
 type TelemetryState struct {
 	TimingEnabled    bool
 	StallDataEnabled bool
-	LogTicks         bool
 	LogTiming        bool
 	LogStallData     bool
 }
@@ -213,11 +211,6 @@ func (tel *Telemetry) update(p *Platform) error {
 		return err
 	}
 
-	tel.LastTick = p.ticks.Metric
-	if tel.LogTicks {
-		tel.coll.tick = &tel.LastTick
-	}
-
 	tel.FPSEstimate.update(p)
 	if tel.TimingEnabled || tel.LogTiming {
 		timingFrame := tel.Timing.update(p)
@@ -327,7 +320,6 @@ func (ds durations) Swap(i int, j int)  { ds[i], ds[j] = ds[j], ds[i] }
 type telemetryCollector struct {
 	bgWorkerCore
 	t      time.Time
-	tick   *TicksMetric
 	timing []time.Duration
 	stalls []time.Duration
 
@@ -419,13 +411,6 @@ func (coll *telemetryCollector) logData() {
 			}
 		}
 
-		if coll.tick != nil {
-			fmt.Fprintf(&coll.buf, `{"t":%d,"name":"tick_metric","data":`, t)
-			coll.tick.WriteToBuffer(&coll.buf)
-			coll.buf.WriteString("}\n")
-			coll.tick = nil
-		}
-
 		if coll.timing != nil {
 			fmt.Fprintf(&coll.buf, `{"t":%d,"name":"timing","data":`, t)
 			appendDurationsTo(&coll.buf, coll.timing)
@@ -446,10 +431,6 @@ func (coll *telemetryCollector) logData() {
 		return
 	}
 
-	if coll.tick != nil {
-		log.Printf("tick metric: %v", coll.tick)
-		coll.tick = nil
-	}
 	if coll.timing != nil {
 		log.Printf("timing data: %v", coll.timing)
 		coll.timing = nil

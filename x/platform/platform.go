@@ -38,10 +38,11 @@ func Run(f *os.File, run func(*Platform) error, opts ...Option) error {
 	})
 }
 
+const defaultFrameRate = 60
+
 // New creates a platform layer for running interactive fullscreen terminal
 // applications.
 func New(opts ...Option) (*Platform, error) {
-	const defaultFrameRate = 60
 	var p Platform
 
 	p.modes = p.modes.AddMode(
@@ -55,12 +56,12 @@ func New(opts ...Option) (*Platform, error) {
 	p.output = anansi.NewOutput(nil)
 
 	p.events = Events{input: anansi.NewInput(nil, 0)}
-	p.ticks = NewTicks(defaultFrameRate)
+	p.ticker.d = time.Second / defaultFrameRate
 	p.termContext = anansi.Contexts(
 		&p.Config,
 		p.events.input,
 		p.output,
-		p.ticks,
+		&p.ticker,
 	)
 
 	timingPeriod := defaultFrameRate / 4
@@ -109,7 +110,7 @@ type Platform struct {
 	modes  anansi.ModeSeqs
 	output *anansi.Output
 	events Events
-	ticks  *Ticks
+	ticker Ticker
 
 	recording *os.File
 	replay    *replay
@@ -190,9 +191,11 @@ func (p *Platform) Run(client Client) (err error) {
 		log.Printf("run done: %v", err)
 	}()
 
-	for p.Time = time.Now(); !p.Time.IsZero(); p.Time = p.ticks.Wait(p.Time) {
+	for p.Time = time.Now(); !p.Time.IsZero(); p.Time = p.ticker.Wait() {
 		// update performance data
-		p.Telemetry.update(p)
+		if err := p.Telemetry.update(p); err != nil {
+			return err
+		}
 
 		ctx := p.Context()
 
