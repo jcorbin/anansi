@@ -18,7 +18,7 @@ var cursorMoves = [4]image.Point{
 // CursorState represents cursor state, allowing consumers to reason virtually
 // about it (e.g. to affect relative movement and SGR changes).
 type CursorState struct {
-	image.Point
+	ansi.Point
 	Attr    ansi.SGRAttr
 	Visible bool
 
@@ -41,13 +41,16 @@ func (cs CursorState) String() string {
 }
 
 func (scs ScreenState) String() string {
-	return fmt.Sprintf("%v uc:(%v) gsz:%v", scs.CursorState, scs.UserCursor, scs.Grid.Size)
+	return fmt.Sprintf("%v uc:(%v) gridBounds:%v", scs.CursorState, scs.UserCursor, scs.Grid.Bounds())
 }
 
 // Clear the screen grid, and reset the UserCursor (to invisible nowhere).
 func (scs *ScreenState) Clear() {
-	scs.Grid.Clear()
-	scs.CursorState.Point = image.Pt(0, 0)
+	for i := range scs.Grid.Rune {
+		scs.Grid.Rune[i] = 0
+		scs.Grid.Attr[i] = 0
+	}
+	scs.Point.Point = image.ZP
 	scs.CursorState.Attr = 0
 	scs.UserCursor = CursorState{}
 }
@@ -56,8 +59,8 @@ func (scs *ScreenState) Clear() {
 // Returns true only if the resize was a change, false if it was a no-op.
 func (scs *ScreenState) Resize(size image.Point) bool {
 	if scs.Grid.Resize(size) {
-		if scs.X > scs.Size.X || scs.Y > scs.Size.Y {
-			scs.Point = image.ZP
+		if !scs.Point.In(scs.Bounds()) {
+			scs.Point.Point = image.ZP
 		}
 		return true
 	}
@@ -101,13 +104,14 @@ func (cs *CursorState) MergeSGR(attr ansi.SGRAttr) ansi.SGRAttr {
 }
 
 // To constructs an ansi control sequence that will move the cursor to the
-// given point using absolute (ansi.CUP) or relative (ansi.{CUU,CUD,CUF,CUD})
-// if possible. Returns a zero sequence if the cursor is already at the given
-// point.
-func (cs *CursorState) To(pt image.Point) ansi.Seq {
-	if cs.Point == image.ZP {
+// given screen point using absolute (ansi.CUP) or relative
+// (ansi.{CUU,CUD,CUF,CUD}) if possible. Returns a zero sequence if the cursor
+// is already at the given point.
+func (cs *CursorState) To(pt ansi.Point) ansi.Seq {
+	if !cs.Point.Valid() {
+		// TODO more nuanced: if X in unknown / Y is unknown?
 		cs.X, cs.Y = pt.X, pt.Y
-		return ansi.CUP.WithInts(pt.Y, pt.X)
+		return ansi.CUP.WithPoint(pt)
 	}
 	if pt.Y == cs.Y+1 && pt.X == 1 {
 		cs.X, cs.Y = pt.X, pt.Y
@@ -115,7 +119,7 @@ func (cs *CursorState) To(pt image.Point) ansi.Seq {
 	}
 	if pt.X != cs.X && pt.Y != cs.Y {
 		cs.X, cs.Y = pt.X, pt.Y
-		return ansi.CUP.WithInts(pt.Y, pt.X)
+		return ansi.CUP.WithPoint(pt)
 	}
 
 	dx := pt.X - cs.X
@@ -149,16 +153,31 @@ func (cs *CursorState) To(pt image.Point) ansi.Seq {
 	return ansi.Seq{}
 }
 
+func (scs *ScreenState) clamp(pt ansi.Point) ansi.Point {
+	r := scs.Bounds()
+	if pt.X < r.Min.X {
+		pt.X = r.Min.X
+	} else if pt.X >= r.Max.X {
+		pt.X = r.Max.X - 1
+	}
+	if pt.Y < r.Min.Y {
+		pt.Y = r.Min.Y
+	} else if pt.Y >= r.Max.Y {
+		pt.Y = r.Max.Y - 1
+	}
+	return pt
+}
+
 // To sets the virtual cursor point to the supplied one.
-func (scs *ScreenState) To(pt image.Point) {
-	scs.Point = clampToScreen(scs.Size, pt)
+func (scs *ScreenState) To(pt ansi.Point) {
+	scs.Point = scs.clamp(pt)
 }
 
 // ApplyTo applies the receiver cursor state into the passed state value,
 // writing any necessary control sequences into the provided buffer. Returns
 // the number of bytes written, and the updated cursor state.
 func (cs *CursorState) ApplyTo(cur CursorState, buf *ansi.Buffer) (n int, _ CursorState) {
-	if cs.Visible && cs.Point != image.ZP {
+	if cs.Visible && cs.Point.Valid() {
 		n += buf.WriteSeq(cur.To(cs.Point))
 		n += buf.WriteSGR(cur.MergeSGR(cs.Attr))
 		n += buf.WriteSeq(cur.Show())
@@ -171,27 +190,13 @@ func (cs *CursorState) ApplyTo(cur CursorState, buf *ansi.Buffer) (n int, _ Curs
 // Update performs a Grid differential update with the cursor hidden, and then
 // applies any non-zero UserCursor, returning the number of bytes written into
 // the given buffer, and the final cursor state.
-func (scs *ScreenState) Update(cur CursorState, buf *ansi.Buffer, p *Grid) (n int, _ CursorState) {
+func (scs *ScreenState) Update(cur CursorState, buf *ansi.Buffer, prior Grid) (n int, _ CursorState) {
 	n += buf.WriteSeq(cur.Hide())
-	m, cur := scs.Grid.Update(cur, buf, p)
+	m, cur := RenderGrid(buf, cur, scs.Grid, prior)
 	n += m
 	m, cur = scs.UserCursor.ApplyTo(cur, buf)
 	n += m
 	return n, cur
-}
-
-func clampToScreen(pt, size image.Point) image.Point {
-	if pt.X < 1 {
-		pt.X = 1
-	} else if pt.X > size.X {
-		pt.X = size.X
-	}
-	if pt.Y < 1 {
-		pt.Y = 1
-	} else if pt.Y > size.Y {
-		pt.Y = size.Y
-	}
-	return pt
 }
 
 // ProcessRune updates the cursor position by the graphic width of the rune.
@@ -223,11 +228,9 @@ func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
 
 	case ansi.CUP: // absolute cursor motion
 		if len(a) == 0 {
-			cs.Point = image.Pt(1, 1)
-		} else if y, n, err := ansi.DecodeNumber(a); err == nil {
-			if x, _, err := ansi.DecodeNumber(a[n:]); err == nil {
-				cs.Point = image.Pt(x, y)
-			}
+			cs.Point = ansi.Pt(1, 1)
+		} else if p, _, err := ansi.DecodePoint(a); err == nil {
+			cs.Point = p
 		}
 
 	case ansi.SGR:
@@ -273,11 +276,14 @@ func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
 
 // ProcessRune sets the rune into the virtual screen grid.
 func (scs *ScreenState) ProcessRune(r rune) {
+	br := scs.Bounds()
 	switch {
 	case unicode.IsGraphic(r):
-		scs.Grid.Cell(scs.Point).Set(r, scs.CursorState.Attr)
-		if scs.X++; scs.X > scs.Size.X {
-			scs.X = 1
+		if i, ok := scs.Grid.CellOffset(scs.Point); ok {
+			scs.Grid.Rune[i], scs.Grid.Attr[i] = r, scs.CursorState.Attr
+		}
+		if scs.X++; scs.X >= br.Max.X {
+			scs.X = br.Min.X
 			scs.linefeed()
 		}
 	case r == '\x0A':
@@ -294,19 +300,17 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 	case ansi.CUU, ansi.CUD, ansi.CUF, ansi.CUB: // relative cursor motion
 		b, _ := e.CSI()
 		if d := cursorMoves[b-'A']; len(a) == 0 {
-			scs.Point = clampToScreen(scs.Point.Add(d), scs.Size)
+			scs.Point = scs.clamp(scs.Point.Add(d))
 		} else if n, _, err := ansi.DecodeNumber(a); err == nil {
 			d = d.Mul(n)
-			scs.Point = clampToScreen(scs.Point.Add(d), scs.Size)
+			scs.Point = scs.clamp(scs.Point.Add(d))
 		}
 
 	case ansi.CUP: // absolute cursor motion
 		if len(a) == 0 {
-			scs.Point = clampToScreen(image.Pt(1, 1), scs.Size)
-		} else if y, n, err := ansi.DecodeNumber(a); err == nil {
-			if x, _, err := ansi.DecodeNumber(a[n:]); err == nil {
-				scs.Point = clampToScreen(image.Pt(x, y), scs.Size)
-			}
+			scs.Point = scs.clamp(ansi.Pt(1, 1))
+		} else if p, _, err := ansi.DecodePoint(a); err == nil {
+			scs.Point = scs.clamp(p)
 		}
 
 	case ansi.SGR:
@@ -323,15 +327,15 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 		}
 		switch val {
 		case '0': // Erase from current position to bottom of screen inclusive
-			if i, ok := scs.index(scs.Point); ok {
-				scs.ClearRegion(i+1, len(scs.Rune))
+			if i, ok := scs.CellOffset(scs.Point); ok {
+				scs.clearRegion(i+1, len(scs.Rune))
 			}
 		case '1': // Erase from top of screen to current position inclusive
-			if i, ok := scs.index(scs.Point); ok {
-				scs.ClearRegion(0, i+1)
+			if i, ok := scs.CellOffset(scs.Point); ok {
+				scs.clearRegion(0, i+1)
 			}
 		case '2': // Erase entire screen (without moving the cursor)
-			scs.ClearRegion(0, len(scs.Rune))
+			scs.clearRegion(0, len(scs.Rune))
 		}
 
 	case ansi.EL:
@@ -342,23 +346,25 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 			return
 		}
 
-		var i, j int
-		var iok, jok bool
+		lo := scs.Point
+		hi := scs.Bounds().Max.Sub(image.Pt(1, 1))
 		switch val {
 		case '0': // Erase from current position to end of line inclusive
-			i, iok = scs.index(scs.Point)
-			j, jok = scs.index(image.Pt(scs.Size.X, scs.Y))
+			hi.Y = scs.Y
 		case '1': // Erase from beginning of line to current position inclusive
-			i, iok = scs.index(image.Pt(1, scs.Y))
-			j, jok = scs.index(image.Pt(scs.X, scs.Y))
+			lo.X = 1
+			hi = scs.Point
 		case '2': // Erase entire line (without moving cursor)
-			i, iok = scs.index(image.Pt(1, scs.Y))
-			j, jok = scs.index(image.Pt(scs.Size.X, scs.Y))
+			lo.X = 1
+			hi.Y = scs.Y
 		default:
 			return
 		}
+
+		i, iok := scs.CellOffset(lo)
+		j, jok := scs.CellOffset(hi)
 		if iok && jok {
-			scs.ClearRegion(i, j+1)
+			scs.clearRegion(i, j+1)
 		}
 
 		// case ansi.DECSTBM: TODO
@@ -371,8 +377,15 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 	}
 }
 
+func (scs *ScreenState) clearRegion(i, max int) {
+	for ; i < max; i++ {
+		scs.Grid.Rune[i] = 0
+		scs.Grid.Attr[i] = 0
+	}
+}
+
 func (scs *ScreenState) linefeed() {
-	if scs.Y < scs.Size.Y {
+	if scs.Y+1 < scs.Bounds().Max.Y {
 		scs.Y++
 	} else {
 		scs.scrollBy(1)
@@ -380,7 +393,7 @@ func (scs *ScreenState) linefeed() {
 }
 
 func (scs *ScreenState) scrollBy(n int) {
-	i, ok := scs.index(image.Pt(1, 2))
+	i, ok := scs.CellOffset(scs.Point.Add(image.Pt(1, 2)))
 	if !ok {
 		return
 	}

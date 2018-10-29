@@ -1,7 +1,6 @@
 package platform
 
 import (
-	"image"
 	"unicode"
 	"unicode/utf8"
 
@@ -21,7 +20,7 @@ const (
 // EditLine provides basic line-editing .
 type EditLine struct {
 	State EditLineState
-	Box   image.Rectangle
+	Box   ansi.Rectangle
 	Buf   []byte
 	Cur   int
 	View  int
@@ -32,7 +31,8 @@ type EditLine struct {
 // Reset state.
 func (edl *EditLine) Reset() {
 	edl.State = EditLineReady
-	edl.Box = image.ZR
+	edl.Box.Min = ansi.Pt(1, 1)
+	edl.Box.Max = edl.Box.Min
 	edl.Buf = edl.Buf[:0]
 	edl.View = 0
 	edl.Cur = 0
@@ -111,7 +111,7 @@ func (edl *EditLine) Update(ctx *Context) {
 	}
 
 	ctx.Output.UserCursor.Visible = true
-	ctx.Output.UserCursor.Point = image.Pt(edl.Box.Min.X+edl.Cur-edl.View, edl.Box.Min.Y)
+	ctx.Output.UserCursor.Point = ansi.Pt(edl.Box.Min.X+edl.Cur-edl.View, edl.Box.Min.Y)
 	if ctx.Output.X == ctx.Output.UserCursor.X {
 		ctx.Output.WriteRune(' ')
 	}

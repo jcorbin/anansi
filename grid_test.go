@@ -1,41 +1,118 @@
 package anansi_test
 
 import (
-	"image"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	. "github.com/jcorbin/anansi"
 	"github.com/jcorbin/anansi/ansi"
 	anansitest "github.com/jcorbin/anansi/test"
 )
 
-func TestGrid_CopyIntoAt(t *testing.T) {
-	over := Grid{
-		Size: image.Pt(5, 2),
-		Rune: []rune{
-			'h', 'e', 'l', 'l', 'o',
-			'w', 'o', 'r', 'l', 'd',
+func TestGrid_SubRect(t *testing.T) {
+	type subResult struct {
+		desc string
+		r    ansi.Rectangle
+		out  []string
+	}
+	for _, tc := range []struct {
+		name string
+		data []string
+		subs []subResult
+	}{
+		{
+			name: "basic 5x5",
+			data: []string{
+				"12345",
+				"67890",
+				"abcde",
+				"fghij",
+				"klmno",
+			},
+			subs: []subResult{
+				{"equal rect", ansi.Rect(1, 1, 6, 6), []string{
+					"12345",
+					"67890",
+					"abcde",
+					"fghij",
+					"klmno",
+				}},
+
+				{"rect max clamp", ansi.Rect(1, 1, 16, 16), []string{
+					"12345",
+					"67890",
+					"abcde",
+					"fghij",
+					"klmno",
+				}},
+				{"rect min beyond", ansi.Rect(11, 11, 16, 16), nil},
+
+				{"less column-1", ansi.Rect(2, 1, 6, 6), []string{
+					"2345",
+					"7890",
+					"bcde",
+					"ghij",
+					"lmno",
+				}},
+				{"less row-1", ansi.Rect(1, 2, 6, 6), []string{
+					"67890",
+					"abcde",
+					"fghij",
+					"klmno",
+				}},
+				{"less column-5", ansi.Rect(1, 1, 5, 6), []string{
+					"1234",
+					"6789",
+					"abcd",
+					"fghi",
+					"klmn",
+				}},
+				{"less row-5", ansi.Rect(1, 1, 6, 5), []string{
+					"12345",
+					"67890",
+					"abcde",
+					"fghij",
+				}},
+				{"inset-1", ansi.Rect(2, 2, 5, 5), []string{
+					"789",
+					"bcd",
+					"ghi",
+				}},
+				{"inset-2", ansi.Rect(3, 3, 4, 4), []string{
+					"c",
+				}},
+
+				{"top-left corner", ansi.Rect(1, 1, 4, 4), []string{
+					"123",
+					"678",
+					"abc",
+				}},
+				{"top-right corner", ansi.Rect(3, 1, 6, 4), []string{
+					"345",
+					"890",
+					"cde",
+				}},
+				{"bottom-right corner", ansi.Rect(3, 3, 6, 6), []string{
+					"cde",
+					"hij",
+					"mno",
+				}},
+				{"bottom-left corner", ansi.Rect(1, 3, 4, 6), []string{
+					"abc",
+					"fgh",
+					"klm",
+				}},
+			},
 		},
-		Attr: make([]ansi.SGRAttr, 10),
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := anansitest.ParseGridLines(tc.data)
+			for _, sub := range tc.subs {
+				t.Run(sub.desc, func(t *testing.T) {
+					out := anansitest.GridLines(g.SubRect(sub.r), '.')
+					assert.Equal(t, sub.out, out, "sub %v", sub.r)
+				})
+			}
+		})
 	}
-
-	under := Grid{
-		Size: image.Pt(10, 6),
-		Rune: make([]rune, 60),
-		Attr: make([]ansi.SGRAttr, 60),
-	}
-
-	over.CopyIntoAt(&under, image.Pt(3, 3))
-
-	lines := anansitest.GridLines(under, '.')
-	assert.Equal(t, []string{
-		"..........",
-		"..........",
-		"..hello...",
-		"..world...",
-		"..........",
-		"..........",
-	}, lines)
 }

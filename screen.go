@@ -46,11 +46,13 @@ func (sc *Screen) Invalidate() {
 // attempt is made to flush the output buffer.
 func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 	if sc.out.buf.Len() == 0 {
-		_, sc.out.CursorState = sc.ScreenState.Update(sc.out.CursorState, &sc.out.buf, &sc.prior)
+		_, sc.out.CursorState = sc.ScreenState.Update(sc.out.CursorState, &sc.out.buf, sc.prior)
 	}
 	n, err = sc.out.WriteTo(w)
 	if err == nil {
-		sc.ScreenState.Grid.CopyTo(&sc.prior)
+		sc.prior.Resize(sc.ScreenState.Grid.Bounds().Size())
+		copy(sc.prior.Rune, sc.ScreenState.Grid.Rune)
+		copy(sc.prior.Attr, sc.ScreenState.Grid.Attr)
 	} else if !isEWouldBlock(err) {
 		sc.Reset()
 		sc.Invalidate()

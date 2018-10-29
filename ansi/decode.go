@@ -286,6 +286,18 @@ func DecodeNumber(p []byte) (r, n int, _ error) {
 	return int(un), n, nil
 }
 
+// DecodePoint decose a screen point, e.g. from a CUP sequence, into an 1,1
+// origin-relative Point value.
+func DecodePoint(a []byte) (p Point, n int, err error) {
+	p.Y, n, err = DecodeNumber(a)
+	if err == nil {
+		var m int
+		p.X, m, err = DecodeNumber(a[n:])
+		n += m
+	}
+	return p, n, err
+}
+
 // DecodeSGR decodes an SGR attribute value from the given byte buffer; if
 // non-nil error is returned, then n indicates the index of the offending byte.
 func DecodeSGR(a []byte) (attr SGRAttr, n int, _ error) {

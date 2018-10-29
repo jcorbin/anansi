@@ -1,7 +1,6 @@
 package anansi
 
 import (
-	"image"
 	"io"
 
 	"github.com/jcorbin/anansi/ansi"
@@ -102,7 +101,7 @@ func (c *Cursor) WriteSGR(attrs ...ansi.SGRAttr) (n int) {
 
 // To moves the cursor to the given point using absolute (ansi.CUP) or relative
 // (ansi.{CUU,CUD,CUF,CUD}) if possible.
-func (c *Cursor) To(pt image.Point) {
+func (c *Cursor) To(pt ansi.Point) {
 	c.buf.Skip(c.buf.WriteSeq(c.CursorState.To(pt)))
 }
 

@@ -3,7 +3,6 @@ package anansi_test
 import (
 	"bufio"
 	"bytes"
-	"image"
 	"log"
 	"testing"
 
@@ -26,12 +25,12 @@ func TestCursor(t *testing.T) {
 
 		{"hello", []step{
 			{func(cur *Cursor) {
-				cur.To(image.Pt(5, 5))
+				cur.To(ansi.Pt(5, 5))
 				cur.WriteSGR(ansi.SGRRed.FG() | ansi.SGRGreen.BG())
 				cur.WriteString("hello")
 			}, "\x1b[5;5H\x1B[0;31;42mhello"},
 			{func(cur *Cursor) {
-				cur.To(image.Pt(5, 6))
+				cur.To(ansi.Pt(5, 6))
 				cur.WriteSGR(ansi.SGRBlue.FG() | ansi.SGRGreen.BG())
 				cur.WriteString("world")
 			}, "\x1b[6;5H\x1b[34mworld"},

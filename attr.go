@@ -4,7 +4,6 @@ import (
 	"image"
 	"os"
 	"syscall"
-	"unsafe"
 )
 
 // Attr implements Context-ual manipulation and interrogation of terminal
@@ -20,18 +19,7 @@ type Attr struct {
 
 // Size reads and returns the current terminal size.
 func (at *Attr) Size() (size image.Point, err error) {
-	var dim struct {
-		rows    uint16
-		cols    uint16
-		xpixels uint16
-		ypixels uint16
-	}
-	err = at.ioctl(syscall.TIOCGWINSZ, uintptr(unsafe.Pointer(&dim)), 0, 0, 0)
-	if err == nil {
-		size.X = int(dim.cols)
-		size.Y = int(dim.rows)
-	}
-	return size, err
+	return at.getSize()
 }
 
 // SetRaw controls whether the terminal should be in raw mode.
@@ -119,13 +107,4 @@ func (at *Attr) ioctl(request, arg1, arg2, arg3, arg4 uintptr) error {
 		return e
 	}
 	return nil
-}
-
-func (at *Attr) getAttr() (attr syscall.Termios, err error) {
-	err = at.ioctl(syscall.TIOCGETA, uintptr(unsafe.Pointer(&attr)), 0, 0, 0)
-	return
-}
-
-func (at *Attr) setAttr(attr syscall.Termios) error {
-	return at.ioctl(syscall.TIOCSETA, uintptr(unsafe.Pointer(&attr)), 0, 0, 0)
 }

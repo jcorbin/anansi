@@ -42,7 +42,7 @@ type Escape struct {
 // Mouse represents mouse data stored in an Events queue.
 type Mouse struct {
 	State ansi.MouseState
-	image.Point
+	ansi.Point
 }
 
 // ZM is a convenience name for the zero value of Mouse.
@@ -75,7 +75,7 @@ func (es *Events) CountRune(r rune) (n int) {
 
 // CountPressesIn counts mouse presses of the given button within the given
 // rectangle, striking them out.
-func (es *Events) CountPressesIn(box image.Rectangle, buttonID uint8) (n int) {
+func (es *Events) CountPressesIn(box ansi.Rectangle, buttonID uint8) (n int) {
 	for id, kind := range es.Type {
 		if kind == EventMouse {
 			if sid, pressed := es.mouse[id].State.IsPress(); pressed && sid == buttonID {
@@ -91,7 +91,7 @@ func (es *Events) CountPressesIn(box image.Rectangle, buttonID uint8) (n int) {
 
 // AnyPressesOutside returns true if there are any mouse presses outside the
 // given rectangle.
-func (es *Events) AnyPressesOutside(box image.Rectangle) bool {
+func (es *Events) AnyPressesOutside(box ansi.Rectangle) bool {
 	for id, kind := range es.Type {
 		if kind == EventMouse {
 			if _, pressed := es.mouse[id].State.IsPress(); pressed {
@@ -106,7 +106,7 @@ func (es *Events) AnyPressesOutside(box image.Rectangle) bool {
 
 // TotalScrollIn counts total mouse scroll delta within the given rectangle,
 // striking out all such events.
-func (es *Events) TotalScrollIn(box image.Rectangle) (n int) {
+func (es *Events) TotalScrollIn(box ansi.Rectangle) (n int) {
 	for id, kind := range es.Type {
 		if kind == EventMouse && es.mouse[id].Point.In(box) {
 			switch es.mouse[id].State.ButtonID() {
@@ -220,9 +220,9 @@ func (es *Events) add(e ansi.Escape, a []byte, r rune) {
 	switch e {
 	case ansi.CSI('M'), ansi.CSI('m'):
 		var err error
-		if m.State, m.X, m.Y, err = ansi.DecodeXtermExtendedMouse(e, a); err != nil {
+		if m.State, m.Point, err = ansi.DecodeXtermExtendedMouse(e, a); err != nil {
 			log.Printf("mouse control: decode error %v %s : %v", e, a, err)
-		} else if m.State != 0 || m.Point != image.ZP {
+		} else if m.State != 0 || m.Point.Valid() {
 			kind = EventMouse
 		}
 

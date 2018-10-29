@@ -5,15 +5,15 @@
 ## Why?
 
 - Designed to be a loosely coupled set of principled layers, rather than (just)
-  one unified convenient interface.
+  one unified convenient interface
 - Be more Go-idiomatic / natural: e.g.  [ansi.DecodeEscape][ansi_decode_escape]
   following [utf8.DecodeRune][decode_rune] convention, rather than heavier
-  weight event parsing/handling.
-- Supporting use cases other than fullscreen raw mode.
+  weight event parsing/handling
+- Supporting use cases other than fullscreen raw mode
 - Allow applications to choose input modality, rather than lock-in to one
-  paradigm like non-blocking/SIGIO.
+  paradigm like non-blocking/SIGIO
 - Support implementing terminal emulators, e.g. to build a multiplexer or debug
-  wrapper.
+  wrapper
 
 ## Status
 
@@ -23,79 +23,88 @@ things on master are reasonably stable, there's no guarantees yet.
 That said, there is a working [demo][demo], which may be a better place to
 start reading than from the various code-level docs linked below.
 
+There's also a [lolwut][lolwut] demo, which is a port of antirez's,
+demonstrating braille-bitmap rendering capability.
+
 ### Done
 
 A 60fps [demo][demo] that draws an animated test pattern, demonstrating the:
 
 Experimental cohesive [`x/platform`][platform_pkg] layer:
 - provides a `platform.Events` queue layered on top of `anansi.input`, which
-  contains parsed `rune`, `ansi.Escape`, and `ansi.MouseState` data.
+  contains parsed `rune`, `ansi.Escape`, and `ansi.MouseState` data
 - synthesizes all of the below `anansi` pieces (`Term`, `Input`, `Output`, etc)
   into one cohesive `platform.Context` which supports a single combined round
-  of non-blocking input processing and output generation.
+  of non-blocking input processing and output generation
 - provides signal handling for typical things like `SIGINT`, `SIGERM`,
-  `SIGHUP`, and `SIGWINCH`.
+  `SIGHUP`, and `SIGWINCH`
 - drives a `platform.Client` in a `platform.Tick` loop at a desired
-  Frames-Per-Second (FPS) rate.
+  Frames-Per-Second (FPS) rate
 - provides input record and replay on top of (de)serialized client and platform
-  state.
-- supports inter-frame background work.
+  state
+- supports inter-frame background work
 - provides a diagnostic HUD overlay that displays things like Go's `log`
   output, FPS, time, mouse state, screen size, etc
 
 Toplevel [`anansi`][anansi_pkg] package:
 - [`anansi.Term`][anansi_term], [`anansi.Context`][anansi_context], and
   [`anansi.Attr`][anansi_attr] provide cohesive management of terminal state
-  such as raw mode, ANSI escape sequenced modes, and SGR attribute state.
+  such as raw mode, ANSI escape sequenced modes, and SGR attribute state
 - [`anansi.Input`][anansi_input] supports reading input from a file handle,
-  implementing both blocking `.ReadMore()` and non-blocking `.ReadAny()` modes.
+  implementing both blocking `.ReadMore()` and non-blocking `.ReadAny()` modes
 - [`anansi.Output`][anansi_output] mediates flushing output from any
   `io.WriterTo` (implemented by both `anansi.Cursor` and `anansi.Screen`) into
   a file handle.  It properly handles non-blocking IO (by temporarily doing a
   blocking write if necessary) to coexist with `anansi.Input` (since `stdin`
-  and `stdout` share the same underlying file descriptor).
+  and `stdout` share the same underlying file descriptor)
 - [`anansi.Cursor`][anansi_cursor] represents cursor state including position,
   visibility, and SGR attribute(s); it supports processing under an
-  [`ansi.Buffer`][ansi_buffer].
+  [`ansi.Buffer`][ansi_buffer]
+- [`anansi/ansi.Point`][anansi_point] and
+  [`anansi/ansi.Rectangle`][anansi_rectangle] support sane handling of
+  1,1-originated screen geometry
 - [`anansi.Grid`][anansi_grid] provides a 2d array of `rune` and`ansi.SGRAttr`
-  data; it supports processing under an [`ansi.Buffer`][ansi_buffer]. It also
-  supports computing differential updates if you provide it a prior / reference
-  `Grid`.
+  data; it supports processing under an [`ansi.Buffer`][ansi_buffer].
 - [`anansi.Screen`][anansi_screen] combines an `anansi.Cursor` with
   `anansi.Grid`, supporting differential screen updates and final post-update
-  cursor display.
+  cursor display
+- [`anansi.Bitmap`][anansi_bitmap] provides a 2d bitmap that can be rendered or
+  drawn into braille runes.
+- Both `anansi.Grid` and `anansi.Bitmap` support `anansi.Style`d
+  [render][render_grid]ing into an `ansi.Buffer`, or [draw][draw_grid]ing into an (other)
+  `anansi.Grid`.
 
 Core [`anansi/ansi`][ansi_pkg] package:
 - [`ansi.DecodeEscape`][ansi_decode_escape] provides escape sequence decoding
   as similarly to [`utf8.DecodeRune`][decode_rune] as possible. Additional
   support for decoding escape arguments is provided (`DecodeNumber`,
-  `DecodeSGR`, `DecodeMode`, and `DecodeCursorCardinal`).
+  `DecodeSGR`, `DecodeMode`, and `DecodeCursorCardinal`)
 - [`ansi.SGRAttr`][ansi_sgr] supports dealing with terminal colors and text
-  attributes.
+  attributes
 - [`ansi.MouseState`][ansi_mousestate] supports handling xterm extended mouse
-  reporting.
+  reporting
 - function definitions like [`ansi.CUP`][ansi_cup] and [`ansi.SM`][ansi_sm] for
   building [`control sequences`][ansi_seq] terminal state management
 - [`ansi.Mode`][ansi_mode] supports setting and clearing various modes such as
   mouse reporting (and its optional extra levels like motion and full button
-  reporting).
+  reporting)
 - [`ansi.Buffer`][ansi_buffer] supports deferred writing to a terminal; the
   primary trick that it adds beyond a basic `bytes.Buffer` convenience, is
   allowing the users to process escape sequences, no matter how they're
   written. This enables keeping virtual state (such as cursor position or a
   cell grid) up to date without locking downstream users into specific APIs for
-  writing.
+  writing
 
 ### Errata
 
 - differential screen update is still not perfect, although the glitches that
   were previously present are now lessened due to the functional test; however
   this was done by removing a (perhaps premature) cursor movement optimization
-  to simplify diffing.
+  to simplify diffing
 - Works For Me ™ in tmux-under-iTerm2: should also work in other modern
   xterm-descended terminals, such as the libvte family; however terminfo
   detection not yet used by the platform layer, so basic things like
-  smcup/rmcup inversion may by broken.
+  smcup/rmcup inversion may by broken
 - `anansi.Screen` doesn't (yet) implement full vt100 emulation, notably lacking
   is scrolling region support
 - there's something glitchy with trying to write into the final cell (last
@@ -104,14 +113,14 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 ### WIP
 
-- `anansi/x/braille` supports rendering a bitmap image to unicode braiile runes ([rc][rc])
+- an [interact command demo](../../tree/interact/cmd/interact/main.go) which
+  allows you to interactively manipulate arguments passed to a dynamically
+  executed command
 
 ### TODO
 
-- `anansi.Grid` should be refactored around an `image`-like `Stride` and `Rect` field
 - platform "middleware", i.e. for re-usable Ctrl-C and Ctrl-Z behavior (ideally
   making current builtins like Ctrl-L and record/replay pluggable)
-- fancier image composition tricks (ala [COPS][cops])
 - fancier image rendition (e.g. leveraging iTerm2's image support)
 - special decoding for CSI M, whose arg follows AFTER
 - provide `DecodeEscapeInString(s string)` for completeness
@@ -162,11 +171,16 @@ useful:
 [ansi_pkg]: https://godoc.org/github.com/jcorbin/anansi/ansi
 
 [anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
+[anansi_bitmap]: https://godoc.org/github.com/jcorbin/anansi#Bitmap
 [anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
 [anansi_cursor]: https://godoc.org/github.com/jcorbin/anansi#Cursor
+[anansi_draw_grid]: https://godoc.org/github.com/jcorbin/anansi#DrawGrid
 [anansi_grid]: https://godoc.org/github.com/jcorbin/anansi#Grid
 [anansi_input]: https://godoc.org/github.com/jcorbin/anansi#Input
 [anansi_output]: https://godoc.org/github.com/jcorbin/anansi#Output
+[anansi_point]: https://godoc.org/github.com/jcorbin/anansi#Point
+[anansi_rectangle]: https://godoc.org/github.com/jcorbin/anansi#Rectangle
+[anansi_render_grid]: https://godoc.org/github.com/jcorbin/anansi#RenderGrid
 [anansi_screen]: https://godoc.org/github.com/jcorbin/anansi#Screen
 [anansi_term]: https://godoc.org/github.com/jcorbin/anansi#Term
 [ansi_buffer]: https://godoc.org/github.com/jcorbin/anansi/ansi#Buffer
@@ -194,7 +208,8 @@ useful:
 [vt100]: https://www.vt100.net
 [xterm_ctl]: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 
-[master]: ../../tree/master
 [demo]: ../../tree/master/cmd/demo
+[lolwut]: ../../tree/master/cmd/lolwut/main.go
+[master]: ../../tree/master
 [rc]: ../../tree/rc
 [dev]: ../../tree/dev

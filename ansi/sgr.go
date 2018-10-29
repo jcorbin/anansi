@@ -70,10 +70,30 @@ const (
 	SGRAttrNegative
 	SGRAttrConceal
 
-	// Mask for all of the normal bits (clear is special)
+	sgrNumBits = iota
+)
+
+const (
+	sgrColor24  SGRColor = 1 << 24 // 24-bit color flag
+	sgrColorSet SGRColor = 1 << 25 // color set flag (only used when inside SGRAttr)
+
+	sgrColorBitSize = 26
+	sgrColorMask    = 0x01ffffff
+
+	sgrFGShift = sgrNumBits
+	sgrBGShift = sgrNumBits + sgrColorBitSize
+
+	sgrAttrFGSet = SGRAttr(sgrColorSet) << sgrFGShift
+	sgrAttrBGSet = SGRAttr(sgrColorSet) << sgrBGShift
+
+	// SGRAttrMask selects all normal attr bits (excluding FG, BBG, and SGRAttrClear)
 	SGRAttrMask = SGRAttrBold | SGRAttrDim | SGRAttrItalic | SGRAttrUnderscore | SGRAttrNegative | SGRAttrConceal
 
-	sgrNumBits = iota
+	// SGRAttrFGMask selects any set FG color.
+	SGRAttrFGMask = SGRAttr(sgrColorSet|sgrColorMask) << sgrFGShift
+
+	// SGRAttrBGMask selects any set BG color.
+	SGRAttrBGMask = SGRAttr(sgrColorSet|sgrColorMask) << sgrBGShift
 )
 
 // SGRColor represents an SGR foreground or background color in any generation
@@ -369,20 +389,6 @@ func RGBA(r, g, b, _ uint32) SGRColor {
 	return RGB(uint8(r>>8), uint8(g>>8), uint8(b>>8))
 }
 
-const (
-	sgrColor24  SGRColor = 1 << 24 // 24-bit color flag
-	sgrColorSet SGRColor = 1 << 25 // color set flag (only used when inside SGRAttr)
-
-	sgrColorBitSize = 26
-	sgrColorMask    = 0x01ffffff
-
-	sgrFGShift = sgrNumBits
-	sgrBGShift = sgrNumBits + sgrColorBitSize
-
-	sgrAttrFGSet = SGRAttr(sgrColorSet) << sgrFGShift
-	sgrAttrBGSet = SGRAttr(sgrColorSet) << sgrBGShift
-)
-
 func (c SGRColor) String() string {
 	switch {
 	case c&sgrColor24 != 0:
@@ -554,14 +560,10 @@ func (attr SGRAttr) BG() (c SGRColor, set bool) {
 }
 
 // SansFG returns a copy of the attribute with any FG color unset.
-func (attr SGRAttr) SansFG() SGRAttr {
-	return attr & ^(sgrAttrFGSet | (sgrColorMask << sgrFGShift))
-}
+func (attr SGRAttr) SansFG() SGRAttr { return attr & ^SGRAttrFGMask }
 
 // SansBG returns a copy of the attribute with any BG color unset.
-func (attr SGRAttr) SansBG() SGRAttr {
-	return attr & ^(sgrAttrBGSet | (sgrColorMask << sgrBGShift))
-}
+func (attr SGRAttr) SansBG() SGRAttr { return attr & ^SGRAttrBGMask }
 
 // Merge an other attr value into a copy of the receiver, returning it.
 func (attr SGRAttr) Merge(other SGRAttr) SGRAttr {

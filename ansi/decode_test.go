@@ -271,3 +271,27 @@ func TestDecodeSGR_roundtrips(t *testing.T) {
 		})
 	}
 }
+
+func TestPoint_roundtrip(t *testing.T) {
+	for _, tc := range []struct {
+		p ansi.Point
+	}{
+		{
+			p: ansi.Pt(3, 5),
+		},
+	} {
+		t.Run(tc.p.String(), func(t *testing.T) {
+			seq := ansi.CUP.WithPoint(tc.p)
+			b := seq.AppendTo(nil)
+			e, a, n := ansi.DecodeEscape(b)
+			b = b[n:]
+			require.Equal(t, ansi.CUP, e)
+			require.Equal(t, 0, len(b))
+			p, n, err := ansi.DecodePoint(a)
+			a = a[n:]
+			require.NoError(t, err)
+			require.Equal(t, 0, len(a))
+			assert.Equal(t, tc.p, p)
+		})
+	}
+}

@@ -28,7 +28,7 @@ type HUD struct {
 	detailWidth int
 	sep         string
 
-	bla image.Rectangle
+	bla ansi.Rectangle
 
 	uicur UIID
 }
@@ -66,6 +66,8 @@ func (hud *HUD) nextID() UIID {
 
 // Update the HUD (only if visible).
 func (hud *HUD) Update(ctx *Context, client Client) error {
+	outBounds := ctx.Output.Bounds()
+
 	hud.uicur = 0
 
 	if m, have := ctx.Input.LastMouse(false); have {
@@ -91,7 +93,7 @@ func (hud *HUD) Update(ctx *Context, client Client) error {
 
 	ctx.Output.WriteESC(ansi.DECSC)
 
-	ctx.Output.To(image.Pt(ctx.Output.Size.X+1, 1))
+	ctx.Output.To(ansi.Pt(outBounds.Max.X, 1))
 
 	box := hud.rightSegment(ctx, ctx.Time.Format(hudTimeFmt))
 	if box != hud.bla {
@@ -117,13 +119,13 @@ func (hud *HUD) Update(ctx *Context, client Client) error {
 		hud.ProfDetail = !hud.ProfDetail
 	}
 
-	hud.rightSegment(ctx, fmt.Sprintf("%vx%v", ctx.Output.Size.X, ctx.Output.Size.Y))
+	hud.rightSegment(ctx, outBounds.Size().String())
 	hud.rightSegment(ctx, fmt.Sprintf("W:% 5v", ctx.Platform.output.Flushed))
 	hud.rightSegment(ctx, hud.Mouse.String())
 
 	// TODO better placed in footer? overlay?
 	// if ctx.Platform.recording != nil {
-	// 	var recBox image.Rectangle
+	// 	var recBox ansi.Rectangle
 	// 	recBox = hud.rightSegment(ctx, "RECORDING")
 	// 	if n := ctx.CountPressesIn(recBox, 1); n%2 == 1 {
 	// 		err = errOr(err, ctx.toggleRecRep())
@@ -132,7 +134,7 @@ func (hud *HUD) Update(ctx *Context, client Client) error {
 
 	if hud.TimeDetail || hud.ProfDetail || hud.FPSDetail {
 		var derr error
-		ctx.Output.To(image.Pt(ctx.Output.Size.X+1, 2))
+		ctx.Output.To(ansi.Pt(outBounds.Max.X, 2))
 		derr = hud.drawTimingDetail(ctx)
 
 		if hud.TimeDetail || hud.FPSDetail {
@@ -174,16 +176,17 @@ func (hud *HUD) updateProfilers(p *Platform) {
 	}
 }
 
-func (hud *HUD) calcKVBox(ctx *Context, key string) (kbox, vbox image.Rectangle) {
+func (hud *HUD) calcKVBox(ctx *Context, key string) (kbox, vbox ansi.Rectangle) {
+	outBounds := ctx.Output.Bounds()
 	n := utf8.RuneCountInString(key)
-	kbox.Min = image.Pt(ctx.Output.Size.X+1-hud.detailWidth-n-1, ctx.Output.Y)
-	vbox.Min = image.Pt(ctx.Output.Size.X+1-hud.detailWidth, ctx.Output.Y)
-	kbox.Max = image.Pt(kbox.Min.X+n, ctx.Output.Y+1)
-	vbox.Max = image.Pt(vbox.Min.X+hud.detailWidth, ctx.Output.Y+1)
+	kbox.Min = ansi.Pt(outBounds.Max.X-hud.detailWidth-n-1, ctx.Output.Y)
+	vbox.Min = ansi.Pt(outBounds.Max.X-hud.detailWidth, ctx.Output.Y)
+	kbox.Max = ansi.Pt(kbox.Min.X+n, ctx.Output.Y+1)
+	vbox.Max = ansi.Pt(vbox.Min.X+hud.detailWidth, ctx.Output.Y+1)
 	return kbox, vbox
 }
 
-func (hud *HUD) detailHeader(ctx *Context, title string) (box image.Rectangle) {
+func (hud *HUD) detailHeader(ctx *Context, title string) (box ansi.Rectangle) {
 	kbox, vbox := hud.calcKVBox(ctx, title)
 	box.Min = kbox.Min
 	box.Max = vbox.Max
@@ -196,12 +199,12 @@ func (hud *HUD) detailHeader(ctx *Context, title string) (box image.Rectangle) {
 	return box
 }
 
-func (hud *HUD) detailRow(ctx *Context, key string, val string) (box image.Rectangle) {
+func (hud *HUD) detailRow(ctx *Context, key string, val string) (box ansi.Rectangle) {
 	kbox, vbox := hud.calcKVBox(ctx, key)
 	box.Min = kbox.Min
 	box.Max = vbox.Max
 	n := utf8.RuneCountInString(key) + 2 + hud.detailWidth
-	ctx.Output.To(image.Pt(ctx.Output.X-n+1, ctx.Output.Y))
+	ctx.Output.To(ansi.Pt(ctx.Output.X-n+1, ctx.Output.Y))
 	ctx.Output.WriteString(key)
 	ctx.Output.WriteRune(' ')
 	for i := utf8.RuneCountInString(val); i < hud.detailWidth; i++ {
@@ -212,12 +215,13 @@ func (hud *HUD) detailRow(ctx *Context, key string, val string) (box image.Recta
 	return box
 }
 
-func (hud *HUD) rightSegment(ctx *Context, s string) (box image.Rectangle) {
+func (hud *HUD) rightSegment(ctx *Context, s string) (box ansi.Rectangle) {
+	outBounds := ctx.Output.Bounds()
 	box.Min = ctx.Output.Point
-	if box.Min.X < ctx.Output.Size.X {
+	if box.Min.X+1 < outBounds.Max.X {
 		box.Min.X--
 	}
-	box.Max = image.Pt(box.Min.X, box.Min.Y+1)
+	box.Max = ansi.Pt(box.Min.X, box.Min.Y+1)
 	box.Min.X -= utf8.RuneCountInString(s)
 	ctx.Output.To(box.Min)
 	ctx.Output.WriteString(s)
@@ -296,6 +300,8 @@ func (hud *HUD) drawProfDetail(ctx *Context) {
 }
 
 func (hud *HUD) drawPProfSelector(ctx *Context) {
+	outBounds := ctx.Output.Bounds()
+
 	kbox, box := hud.calcKVBox(ctx, "PProf")
 	ctx.Output.To(kbox.Min)
 	ctx.Output.WriteString("PProf ")
@@ -333,13 +339,13 @@ func (hud *HUD) drawPProfSelector(ctx *Context) {
 		withAttr(ctx, hud.SelectAttr, ansi.SGRAttrClear, func(ctx *Context) {
 			for _, prof := range pprofs {
 				withOverAttr(ctx, hud.Mouse,
-					image.Rect(box.Min.X, ctx.Output.Y, box.Max.X, ctx.Output.Y+1),
+					ansi.Rect(box.Min.X, ctx.Output.Y, box.Max.X, ctx.Output.Y+1),
 					hud.ButtonAttr, hud.SelectAttr,
 					func(ctx *Context, _ bool) {
 						ctx.Output.WriteString(prof.Name())
-						ctx.Output.WriteString(strings.Repeat(" ", ctx.Output.Size.X-ctx.Output.X))
+						ctx.Output.WriteString(strings.Repeat(" ", outBounds.Max.X-1-ctx.Output.X))
 					})
-				ctx.Output.To(image.Pt(box.Min.X, ctx.Output.Y+1))
+				ctx.Output.To(ansi.Pt(box.Min.X, ctx.Output.Y+1))
 				box.Max.Y = ctx.Output.Y
 			}
 		})
@@ -351,7 +357,7 @@ func (hud *HUD) drawPProfSelector(ctx *Context) {
 				sid, pressed := m.State.IsPress()
 				if pressed && sid == 1 {
 					if m.Point.In(box) {
-						rel := m.Point.Sub(box.Min)
+						rel := m.Point.Diff(box.Min)
 						ctx.Platform.pprofProfiles = append(ctx.Platform.pprofProfiles, pprofProfileContext{
 							profile: pprofs[rel.Y],
 							debug:   1,
@@ -440,11 +446,11 @@ func (hud *HUD) drawStallsDetail(ctx *Context) {
 	}
 }
 
-func (hud *HUD) drawButton(ctx *Context, box image.Rectangle, label string) {
+func (hud *HUD) drawButton(ctx *Context, box ansi.Rectangle, label string) {
 	ctx.Output.To(box.Min)
 	withAttr(ctx, hud.SelectAttr, ansi.SGRAttrClear, func(ctx *Context) {
 		withOverAttr(ctx, hud.Mouse,
-			image.Rect(box.Min.X, ctx.Output.Y, box.Max.X, ctx.Output.Y+1),
+			ansi.Rect(box.Min.X, ctx.Output.Y, box.Max.X, ctx.Output.Y+1),
 			hud.ButtonAttr, hud.SelectAttr,
 			func(ctx *Context, _ bool) {
 				ctx.Output.WriteString("[ ")
@@ -460,10 +466,10 @@ func (hud *HUD) drawButton(ctx *Context, box image.Rectangle, label string) {
 				ctx.Output.WriteString(" ]")
 			})
 	})
-	ctx.Output.To(image.Pt(box.Max.X-1, box.Max.Y))
+	ctx.Output.To(ansi.Pt(box.Max.X-1, box.Max.Y))
 }
 
-func (hud *HUD) underActivation(ctx *Context, box image.Rectangle, f func(*Context, image.Rectangle, UIID, bool)) bool {
+func (hud *HUD) underActivation(ctx *Context, box ansi.Rectangle, f func(*Context, ansi.Rectangle, UIID, bool)) bool {
 	id := hud.nextID()
 	enter := hud.Active != id
 	if hud.Active != id {
@@ -488,7 +494,7 @@ type fileable interface {
 	file() *os.File
 }
 
-func (hud *HUD) drawToggleRow(ctx *Context, name string, flag *bool) (kbox, box image.Rectangle) {
+func (hud *HUD) drawToggleRow(ctx *Context, name string, flag *bool) (kbox, box ansi.Rectangle) {
 	kbox, box = hud.calcKVBox(ctx, name)
 	if n := ctx.Input.CountPressesIn(box, 1); n%2 == 1 {
 		*flag = !*flag
@@ -504,13 +510,13 @@ func (hud *HUD) drawToggleRow(ctx *Context, name string, flag *bool) (kbox, box 
 	return kbox, box
 }
 
-func (hud *HUD) drawFileEditRow(ctx *Context, fil fileable, label string) (kbox, box image.Rectangle) {
+func (hud *HUD) drawFileEditRow(ctx *Context, fil fileable, label string) (kbox, box ansi.Rectangle) {
 	name := fil.name()
 	kbox, box = hud.calcKVBox(ctx, name)
 	ctx.Output.To(kbox.Min)
 	ctx.Output.WriteString(name)
 	ctx.Output.To(box.Min)
-	if !hud.underActivation(ctx, box, func(ctx *Context, box image.Rectangle, id UIID, enter bool) {
+	if !hud.underActivation(ctx, box, func(ctx *Context, box ansi.Rectangle, id UIID, enter bool) {
 		hud.underFileEdit(fil, ctx, box, id, enter)
 	}) {
 		if f := fil.file(); f != nil {
@@ -524,7 +530,7 @@ func (hud *HUD) drawFileEditRow(ctx *Context, fil fileable, label string) (kbox,
 	return kbox, box
 }
 
-func (hud *HUD) underFileEdit(fil fileable, ctx *Context, box image.Rectangle, id UIID, enter bool) {
+func (hud *HUD) underFileEdit(fil fileable, ctx *Context, box ansi.Rectangle, id UIID, enter bool) {
 	exit := true
 	defer func() {
 		if exit {
@@ -612,6 +618,8 @@ func NewLogView(logs *LogSink) *LogView {
 
 // Update the log view, processing input, and drawing.
 func (lv *LogView) Update(ctx *Context) error {
+	outBounds := ctx.Output.Bounds()
+
 	// view calc input handling
 	viewLines := lv.ViewLines
 	if viewLines == 0 {
@@ -620,7 +628,7 @@ func (lv *LogView) Update(ctx *Context) error {
 	}
 	height := viewLines
 
-	topLeft := image.Pt(1, ctx.Output.Size.Y)
+	topLeft := ansi.Pt(1, outBounds.Max.Y-1)
 	if lv.Expanded {
 		height++
 		topLeft.Y -= height - 1
@@ -629,21 +637,20 @@ func (lv *LogView) Update(ctx *Context) error {
 	}
 
 	// TODO drag resizing
-	if n := ctx.Input.CountPressesIn(image.Rectangle{topLeft, image.Pt(ctx.Output.Size.X+1, topLeft.Y+1)}, 1); n%2 == 1 {
+	if n := ctx.Input.CountPressesIn(ansi.Rect(topLeft.X, topLeft.Y, outBounds.Max.X, topLeft.Y+1), 1); n%2 == 1 {
+		topLeft.Y = outBounds.Max.Y - 1
+		height = 1
 		if lv.Expanded = !lv.Expanded; lv.Expanded {
-			height = viewLines + 1
-			topLeft.Y = ctx.Output.Size.Y - height + 1
-		} else {
-			height = 1
-			topLeft.Y = ctx.Output.Size.Y
+			height += viewLines
 		}
+		topLeft.Y -= height - 1
 	}
 
 	if !lv.Expanded {
 		viewLines = 1
 	}
 
-	bounds := image.Rectangle{topLeft, ctx.Output.Size}
+	bounds := ansi.Rectangle{Min: topLeft, Max: outBounds.Max}
 	bounds.Max = bounds.Max.Add(image.Pt(0, 1)) // TODO ideally utilize the final column too
 
 	content, eolOffsets := lv.logs.Contents()
@@ -669,7 +676,7 @@ func (lv *LogView) Update(ctx *Context) error {
 		off = eolOffsets[start-2] + 1
 	}
 	for _, eol := range eolOffsets[start-1 : end] {
-		ctx.Output.To(image.Pt(1, ctx.Output.Y+1))
+		ctx.Output.To(ansi.Pt(1, ctx.Output.Y+1))
 		w := bounds.Max.X - ctx.Output.X
 		writeTruncated(ctx, w, content[off:eol])
 		off = eol + 1
@@ -716,11 +723,11 @@ type hudProfileControl struct {
 
 func (hud hudProfileControl) update(ctx *Context) {
 	kbox, box := hud.drawFileEditRow(ctx, hud.prof, "")
-	hud.drawSpinner(ctx, image.Rect(kbox.Max.X, kbox.Min.Y, box.Min.X, kbox.Max.Y))
+	hud.drawSpinner(ctx, ansi.Rect(kbox.Max.X, kbox.Min.Y, box.Min.X, kbox.Max.Y))
 	ctx.Output.To(box.Max)
 }
 
-func (hud hudProfileControl) drawSpinner(ctx *Context, box image.Rectangle) {
+func (hud hudProfileControl) drawSpinner(ctx *Context, box ansi.Rectangle) {
 	spinner := '⊙'
 	if hud.prof.isActive() {
 		spinner = profileSpinner[int(time.Duration(ctx.Platform.Time.Nanosecond())/time.Millisecond/250)]
@@ -791,7 +798,7 @@ func withAttr(ctx *Context, e, x ansi.SGRAttr, f func(*Context)) {
 
 func withOverAttr(
 	ctx *Context, m Mouse,
-	box image.Rectangle, o, a ansi.SGRAttr,
+	box ansi.Rectangle, o, a ansi.SGRAttr,
 	f func(*Context, bool),
 ) {
 	over := m.Point.In(box)

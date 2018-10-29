@@ -240,18 +240,12 @@ func (p *Platform) readSize() error {
 		return errNoTerm
 	}
 	sz, err := p.term.Size()
-	if err != nil {
-		return err
-	}
-	if changed := sz != p.screen.Size; changed {
-		p.screen.Resize(sz) // TODO what if it returned changed bool?
-		if p.recording != nil && changed {
-			if err := p.recordSize(); err != nil {
-				return err
-			}
+	if err == nil {
+		if p.screen.Resize(sz) && p.recording != nil {
+			err = p.recordSize()
 		}
 	}
-	return nil
+	return err
 }
 
 // Enter applies terminal context, including raw mode and ansi mode sequences,
@@ -326,12 +320,17 @@ func (p *Platform) Exit(term *anansi.Term) (err error) {
 // - flushes screen buffer
 func (ctx *Context) Update() {
 	ctx.Output.Reset()
+	outBounds := ctx.Output.Bounds()
 
 	// Ctrl-L forces a size refresh
-	if ctx.Redraw =
-		ctx.Input.CountRune('\x0c') > 0 ||
-			ctx.Output.Size == image.ZP ||
-			ctx.Output.Size != ctx.LastSize; ctx.Redraw {
+	ctx.Redraw = ctx.Input.CountRune('\x0c') > 0
+
+	// Resize causes a redraw
+	ctx.Redraw = ctx.Redraw ||
+		outBounds.Size() == image.ZP ||
+		outBounds.Size() != ctx.LastSize
+
+	if ctx.Redraw {
 		ctx.Output.Invalidate()
 	}
 
@@ -360,7 +359,7 @@ func (ctx *Context) runClient() error {
 	}
 	err := ctx.HUD.Update(ctx, ctx.client)
 	ctx.Platform.LastTime = ctx.Time
-	ctx.Platform.LastSize = ctx.Output.Size
+	ctx.Platform.LastSize = ctx.Output.Bounds().Size()
 	return err
 }
 
