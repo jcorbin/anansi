@@ -129,7 +129,7 @@ func (tel *Telemetry) update(p *Platform) {
 		tel.coll.tick = &tel.LastTick
 	}
 
-	tel.FPSEstimate.update(p, tel.LastTick.LastDelta)
+	tel.FPSEstimate.update(p)
 	if tel.TimingEnabled || tel.LogTiming {
 		timingFrame := tel.Timing.update(p)
 		consumeStalls := timingFrame
@@ -217,7 +217,8 @@ func (sd *StallsData) update(p *Platform, stalls []time.Duration) {
 	sd.Stats = stats
 }
 
-func (fe *FPSEstimate) update(p *Platform, delta time.Duration) {
+func (fe *FPSEstimate) update(p *Platform) {
+	delta := p.Time.Sub(p.LastTime)
 	fe.data[fe.i] = float64(time.Second) / float64(delta)
 	fe.i = (fe.i + 1) % len(fe.data)
 	var est float64
