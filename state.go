@@ -286,8 +286,10 @@ func (scs *ScreenState) ProcessRune(r rune) {
 			scs.X = br.Min.X
 			scs.linefeed()
 		}
-	case r == '\x0A':
+	case r == '\x0A': // LF
 		scs.linefeed()
+	case r == '\x0D': // CR
+		scs.X = 1
 	}
 }
 
