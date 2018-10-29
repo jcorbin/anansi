@@ -121,7 +121,7 @@ func (sd *StallsData) reset() {
 
 func (tel *Telemetry) update(p *Platform) {
 	tel.coll.Lock()
-	tel.coll.Unlock()
+	defer tel.coll.Unlock()
 	tel.coll.t = p.Time
 
 	tel.LastTick = p.ticks.Metric
