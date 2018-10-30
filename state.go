@@ -216,22 +216,40 @@ func (cs *CursorState) ProcessRune(r rune) {
 // Any errors decoding escape arguments are silenced, and the offending escape
 // sequence(s) ignored.
 func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
+	cs.processEscape(e, a, ptID)
+}
+
+func ptID(pt ansi.Point) ansi.Point { return pt }
+
+// processEscape implements cursor escape processing shared with ScreenState,
+// which passes a non-identity clamp function.
+func (cs *CursorState) processEscape(
+	e ansi.Escape, a []byte,
+	clamp func(pt ansi.Point) ansi.Point,
+) {
 	switch e {
 	case ansi.CUU, ansi.CUD, ansi.CUF, ansi.CUB: // relative cursor motion
 		b, _ := e.CSI()
-		if d := cursorMoves[b-'A']; len(a) == 0 {
-			cs.Point = cs.Point.Add(d)
-		} else if n, _, err := ansi.DecodeNumber(a); err == nil {
+		d := cursorMoves[b-'A']
+		if len(a) > 0 {
+			n, _, err := ansi.DecodeNumber(a)
+			if err != nil {
+				return
+			}
 			d = d.Mul(n)
-			cs.Point = cs.Point.Add(d)
 		}
+		cs.Point = clamp(cs.Point.Add(d))
 
 	case ansi.CUP: // absolute cursor motion
-		if len(a) == 0 {
-			cs.Point = ansi.Pt(1, 1)
-		} else if p, _, err := ansi.DecodePoint(a); err == nil {
-			cs.Point = p
+		p := ansi.Pt(1, 1)
+		if len(a) > 0 {
+			var err error
+			p, _, err = ansi.DecodePoint(a)
+			if err != nil {
+				return
+			}
 		}
+		cs.Point = clamp(p)
 
 	case ansi.SGR:
 		if attr, _, err := ansi.DecodeSGR(a); err == nil {
@@ -240,6 +258,7 @@ func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
 
 	case ansi.SM:
 		// TODO better mode decoding (follow SGRAttr's example, and mature the ansi.Mode type)
+		// TODO better mode processing: injected handler for ScreenState
 		if len(a) > 1 && a[0] == '?' {
 			n := 1
 			for n < len(a) {
@@ -270,7 +289,6 @@ func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
 				}
 			}
 		}
-
 	}
 }
 
@@ -299,27 +317,6 @@ func (scs *ScreenState) ProcessRune(r rune) {
 // escape sequence(s) ignored.
 func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 	switch e {
-	case ansi.CUU, ansi.CUD, ansi.CUF, ansi.CUB: // relative cursor motion
-		b, _ := e.CSI()
-		if d := cursorMoves[b-'A']; len(a) == 0 {
-			scs.Point = scs.clamp(scs.Point.Add(d))
-		} else if n, _, err := ansi.DecodeNumber(a); err == nil {
-			d = d.Mul(n)
-			scs.Point = scs.clamp(scs.Point.Add(d))
-		}
-
-	case ansi.CUP: // absolute cursor motion
-		if len(a) == 0 {
-			scs.Point = scs.clamp(ansi.Pt(1, 1))
-		} else if p, _, err := ansi.DecodePoint(a); err == nil {
-			scs.Point = scs.clamp(p)
-		}
-
-	case ansi.SGR:
-		if attr, _, err := ansi.DecodeSGR(a); err == nil {
-			scs.CursorState.Attr = scs.CursorState.Attr.Merge(attr)
-		}
-
 	case ansi.ED:
 		var val byte
 		if len(a) == 1 {
@@ -376,6 +373,9 @@ func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
 		//         received while on line 12, a blank line is inserted there as
 		//         rows 12-13 move down.  All VT100 compatible terminals (except
 		//         GIGI) have this feature.
+
+	default:
+		scs.CursorState.processEscape(e, a, scs.clamp)
 	}
 }
 
