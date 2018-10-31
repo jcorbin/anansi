@@ -79,7 +79,7 @@ func (bi *Bitmap) Set(p image.Point, b bool) {
 	}
 }
 
-// Rune builds a unicode braille rune representing a single 2x8 rectangle of
+// Rune builds a unicode braille rune representing a single 2x4 rectangle of
 // bits, anchored at the give top-left point.
 func (bi *Bitmap) Rune(p image.Point) (c rune) {
 	// 0x2800
