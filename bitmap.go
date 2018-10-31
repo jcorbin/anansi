@@ -120,34 +120,49 @@ func (bi *Bitmap) Set(p image.Point, b bool) {
 // Rune builds a unicode braille rune representing a single 2x4 rectangle of
 // bits, anchored at the give top-left point.
 func (bi *Bitmap) Rune(p image.Point) (c rune) {
-	// 0x2800
-	// 0x0001 0x0008
-	// 0x0002 0x0010
-	// 0x0004 0x0020
-	// 0x0040 0x0080
+	// Each braille rune is a 2x4 grid of points, represented by a codepoint in
+	// the U+2800 thru U+28FF range; in other words, an 8-bit space.
+	//
+	// Each point in that 2x4 grid is coded by one of those 8 bits:
+	//     0x0001 0x0008
+	//     0x0002 0x0010
+	//     0x0004 0x0020
+	//     0x0040 0x0080
+	//
+	// For example, the braille rune '⢕', whose grid explodes to:
+	//     |·| |
+	//     | |·|
+	//     |·| |
+	//     | |·|
+	// Has code point U+2895 = 0x2800 | 0x0001 | 0x0004 | 0x0010 | 0x0080
+
 	if bi.Get(image.Pt(p.X, p.Y)) {
-		c |= 1 << 0
-	}
-	if bi.Get(image.Pt(p.X, p.Y+1)) {
-		c |= 1 << 1
-	}
-	if bi.Get(image.Pt(p.X, p.Y+2)) {
-		c |= 1 << 2
+		c |= 0x0001
 	}
 	if bi.Get(image.Pt(p.X+1, p.Y)) {
-		c |= 1 << 3
+		c |= 0x0008
+	}
+
+	if bi.Get(image.Pt(p.X, p.Y+1)) {
+		c |= 0x0002
 	}
 	if bi.Get(image.Pt(p.X+1, p.Y+1)) {
-		c |= 1 << 4
+		c |= 0x0010
+	}
+
+	if bi.Get(image.Pt(p.X, p.Y+2)) {
+		c |= 0x0004
 	}
 	if bi.Get(image.Pt(p.X+1, p.Y+2)) {
-		c |= 1 << 5
+		c |= 0x0020
 	}
+
 	if bi.Get(image.Pt(p.X, p.Y+3)) {
-		c |= 1 << 6
+		c |= 0x0040
 	}
 	if bi.Get(image.Pt(p.X+1, p.Y+3)) {
-		c |= 1 << 7
+		c |= 0x0080
 	}
+
 	return 0x2800 | c
 }
