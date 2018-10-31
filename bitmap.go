@@ -104,17 +104,22 @@ func (bi *Bitmap) RuneSize() (sz image.Point) {
 
 // Get a single bitmap cell value.
 func (bi *Bitmap) Get(p image.Point) bool {
-	if !p.In(bi.Rect) {
-		return false
-	}
-	return bi.Bit[p.Y*bi.Stride+p.X]
+	i, within := bi.index(p)
+	return within && bi.Bit[i]
 }
 
 // Set a single bitmap cell value.
 func (bi *Bitmap) Set(p image.Point, b bool) {
-	if p.In(bi.Rect) {
-		bi.Bit[p.Y*bi.Stride+p.X] = b
+	if i, within := bi.index(p); within {
+		bi.Bit[i] = b
 	}
+}
+
+func (bi *Bitmap) index(p image.Point) (int, bool) {
+	if p.In(bi.Rect) {
+		return p.Y*bi.Stride + p.X, true
+	}
+	return -1, false
 }
 
 // Rune builds a unicode braille rune representing a single 2x4 rectangle of
