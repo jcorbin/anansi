@@ -141,32 +141,51 @@ func (bi *Bitmap) Rune(p image.Point) (c rune) {
 	//     | |·|
 	// Has code point U+2895 = 0x2800 | 0x0001 | 0x0004 | 0x0010 | 0x0080
 
-	if bi.Get(image.Pt(p.X, p.Y)) {
-		c |= 0x0001
-	}
-	if bi.Get(image.Pt(p.X+1, p.Y)) {
-		c |= 0x0008
-	}
+	// first row
+	if i, within := bi.index(p); within {
+		col2Within := p.X+1 < bi.Rect.Max.X
+		if bi.Bit[i] {
+			c |= 0x0001
+		}
+		if col2Within && bi.Bit[i+1] {
+			c |= 0x0008
+		}
 
-	if bi.Get(image.Pt(p.X, p.Y+1)) {
-		c |= 0x0002
-	}
-	if bi.Get(image.Pt(p.X+1, p.Y+1)) {
-		c |= 0x0010
-	}
+		// second row
+		p.Y++
+		if within = p.Y < bi.Rect.Max.Y; within {
+			i += bi.Stride
+			if bi.Bit[i] {
+				c |= 0x0002
+			}
+			if col2Within && bi.Bit[i+1] {
+				c |= 0x0010
+			}
 
-	if bi.Get(image.Pt(p.X, p.Y+2)) {
-		c |= 0x0004
-	}
-	if bi.Get(image.Pt(p.X+1, p.Y+2)) {
-		c |= 0x0020
-	}
+			// third row
+			p.Y++
+			if within = p.Y < bi.Rect.Max.Y; within {
+				i += bi.Stride
+				if bi.Bit[i] {
+					c |= 0x0004
+				}
+				if col2Within && bi.Bit[i+1] {
+					c |= 0x0020
+				}
 
-	if bi.Get(image.Pt(p.X, p.Y+3)) {
-		c |= 0x0040
-	}
-	if bi.Get(image.Pt(p.X+1, p.Y+3)) {
-		c |= 0x0080
+				// fourth row
+				p.Y++
+				if within = p.Y < bi.Rect.Max.Y; within {
+					i += bi.Stride
+					if bi.Bit[i] {
+						c |= 0x0040
+					}
+					if col2Within && bi.Bit[i+1] {
+						c |= 0x0080
+					}
+				}
+			}
+		}
 	}
 
 	return 0x2800 | c
