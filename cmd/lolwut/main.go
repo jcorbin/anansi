@@ -47,9 +47,9 @@ func main() {
 	flag.Parse()
 	var (
 		// parameter  = parseArg(arg,         "name", default, min, max)
-		cols          = parseArg(flag.Arg(0), "cols", 60, 1, 1000)
-		squaresPerRow = parseArg(flag.Arg(1), "squares-per-row", 8, 1, 200)
-		squaresPerCol = parseArg(flag.Arg(2), "squares-per-col", 12, 1, 200)
+		cols          = parseArg(flag.Arg(0), "cols", 60, 1)
+		squaresPerRow = parseArg(flag.Arg(1), "squares-per-row", 8, 1)
+		squaresPerCol = parseArg(flag.Arg(2), "squares-per-col", 12, 1)
 	)
 
 	canvas := drawSchotter(cols, squaresPerRow, squaresPerCol)
@@ -188,7 +188,7 @@ func abs(n int) int {
 	return n
 }
 
-func parseArg(arg, name string, def, min, max int) int {
+func parseArg(arg, name string, def, min int) int {
 	if arg == "" {
 		return def
 	}
@@ -198,9 +198,6 @@ func parseArg(arg, name string, def, min, max int) int {
 	}
 	if n < min {
 		return min
-	}
-	if n > max {
-		return max
 	}
 	return n
 }
