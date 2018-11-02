@@ -111,17 +111,6 @@ func DrawBitmap(dst Grid, src Bitmap, styles ...Style) {
 		sdx--
 	}
 
-	// Clear grid by filling with empty braille runes (U+2800)
-	for ky := 0; ky < ddy; ky++ {
-		for kx := 0; kx < ddx; kx++ {
-			dst.Rune[di] = 0x2800
-			di++ // next grid column
-		}
-		di -= ddx        // return to start of grid row
-		di += dst.Stride // next grid row
-	}
-	di -= dst.Stride * ddy // return to top of grid
-
 	// Render runes into the grid; essentially a pivoted copy of Bitmap.Rune
 	bits := []struct{ left, right rune }{
 		{0x0001, 0x0008}, // bitmap first row
@@ -133,28 +122,35 @@ func DrawBitmap(dst Grid, src Bitmap, styles ...Style) {
 	// for each grid row
 	for ky := 0; ky < ddy; ky++ {
 		// for each bitmap row that maps to it
-		for _, bits := range bits {
+		for biRow := 0; biRow < len(bits); biRow++ {
+			col := bits[biRow]
+
 			// for each pair of bitmap columns...
 			for kx := 0; kx < sdx; {
+				r := dst.Rune[di]
+				if biRow == 0 {
+					r = 0x2800 // start with empty braille rune (U+2800)
+				}
 
 				if src.Bit[si] {
-					dst.Rune[di] |= bits.left
+					r |= col.left
 				}
 				si++ // next bitmap column
 				kx++
 
 				if src.Bit[si] {
-					dst.Rune[di] |= bits.right
+					r |= col.right
 				}
 				si++ // next bitmap column
 				kx++
 
+				dst.Rune[di] = r
 				di++ // next grid column
 			}
 			// ...may have a final odd bitmap column
 			if oddSDX {
 				if src.Bit[si] {
-					dst.Rune[di] |= bits.left
+					dst.Rune[di] |= col.left
 				}
 				// si++ NOTE would just need to be immediately decremented back
 			}
