@@ -105,7 +105,7 @@ func (sd *schotterDemo) draw() {
 			// Rotate and translate randomly as we go down to lower rows.
 			angle := float64(0)
 
-			if y > 1 {
+			if y > 0 {
 				r1 := sd.rand.Float64() / float64(sd.squaresPerCol) * float64(y)
 				r2 := sd.rand.Float64() / float64(sd.squaresPerCol) * float64(y)
 				r3 := sd.rand.Float64() / float64(sd.squaresPerCol) * float64(y)
