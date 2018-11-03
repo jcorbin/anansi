@@ -72,6 +72,7 @@ type schotterDemo struct {
 	squareSide    int
 	padding       int
 	seed          int64
+	angleOffset   float64
 
 	// state
 	canvas *anansi.Bitmap
@@ -103,7 +104,7 @@ func (sd *schotterDemo) draw() {
 			sy := y*sd.squareSide + sd.squareSide/2 + sd.padding
 
 			// Rotate and translate randomly as we go down to lower rows.
-			angle := float64(0)
+			angle := sd.angleOffset
 
 			if y > 0 {
 				r1 := sd.rand.Float64() / float64(sd.squaresPerCol) * float64(y)
@@ -118,7 +119,7 @@ func (sd *schotterDemo) draw() {
 				if sd.rand.Intn(2) == 1 {
 					r3 = -r3
 				}
-				angle = r1
+				angle = sd.angleOffset + r1
 				sx += int(r2 * float64(sd.squareSide) / 3)
 				sy += int(r3 * float64(sd.squareSide) / 3)
 			}
