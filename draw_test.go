@@ -169,10 +169,20 @@ func TestDrawBitmap(t *testing.T) {
 		at       ansi.Point
 		styles   []Style
 	}{
+
 		{
-			name:     "basic test pattern",
+			name:     "2x2 alternating into 2x2 grid",
+			gridSize: image.Pt(2, 2),
+			bi:       newTestBitmap(image.Pt(2*2, 2*4), alternating),
+			outLines: []string{
+				"⢕⢕",
+				"⢕⢕",
+			},
+		},
+
+		{
+			name:     "2x2 alternating into 3x3 grid",
 			gridSize: image.Pt(3, 3),
-			at:       ansi.Pt(1, 1), // cell space origin
 			bi:       newTestBitmap(image.Pt(2*2, 2*4), alternating),
 			outLines: []string{
 				"⢕⢕_",
@@ -180,11 +190,138 @@ func TestDrawBitmap(t *testing.T) {
 				"___",
 			},
 		},
+
+		{
+			name:     "2x2 alternating into 3x3 grid @2,2",
+			gridSize: image.Pt(3, 3),
+			at:       ansi.Pt(2, 2),
+			bi:       newTestBitmap(image.Pt(2*2, 2*4), alternating),
+			outLines: []string{
+				"___",
+				"_⢕⢕",
+				"_⢕⢕",
+			},
+		},
+
+		{
+			name:     "2x2 alternating into 3x3 grid @3,3",
+			gridSize: image.Pt(3, 3),
+			at:       ansi.Pt(3, 3),
+			bi:       newTestBitmap(image.Pt(2*2, 2*4), alternating),
+			outLines: []string{
+				"___",
+				"___",
+				"__⢕",
+			},
+		},
+
+		{
+			name:     "8x4 alternating into 16x8 grid",
+			gridSize: image.Pt(16, 8),
+			bi:       newTestBitmap(image.Pt(8*2, 4*4), alternating),
+			outLines: []string{
+				"⢕⢕⢕⢕⢕⢕⢕⢕________",
+				"⢕⢕⢕⢕⢕⢕⢕⢕________",
+				"⢕⢕⢕⢕⢕⢕⢕⢕________",
+				"⢕⢕⢕⢕⢕⢕⢕⢕________",
+				"________________",
+				"________________",
+				"________________",
+				"________________",
+			},
+		},
+
+		{
+			name:     "8x4 alternating into 16x8 grid @9,1",
+			gridSize: image.Pt(16, 8),
+			at:       ansi.Pt(9, 1),
+			bi:       newTestBitmap(image.Pt(8*2, 4*4), alternating),
+			outLines: []string{
+				"________⢕⢕⢕⢕⢕⢕⢕⢕",
+				"________⢕⢕⢕⢕⢕⢕⢕⢕",
+				"________⢕⢕⢕⢕⢕⢕⢕⢕",
+				"________⢕⢕⢕⢕⢕⢕⢕⢕",
+				"________________",
+				"________________",
+				"________________",
+				"________________",
+			},
+		},
+
+		{
+			name:     "8x4 alternating into 16x8 grid @9,5",
+			gridSize: image.Pt(16, 8),
+			at:       ansi.Pt(9, 5),
+			bi:       newTestBitmap(image.Pt(8*2, 4*4), alternating),
+			outLines: []string{
+				"________________",
+				"________________",
+				"________________",
+				"________________",
+				"________⢕⢕⢕⢕⢕⢕⢕⢕",
+				"________⢕⢕⢕⢕⢕⢕⢕⢕",
+				"________⢕⢕⢕⢕⢕⢕⢕⢕",
+				"________⢕⢕⢕⢕⢕⢕⢕⢕",
+			},
+		},
+
+		{
+			name:     "8x4 alternating into 16x8 grid @1,5",
+			gridSize: image.Pt(16, 8),
+			at:       ansi.Pt(1, 5),
+			bi:       newTestBitmap(image.Pt(8*2, 4*4), alternating),
+			outLines: []string{
+				"________________",
+				"________________",
+				"________________",
+				"________________",
+				"⢕⢕⢕⢕⢕⢕⢕⢕________",
+				"⢕⢕⢕⢕⢕⢕⢕⢕________",
+				"⢕⢕⢕⢕⢕⢕⢕⢕________",
+				"⢕⢕⢕⢕⢕⢕⢕⢕________",
+			},
+		},
+
+		{
+			name:     "16x8 alternating into 16x8 grid",
+			gridSize: image.Pt(16, 8),
+			bi:       newTestBitmap(image.Pt(16*2, 8*4), alternating),
+			outLines: []string{
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+			},
+		},
+
+		{
+			name:     "32x16 alternating into 16x8 grid",
+			gridSize: image.Pt(16, 8),
+			bi:       newTestBitmap(image.Pt(32*2, 16*4), alternating),
+			outLines: []string{
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var g Grid
 			g.Resize(tc.gridSize)
-			DrawBitmap(g.SubAt(tc.at), tc.bi, tc.styles...)
+			dg := g
+			if tc.at != ansi.ZP {
+				dg = dg.SubAt(tc.at)
+			}
+			DrawBitmap(dg, tc.bi, tc.styles...)
 			assert.Equal(t, tc.outLines, anansitest.GridLines(g, '_'))
 		})
 	}
