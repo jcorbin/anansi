@@ -46,6 +46,7 @@ import (
 var sd schotterDemo
 
 func main() {
+	interactive := flag.Bool("i", false, "interactive mode")
 	flag.Parse()
 	var (
 		// parameter  = parseArg(arg,         "name", default, min, max)
@@ -53,6 +54,11 @@ func main() {
 		squaresPerRow = parseArg(flag.Arg(1), "squares-per-row", 8, 1)
 		squaresPerCol = parseArg(flag.Arg(2), "squares-per-col", 12, 1)
 	)
+
+	if *interactive {
+		runInteractive() // TODO pass squaresPerRow / squaresPerCol ?
+		return
+	}
 
 	sd.setup(cols, squaresPerRow, squaresPerCol)
 	sd.draw()
