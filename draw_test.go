@@ -313,6 +313,24 @@ func TestDrawBitmap(t *testing.T) {
 				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
 			},
 		},
+
+		// DrawBitmap
+		// 	dst.Rect:(1,1)-(119,56) dst.Stride:118
+		// 	src.Rect:(0,0)-(236,219) src.Stride:236
+
+		// DrawBitmap
+		// 	dst.Rect:(1,1)-(119,56)
+		// 	dst.Stride:118
+		// 	src.Rect:(0,0)-(236,219)
+		// 	src.Stride:236
+
+		// lolwut
+		// 	screenSize:(118,55)
+		// 	canvasSize:(236,219)
+		// 	squareSide:43
+		// 	squaresPerCol:5
+		// 	padding:2
+
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var g Grid
