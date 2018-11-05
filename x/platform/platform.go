@@ -71,12 +71,10 @@ func New(opts ...Option) (*Platform, error) {
 	p.Telemetry.coll.rusage.data = make([]rusageEntry, defaultFrameRate*10)
 	p.bgworkers = append(p.bgworkers, &p.Telemetry.coll, &Logs)
 
-	if !hasConfig(opts) {
+	if !flag.Parsed() && !hasConfig(opts) {
 		flagConfig := Config{}
 		flagConfig.AddFlags(flag.CommandLine, "platform.")
-		if !flag.Parsed() {
-			flag.Parse()
-		}
+		flag.Parse()
 		if err := flagConfig.apply(&p); err != nil {
 			return nil, err
 		}
