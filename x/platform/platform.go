@@ -33,7 +33,7 @@ func Run(f *os.File, run func(*Platform) error, opts ...Option) error {
 	if err != nil {
 		return err
 	}
-	return anansi.NewTerm(f, p).With(func(_ *anansi.Term) error {
+	return anansi.NewTerm(f, p).RunWith(func(_ *anansi.Term) error {
 		return run(p)
 	})
 }
@@ -369,7 +369,7 @@ func (ctx *Context) runClient() error {
 // current process, and then restores platform terminal context once resumed;
 // returns any error preventing any of that.
 func (p *Platform) Suspend() error {
-	return p.term.Without(func(_ *anansi.Term) error {
+	return p.term.RunWithout(func(_ *anansi.Term) error {
 		cont := make(chan os.Signal)
 		signal.Notify(cont, syscall.SIGCONT)
 		log.Printf("suspending")
