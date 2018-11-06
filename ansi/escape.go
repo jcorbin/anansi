@@ -46,7 +46,7 @@ type Escape rune
 func ESC(b byte) Escape { return Escape(0xEF00 | 0x7F&rune(b)) }
 
 // CSI returns a CSI control sequence identifier named by the given byte.
-func CSI(b byte) Escape { return Escape(0xEF80 | rune(b)) }
+func CSI(b byte) Escape { return Escape(0xEF80 | 0x7F&rune(b)) }
 
 // ESC returns the byte name of the ESCape sequence identified by this escape
 // value, if any; returns 0 false otherwise.
