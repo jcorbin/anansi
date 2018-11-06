@@ -31,7 +31,7 @@ func run() error {
 		p = p[len(p):cap(p)]
 		n, err := os.Stdin.Read(p)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		if n == 0 {
 			continue
