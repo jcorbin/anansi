@@ -39,38 +39,40 @@ func run() error {
 		_, _ = buf.Write(p[:n])
 
 		// ...and process it
-	process:
-		for buf.Len() > 0 {
-			e, a, n := ansi.DecodeEscape(buf.Bytes())
-			if n > 0 {
-				buf.Next(n)
-			}
-
-			// have a complete escape sequence
-			if e != 0 {
-				handleEscape(e, a)
-				continue
-			}
-
-			// try to decode a rune, maybe read more bytes to complete a
-			// partial escape sequence
-			switch r, n := utf8.DecodeRune(buf.Bytes()); r {
-			case 0x90, 0x9B, 0x9D, 0x9E, 0x9F: // DCS, CSI, OSC, PM, APC
-				break process
-			case 0x1B: // ESC
-				if p := buf.Bytes(); len(p) == cap(p) {
-					break process
-				}
-				fallthrough
-			default:
-				buf.Next(n)
-				handleRune(r)
-			}
+		if err := process(&buf); err != nil {
+			return err
 		}
 	}
 }
 
-func process() error {
+func process(buf *bytes.Buffer) error {
+	for buf.Len() > 0 {
+		e, a, n := ansi.DecodeEscape(buf.Bytes())
+		if n > 0 {
+			buf.Next(n)
+		}
+
+		// have a complete escape sequence
+		if e != 0 {
+			handleEscape(e, a)
+			continue
+		}
+
+		// try to decode a rune, maybe read more bytes to complete a
+		// partial escape sequence
+		switch r, n := utf8.DecodeRune(buf.Bytes()); r {
+		case 0x90, 0x9B, 0x9D, 0x9E, 0x9F: // DCS, CSI, OSC, PM, APC
+			return nil
+		case 0x1B: // ESC
+			if p := buf.Bytes(); len(p) == cap(p) {
+				return nil
+			}
+			fallthrough
+		default:
+			buf.Next(n)
+			handleRune(r)
+		}
+	}
 	return nil
 }
 
@@ -98,4 +100,3 @@ func handleRune(r rune) {
 	}
 
 }
-
