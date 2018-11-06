@@ -58,16 +58,21 @@ func process(buf *bytes.Buffer) error {
 			continue
 		}
 
-		// try to decode a rune, maybe read more bytes to complete a
-		// partial escape sequence
+		// Decode a rune...
 		switch r, n := utf8.DecodeRune(buf.Bytes()); r {
-		case 0x90, 0x9B, 0x9D, 0x9E, 0x9F: // DCS, CSI, OSC, PM, APC
-			return nil
+
+		case 0x90, 0x9D, 0x9E, 0x9F: // DCS, OSC, PM, APC
+			return nil // ... need more bytes to complete a partial string.
+
+		case 0x9B: // CSI
+			return nil // ... need more bytes to complete a partial control sequence.
+
 		case 0x1B: // ESC
 			if p := buf.Bytes(); len(p) == cap(p) {
-				return nil
+				return nil // ... need more bytes to determine if an escape sequence can be decoded.
 			}
-			fallthrough
+			fallthrough // ... literal ESC
+
 		default:
 			buf.Next(n)
 			handleRune(r)
@@ -98,5 +103,4 @@ func handleRune(r rune) {
 	default:
 		fmt.Print(string(r))
 	}
-
 }
