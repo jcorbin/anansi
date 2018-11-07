@@ -14,14 +14,24 @@ import (
 )
 
 var (
-	rawMode = flag.Bool("raw", false, "enable terminal raw mode")
+	rawMode   = flag.Bool("raw", false, "enable terminal raw mode")
+	mouseMode = flag.Bool("mouse", false, "enable terminal mouse reporting")
 )
 
 func main() {
 	flag.Parse()
 
-	var term anansi.Term
-	term.File = os.Stdout
+	var mode anansi.Mode
+	term := anansi.NewTerm(os.Stdout, &mode)
+
+	if *mouseMode {
+		mode.AddMode(
+			ansi.ModeMouseSgrExt,
+			ansi.ModeMouseBtnEvent,
+			ansi.ModeMouseAnyEvent,
+		)
+	}
+
 	term.SetEcho(!*rawMode)
 	term.SetRaw(*rawMode)
 
@@ -95,9 +105,20 @@ func process(buf *bytes.Buffer) error {
 }
 
 func handleEscape(e ansi.Escape, a []byte) {
-	fmt.Print(e)
-	if len(a) > 0 {
-		fmt.Printf(" %q", a)
+	switch e {
+	case ansi.CSI('M'), ansi.CSI('m'):
+		btn, pt, err := ansi.DecodeXtermExtendedMouse(e, a)
+		if err != nil {
+			fmt.Printf("invalid mouse: %v %q err:%v", e, a, err)
+		} else {
+			fmt.Printf("mouse(%v@%v)", btn, pt)
+		}
+
+	default:
+		fmt.Print(e)
+		if len(a) > 0 {
+			fmt.Printf(" %q", a)
+		}
 	}
 	fmt.Printf("\r\n")
 }
