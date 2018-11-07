@@ -15,8 +15,9 @@ func NewTerm(f *os.File, cs ...Context) *Term {
 // Term combines a terminal file handle with attribute control and further
 // Context-ual state.
 type Term struct {
-	Attr
 	*os.File
+	Attr
+	Mode
 
 	active bool
 	ctx    Context
@@ -31,7 +32,7 @@ func (term *Term) RunWith(within func(*Term) error) (err error) {
 		return within(term)
 	}
 	if term.ctx == nil {
-		term.ctx = &term.Attr
+		term.ctx = Contexts(term.ctx, &term.Attr, &term.Mode)
 	}
 	defer func() {
 		if cerr := term.ctx.Exit(term); cerr == nil {
