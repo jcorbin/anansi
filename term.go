@@ -30,6 +30,9 @@ func (term *Term) RunWith(within func(*Term) error) (err error) {
 	if term.active {
 		return within(term)
 	}
+	if term.ctx == nil {
+		term.ctx = &term.Attr
+	}
 	defer func() {
 		if cerr := term.ctx.Exit(term); cerr == nil {
 			term.active = false
