@@ -2,17 +2,30 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"unicode/utf8"
 
+	"github.com/jcorbin/anansi"
 	"github.com/jcorbin/anansi/ansi"
 )
 
+var (
+	rawMode = flag.Bool("raw", false, "enable terminal raw mode")
+)
+
 func main() {
-	switch err := run(); err {
+	flag.Parse()
+
+	var term anansi.Term
+	term.File = os.Stdout
+	term.SetEcho(!*rawMode)
+	term.SetRaw(*rawMode)
+
+	switch err := term.RunWith(run); err {
 	case nil:
 	case io.EOF:
 		fmt.Println(err)
@@ -21,7 +34,7 @@ func main() {
 	}
 }
 
-func run() error {
+func run(term *anansi.Term) error {
 	const minRead = 128
 	var buf bytes.Buffer
 	for {
@@ -91,6 +104,10 @@ func handleEscape(e ansi.Escape, a []byte) {
 
 func handleRune(r rune) {
 	switch {
+	// panic on ^C
+	case r == 0x03:
+		panic("goodbye")
+
 	// print C0 controls phonetically
 	case r < 0x20, r == 0x7f:
 		fmt.Printf("^%s", string(0x40^r))
