@@ -45,13 +45,13 @@ const defaultFrameRate = 60
 func New(opts ...Option) (*Platform, error) {
 	var p Platform
 
-	p.modes = p.modes.AddMode(
+	p.mode.AddMode(
 		ansi.ModeAlternateScreen,
 		ansi.ModeMouseSgrExt,   // TODO detection?
 		ansi.ModeMouseBtnEvent, // TODO options?
 		ansi.ModeMouseAnyEvent, // TODO options?
 	)
-	p.modes = p.modes.AddSeq(ansi.SoftReset, ansi.SGRReset) // TODO options?
+	p.mode.AddModeSeq(ansi.SoftReset, ansi.SGRReset) // TODO options?
 
 	p.output = anansi.NewOutput(nil)
 
@@ -105,7 +105,7 @@ type Platform struct {
 	buf         ansi.Buffer
 
 	term   *anansi.Term
-	modes  anansi.ModeSeqs
+	mode   anansi.Mode
 	output *anansi.Output
 	events Events
 	ticker Ticker
@@ -264,7 +264,7 @@ func (p *Platform) Enter(term *anansi.Term) error {
 		return err
 	}
 
-	p.buf.Write(p.modes.Set)
+	p.buf.Write(p.mode.Set)
 	if p.buf.Len() > 0 {
 		if _, err := p.buf.WriteTo(term.File); err != nil {
 			return err
@@ -300,7 +300,7 @@ func (p *Platform) Exit(term *anansi.Term) (err error) {
 
 	p.buf.WriteSGR(p.screen.CursorState.MergeSGR(0))
 	p.buf.WriteSeq(p.screen.CursorState.Show())
-	p.buf.Write(p.modes.Reset)
+	p.buf.Write(p.mode.Reset)
 	if p.buf.Len() > 0 {
 		_, err = p.buf.WriteTo(term.File)
 	}
