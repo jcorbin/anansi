@@ -16,6 +16,7 @@ import (
 var (
 	rawMode   = flag.Bool("raw", false, "enable terminal raw mode")
 	mouseMode = flag.Bool("mouse", false, "enable terminal mouse reporting")
+	altMode   = flag.Bool("alt", false, "enable alternate screen usage")
 )
 
 func main() {
@@ -29,6 +30,12 @@ func main() {
 			ansi.ModeMouseSgrExt,
 			ansi.ModeMouseBtnEvent,
 			ansi.ModeMouseAnyEvent,
+		)
+	}
+
+	if *altMode {
+		mode.AddMode(
+			ansi.ModeAlternateScreen,
 		)
 	}
 
