@@ -126,7 +126,7 @@ func (id Escape) String() string {
 	case id == 0xEFFF:
 		return "CSI+INVALID"
 	default:
-		return fmt.Sprintf("%U", rune(id))
+		return fmt.Sprintf("%q", rune(id))
 	}
 }
 
