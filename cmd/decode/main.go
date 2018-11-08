@@ -110,6 +110,8 @@ func process(buf *bytes.Buffer) error {
 	return nil
 }
 
+var prior ansi.Escape
+
 func handle(e ansi.Escape, a []byte) {
 	fmt.Printf("%U %v", e, e)
 
@@ -127,10 +129,15 @@ func handle(e ansi.Escape, a []byte) {
 		}
 	}
 
-	fmt.Printf("\r\n")
-
 	// panic on ^C
 	if e == 0x03 {
-		panic("goodbye")
+		if prior == 0x03 {
+			panic("goodbye")
+		}
+		fmt.Printf(" \x1b[91m<press Ctrl-C again to quit>\x1b[0m")
 	}
+
+	prior = e
+
+	fmt.Printf("\r\n")
 }
