@@ -55,7 +55,7 @@ func run(term *anansi.Term) error {
 	const minRead = 128
 	var buf bytes.Buffer
 	for {
-		// read more input...
+		// read more input…
 		buf.Grow(minRead)
 		p := buf.Bytes()
 		p = p[len(p):cap(p)]
@@ -68,7 +68,7 @@ func run(term *anansi.Term) error {
 		}
 		_, _ = buf.Write(p[:n])
 
-		// ...and process it
+		// …and process it
 		if err := process(&buf); err != nil {
 			return err
 		}
@@ -77,75 +77,60 @@ func run(term *anansi.Term) error {
 
 func process(buf *bytes.Buffer) error {
 	for buf.Len() > 0 {
+		// Try to decode an escape sequence…
 		e, a, n := ansi.DecodeEscape(buf.Bytes())
 		if n > 0 {
 			buf.Next(n)
 		}
 
-		// have a complete escape sequence
-		if e != 0 {
-			handleEscape(e, a)
-			continue
-		}
+		// …fallback to decoding a rune otherwise…
+		if e == 0 {
+			r, n := utf8.DecodeRune(buf.Bytes())
+			switch r {
+			case 0x90, 0x9D, 0x9E, 0x9F: // DCS, OSC, PM, APC
+				return nil // …need more bytes to complete a partial string.
 
-		// Decode a rune...
-		switch r, n := utf8.DecodeRune(buf.Bytes()); r {
+			case 0x9B: // CSI
+				return nil // …need more bytes to complete a partial control sequence.
 
-		case 0x90, 0x9D, 0x9E, 0x9F: // DCS, OSC, PM, APC
-			return nil // ... need more bytes to complete a partial string.
-
-		case 0x9B: // CSI
-			return nil // ... need more bytes to complete a partial control sequence.
-
-		case 0x1B: // ESC
-			if p := buf.Bytes(); len(p) == cap(p) {
-				return nil // ... need more bytes to determine if an escape sequence can be decoded.
+			case 0x1B: // ESC
+				if p := buf.Bytes(); len(p) == cap(p) {
+					return nil // …need more bytes to determine if an escape sequence can be decoded.
+				}
+				// …pass as literal ESC…
 			}
-			fallthrough // ... literal ESC
 
-		default:
+			// …consume and handle the rune.
 			buf.Next(n)
-			handleRune(r)
+			e = ansi.Escape(r)
 		}
+
+		handle(e, a)
 	}
 	return nil
 }
 
-func handleEscape(e ansi.Escape, a []byte) {
-	switch e {
-	case ansi.CSI('M'), ansi.CSI('m'):
+func handle(e ansi.Escape, a []byte) {
+	fmt.Printf("%U %v", e, e)
+
+	if len(a) > 0 {
+		fmt.Printf(" %q", a)
+	}
+
+	// print detail for mouse reporting
+	if e == ansi.CSI('M') || e == ansi.CSI('m') {
 		btn, pt, err := ansi.DecodeXtermExtendedMouse(e, a)
 		if err != nil {
-			fmt.Printf("invalid mouse: %v %q err:%v", e, a, err)
+			fmt.Printf(" mouse-err:%v", err)
 		} else {
-			fmt.Printf("mouse(%v@%v)", btn, pt)
-		}
-
-	default:
-		fmt.Print(e)
-		if len(a) > 0 {
-			fmt.Printf(" %q", a)
+			fmt.Printf(" mouse-%v@%v", btn, pt)
 		}
 	}
+
 	fmt.Printf("\r\n")
-}
 
-func handleRune(r rune) {
-	switch {
 	// panic on ^C
-	case r == 0x03:
+	if e == 0x03 {
 		panic("goodbye")
-
-	// print C0 controls phonetically
-	case r < 0x20, r == 0x7f:
-		fmt.Printf("^%s", string(0x40^r))
-
-	// print C1 controls mnemonically
-	case 0x80 <= r && r <= 0x9f:
-		fmt.Print(ansi.C1Names[r&0x1f])
-
-	// print normal rune
-	default:
-		fmt.Print(string(r))
 	}
 }
