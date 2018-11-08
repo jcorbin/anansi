@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"unicode/utf8"
 
 	"github.com/jcorbin/anansi"
@@ -69,13 +71,13 @@ func run(term *anansi.Term) error {
 		_, _ = buf.Write(p[:n])
 
 		// …and process it
-		if err := process(&buf); err != nil {
+		if err := process(term, &buf); err != nil {
 			return err
 		}
 	}
 }
 
-func process(buf *bytes.Buffer) error {
+func process(term *anansi.Term, buf *bytes.Buffer) error {
 	for buf.Len() > 0 {
 		// Try to decode an escape sequence…
 		e, a, n := ansi.DecodeEscape(buf.Bytes())
@@ -105,14 +107,14 @@ func process(buf *bytes.Buffer) error {
 			e = ansi.Escape(r)
 		}
 
-		handle(e, a)
+		handle(term, e, a)
 	}
 	return nil
 }
 
 var prior ansi.Escape
 
-func handle(e ansi.Escape, a []byte) {
+func handle(term *anansi.Term, e ansi.Escape, a []byte) {
 	fmt.Printf("%U %v", e, e)
 
 	if len(a) > 0 {
@@ -129,15 +131,41 @@ func handle(e ansi.Escape, a []byte) {
 		}
 	}
 
-	// panic on ^C
-	if e == 0x03 {
+	switch e {
+
+	// ^C to quit
+	case 0x03:
 		if prior == 0x03 {
 			panic("goodbye")
+		} else {
+			fmt.Printf(" \x1b[91m<press Ctrl-C again to quit>\x1b[0m")
 		}
-		fmt.Printf(" \x1b[91m<press Ctrl-C again to quit>\x1b[0m")
+
+	// ^Z to suspend
+	case 0x1a:
+		if prior == 0x1a {
+			if err := term.RunWithout(suspend); err != nil {
+				panic(err)
+			}
+		} else {
+			fmt.Printf(" \x1b[92m<press Ctrl-Z again to suspend>\x1b[0m")
+		}
+
 	}
 
 	prior = e
 
 	fmt.Printf("\r\n")
+}
+
+func suspend(_ *anansi.Term) error {
+	cont := make(chan os.Signal)
+	signal.Notify(cont, syscall.SIGCONT)
+	log.Printf("suspending")
+	if err := syscall.Kill(0, syscall.SIGTSTP); err != nil {
+		return err
+	}
+	<-cont
+	log.Printf("resumed")
+	return nil
 }
