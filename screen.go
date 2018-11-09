@@ -7,8 +7,8 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-// Screen provides differential terminal updating: writes are decoded and
-// update the pending ScreenState.
+// Screen combines a cell grid with cursor and screen state, supporting
+// primitive vt100 emulation and differential terminal updating.
 type Screen struct {
 	ScreenState
 	prior Grid
