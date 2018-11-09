@@ -20,15 +20,20 @@
 **Experimental**: AnANSI is currently in initial exploration mode, and while
 things on master are reasonably stable, there's no guarantees yet.
 
-That said, there is a working [demo][demo], which may be a better place to
-start reading than from the various code-level docs linked below.
+### Demos
+
+The [Decode Demo Command][decode_demo] that demonstrates ansi Decoding,
+optionally with mouse reporting and terminal state manipulation (for raw and
+alternate screen mode).
 
 There's also a [lolwut][lolwut] demo, which is a port of antirez's,
-demonstrating braille-bitmap rendering capability.
+demonstrating braille-bitmap rendering capability. It has an optional
+interactive animated mode of which demonstrates the experimental `x/platform`
+layer.
+
+There's another `x/platform` [demo][demo] that draws a colorful test pattern.
 
 ### Done
-
-A 60fps [demo][demo] that draws an animated test pattern, demonstrating the:
 
 Experimental cohesive [`x/platform`][platform_pkg] layer:
 - provides a `platform.Events` queue layered on top of `anansi.input`, which
@@ -113,7 +118,7 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 ### WIP
 
-- an [interact command demo](../../tree/interact/cmd/interact/main.go) which
+- an [interact command demo](../../tree/dev/cmd/interact/main.go) which
   allows you to interactively manipulate arguments passed to a dynamically
   executed command
 
@@ -210,6 +215,7 @@ useful:
 
 [demo]: ../../tree/master/cmd/demo
 [lolwut]: ../../tree/master/cmd/lolwut/main.go
+[decode_demo]: ../../tree/master/cmd/decode/main.go
 [master]: ../../tree/master
 [rc]: ../../tree/rc
 [dev]: ../../tree/dev
