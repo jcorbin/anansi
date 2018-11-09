@@ -141,6 +141,14 @@ func handle(term *anansi.Term, e ansi.Escape, a []byte) {
 			fmt.Printf(" \x1b[91m<press Ctrl-C again to quit>\x1b[0m")
 		}
 
+	// ^L to clear
+	case 0x0c:
+		if prior == 0x0c {
+			fmt.Printf("\x1b[2J\x1b[H") // 2 ED CUP
+		} else {
+			fmt.Printf(" \x1b[93m<press Ctrl-L again to quit>\x1b[0m")
+		}
+
 	// ^Z to suspend
 	case 0x1a:
 		if prior == 0x1a {
