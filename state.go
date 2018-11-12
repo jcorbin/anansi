@@ -176,7 +176,7 @@ func (scs *ScreenState) To(pt ansi.Point) {
 // ApplyTo applies the receiver cursor state into the passed state value,
 // writing any necessary control sequences into the provided buffer. Returns
 // the number of bytes written, and the updated cursor state.
-func (cs *CursorState) ApplyTo(cur CursorState, buf *ansi.Buffer) (n int, _ CursorState) {
+func (cs *CursorState) ApplyTo(cur CursorState, buf *Buffer) (n int, _ CursorState) {
 	if cs.Visible && cs.Point.Valid() {
 		n += buf.WriteSeq(cur.To(cs.Point))
 		n += buf.WriteSGR(cur.MergeSGR(cs.Attr))
@@ -190,7 +190,7 @@ func (cs *CursorState) ApplyTo(cur CursorState, buf *ansi.Buffer) (n int, _ Curs
 // Update performs a Grid differential update with the cursor hidden, and then
 // applies any non-zero UserCursor, returning the number of bytes written into
 // the given buffer, and the final cursor state.
-func (scs *ScreenState) Update(cur CursorState, buf *ansi.Buffer, prior Grid) (n int, _ CursorState) {
+func (scs *ScreenState) Update(cur CursorState, buf *Buffer, prior Grid) (n int, _ CursorState) {
 	n += buf.WriteSeq(cur.Hide())
 	m, cur := RenderGrid(buf, cur, scs.Grid, prior)
 	n += m

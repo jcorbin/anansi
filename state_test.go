@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/jcorbin/anansi"
-	"github.com/jcorbin/anansi/ansi"
 	anansitest "github.com/jcorbin/anansi/test"
 )
 
@@ -80,7 +79,7 @@ func TestScreenState_processing(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			var buf ansi.Buffer
+			var buf Buffer
 			var scs ScreenState
 			scs.Resize(tc.size)
 			buf.WriteString(tc.input)

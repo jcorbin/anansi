@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/jcorbin/anansi"
-	"github.com/jcorbin/anansi/ansi"
 )
 
 func TestRenderBitmap(t *testing.T) {
@@ -36,7 +35,7 @@ func TestRenderBitmap(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			var buf ansi.Buffer
+			var buf Buffer
 			RenderBitmap(&buf, tc.bi, tc.styles...)
 			assert.Equal(t, tc.outLines, strings.Split(string(buf.Bytes()), "\n"))
 		})

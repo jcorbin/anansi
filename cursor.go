@@ -11,7 +11,7 @@ type Cursor struct {
 	CursorState
 	Real CursorState
 
-	buf ansi.Buffer
+	buf Buffer
 }
 
 // Reset the internal buffer and restore cursor state to last state affected by

@@ -12,7 +12,7 @@ import (
 type Screen struct {
 	ScreenState
 	prior Grid
-	proc  ansi.Buffer
+	proc  Buffer
 	out   Cursor
 }
 

@@ -1,9 +1,11 @@
-package ansi
+package anansi
 
 import (
 	"bytes"
 	"io"
 	"unicode/utf8"
+
+	"github.com/jcorbin/anansi/ansi"
 )
 
 // Buffer implements a deferred buffer of ANSI output, providing
@@ -45,7 +47,7 @@ func (b *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 
 // WriteESC writes one or more ANSI escapes to the internal buffer, returning
 // the number of bytes written.
-func (b *Buffer) WriteESC(seqs ...Escape) int {
+func (b *Buffer) WriteESC(seqs ...ansi.Escape) int {
 	need := 0
 	for i := range seqs {
 		need += seqs[i].Size()
@@ -60,22 +62,19 @@ func (b *Buffer) WriteESC(seqs ...Escape) int {
 	return n
 }
 
-// WriteSeq writes one or more ANSI escape sequences to the internal buffer,
-// returning the number of bytes written. Skips any zero sequences provided.
-func (b *Buffer) WriteSeq(seqs ...Seq) int {
+// WriteSeq writes one or more ANSI ansi.escape sequences to the internal
+// buffer, returning the number of bytes written. Skips any zero sequences
+// provided.
+func (b *Buffer) WriteSeq(seqs ...ansi.Seq) int {
 	need := 0
 	for i := range seqs {
-		if seqs[i].id != 0 {
-			need += seqs[i].Size()
-		}
+		need += seqs[i].Size()
 	}
 	b.buf.Grow(need)
 	p := b.buf.Bytes()
 	p = p[len(p):]
 	for i := range seqs {
-		if seqs[i].id != 0 {
-			p = seqs[i].AppendTo(p)
-		}
+		p = seqs[i].AppendTo(p)
 	}
 	n, _ := b.buf.Write(p)
 	return n
@@ -85,7 +84,7 @@ func (b *Buffer) WriteSeq(seqs ...Seq) int {
 // returning the number of bytes written; updates Attr cursor state. Skips any
 // zero attr values (NOTE 0 attr value is merely implicit clear, not the
 // explicit SGRAttrClear).
-func (b *Buffer) WriteSGR(attrs ...SGRAttr) int {
+func (b *Buffer) WriteSGR(attrs ...ansi.SGRAttr) int {
 	need := 0
 	for i := range attrs {
 		if attrs[i] != 0 {
@@ -143,7 +142,7 @@ func (b *Buffer) Discard() {
 // sequences, and passing them to the given processor.
 func (b *Buffer) Process(proc Processor) {
 	for p := b.buf.Bytes(); b.off < len(p); {
-		e, a, n := DecodeEscape(p[b.off:])
+		e, a, n := ansi.DecodeEscape(p[b.off:])
 		b.off += n
 		if e == 0 {
 			switch r, n := utf8.DecodeRune(p[b.off:]); r {
@@ -161,6 +160,6 @@ func (b *Buffer) Process(proc Processor) {
 
 // Processor receives decoded escape sequences and runes from Buffer.Process.
 type Processor interface {
-	ProcessEscape(e Escape, a []byte)
+	ProcessEscape(e ansi.Escape, a []byte)
 	ProcessRune(r rune)
 }

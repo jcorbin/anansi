@@ -102,7 +102,7 @@ type Platform struct {
 	Config
 
 	termContext anansi.Context
-	buf         ansi.Buffer
+	buf         anansi.Buffer
 
 	term   *anansi.Term
 	mode   anansi.Mode

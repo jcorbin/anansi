@@ -9,7 +9,7 @@ import (
 // (non-differential) update, pass an empty prior grid.
 // Returns the number of bytes written into the buffer and the final cursor
 // state.
-func RenderGrid(buf *ansi.Buffer, cur CursorState, g, prior Grid, styles ...Style) (int, CursorState) {
+func RenderGrid(buf *Buffer, cur CursorState, g, prior Grid, styles ...Style) (int, CursorState) {
 	if g.Stride != g.Rect.Dx() {
 		panic("sub-grid update not implemented")
 	}
@@ -26,7 +26,7 @@ func RenderGrid(buf *ansi.Buffer, cur CursorState, g, prior Grid, styles ...Styl
 	return renderGridDiff(buf, cur, g, prior, style)
 }
 
-func renderGrid(buf *ansi.Buffer, cur CursorState, g Grid, style Style) (int, CursorState) {
+func renderGrid(buf *Buffer, cur CursorState, g Grid, style Style) (int, CursorState) {
 	const empty = ' '
 	if fillRune, _ := style.Style(ansi.ZP, 0, 0, 0, 0); fillRune == empty {
 		style = Styles(style, ZeroRuneStyle(empty))
@@ -52,7 +52,7 @@ func renderGrid(buf *ansi.Buffer, cur CursorState, g Grid, style Style) (int, Cu
 	return n, cur
 }
 
-func renderGridDiff(buf *ansi.Buffer, cur CursorState, g, prior Grid, style Style) (int, CursorState) {
+func renderGridDiff(buf *Buffer, cur CursorState, g, prior Grid, style Style) (int, CursorState) {
 	fillRune, fillAttr := style.Style(ansi.ZP, 0, 0, 0, 0)
 	const empty = ' '
 	if fillRune == 0 {
@@ -105,7 +105,7 @@ func renderGridDiff(buf *ansi.Buffer, cur CursorState, g, prior Grid, style Styl
 // RenderBitmap writes a bitmap's contents as braille runes into an ansi buffer.
 // Optional style(s) may be passed to control graphical rendition of the
 // braille runes.
-func RenderBitmap(buf *ansi.Buffer, bi *Bitmap, styles ...Style) {
+func RenderBitmap(buf *Buffer, bi *Bitmap, styles ...Style) {
 	style := Styles(styles...)
 	for bp := bi.Rect.Min; bp.Y < bi.Rect.Max.Y; bp.Y += 4 {
 		if bp.Y > 0 {

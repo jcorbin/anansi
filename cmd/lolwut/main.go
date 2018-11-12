@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/jcorbin/anansi"
-	"github.com/jcorbin/anansi/ansi"
 )
 
 /* Ported from [antirez's LOLWUT](http://antirez.com/news/123)
@@ -63,7 +62,7 @@ func main() {
 	sd.setup(cols, squaresPerRow, squaresPerCol)
 	sd.draw()
 
-	var outputBuffer ansi.Buffer
+	var outputBuffer anansi.Buffer
 	anansi.RenderBitmap(&outputBuffer, sd.canvas)
 	outputBuffer.WriteByte('\n')
 	if _, err := outputBuffer.WriteTo(os.Stdout); err != nil {

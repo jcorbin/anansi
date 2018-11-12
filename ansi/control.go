@@ -153,6 +153,9 @@ func (id Escape) AppendWith(p []byte, arg ...byte) []byte {
 
 // AppendTo writes the control sequence into the given byte buffer.
 func (seq Seq) AppendTo(p []byte) []byte {
+	if seq.id == 0 {
+		return p
+	}
 	switch id := seq.id; {
 	case id == 0:
 	case 0x0000 < id && id < 0x001F: // C0 controls
@@ -229,6 +232,9 @@ func (id Escape) Size() int {
 
 // Size returns the number of bytes required to encode the escape sequence.
 func (seq Seq) Size() int {
+	if seq.id == 0 {
+		return 0
+	}
 	return 4 + seq.numBytes + 10*seq.numInts
 }
 
