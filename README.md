@@ -65,9 +65,6 @@ Toplevel [`anansi`][anansi_pkg] package:
 - [`anansi.Cursor`][anansi_cursor] represents cursor state including position,
   visibility, and SGR attribute(s); it supports processing under an
   [`ansi.Buffer`][ansi_buffer]
-- [`anansi/ansi.Point`][anansi_point] and
-  [`anansi/ansi.Rectangle`][anansi_rectangle] support sane handling of
-  1,1-originated screen geometry
 - [`anansi.Grid`][anansi_grid] provides a 2d array of `rune` and`ansi.SGRAttr`
   data; it supports processing under an [`ansi.Buffer`][ansi_buffer].
 - [`anansi.Screen`][anansi_screen] combines an `anansi.Cursor` with
@@ -99,6 +96,8 @@ Core [`anansi/ansi`][ansi_pkg] package:
   written. This enables keeping virtual state (such as cursor position or a
   cell grid) up to date without locking downstream users into specific APIs for
   writing
+- [`ansi.Point`][ansi_point] and [`ansi.Rectangle`][ansi_rectangle] support
+  sane handling of 1,1-originated screen geometry
 
 ### Errata
 
@@ -183,8 +182,6 @@ useful:
 [anansi_grid]: https://godoc.org/github.com/jcorbin/anansi#Grid
 [anansi_input]: https://godoc.org/github.com/jcorbin/anansi#Input
 [anansi_output]: https://godoc.org/github.com/jcorbin/anansi#Output
-[anansi_point]: https://godoc.org/github.com/jcorbin/anansi#Point
-[anansi_rectangle]: https://godoc.org/github.com/jcorbin/anansi#Rectangle
 [anansi_render_grid]: https://godoc.org/github.com/jcorbin/anansi#RenderGrid
 [anansi_screen]: https://godoc.org/github.com/jcorbin/anansi#Screen
 [anansi_term]: https://godoc.org/github.com/jcorbin/anansi#Term
@@ -194,6 +191,8 @@ useful:
 [ansi_mode]: https://godoc.org/github.com/jcorbin/anansi/ansi#Mode
 [ansi_mousestate]: https://godoc.org/github.com/jcorbin/anansi/ansi#MouseState
 [ansi_parser_sm]: https://www.vt100.net/emu/dec_ansi_parser
+[ansi_point]: https://godoc.org/github.com/jcorbin/anansi/ansi#Point
+[ansi_rectangle]: https://godoc.org/github.com/jcorbin/anansi/ansi#Rectangle
 [ansi_seq]: https://godoc.org/github.com/jcorbin/anansi/ansi#Seq
 [ansi_sgr]: https://godoc.org/github.com/jcorbin/anansi/ansi#SGRAttr
 [ansi_sm]: https://godoc.org/github.com/jcorbin/anansi/ansi#SM
