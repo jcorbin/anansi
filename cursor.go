@@ -6,7 +6,10 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-// Cursor processes buffered ansi output, tracking current cursor state.
+// Cursor supports writing buffered ansi output while tracking cursor state.
+// Buffered output can be flushed with WriteTo(), or discarded with Reset().
+// Real cursor state is only affected after a WriteTo(), and is restored after
+// a Reset().
 type Cursor struct {
 	CursorState
 	Real CursorState
