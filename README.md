@@ -64,17 +64,23 @@ Toplevel [`anansi`][anansi_pkg] package:
   and `stdout` share the same underlying file descriptor)
 - [`anansi.Cursor`][anansi_cursor] represents cursor state including position,
   visibility, and SGR attribute(s); it supports processing under an
-  [`ansi.Buffer`][ansi_buffer]
+  [`anansi.Buffer`][anansi_buffer]
 - [`anansi.Grid`][anansi_grid] provides a 2d array of `rune` and`ansi.SGRAttr`
-  data; it supports processing under an [`ansi.Buffer`][ansi_buffer].
+  data; it supports processing under an [`anansi.Buffer`][anansi_buffer].
 - [`anansi.Screen`][anansi_screen] combines an `anansi.Cursor` with
   `anansi.Grid`, supporting differential screen updates and final post-update
   cursor display
 - [`anansi.Bitmap`][anansi_bitmap] provides a 2d bitmap that can be rendered or
   drawn into braille runes.
 - Both `anansi.Grid` and `anansi.Bitmap` support `anansi.Style`d
-  [render][anansi_render_grid]ing into an `ansi.Buffer`, or
+  [render][anansi_render_grid]ing into an `anansi.Buffer`, or
   [draw][anansi_draw_grid]ing into an (other) `anansi.Grid`.
+- [`anansi.Buffer`][anansi_buffer] supports deferred writing to a terminal; the
+  primary trick that it adds beyond a basic `bytes.Buffer` convenience, is
+  allowing the users to process escape sequences, no matter how they're
+  written. This enables keeping virtual state (such as cursor position or a
+  cell grid) up to date without locking downstream users into specific APIs for
+  writing
 
 Core [`anansi/ansi`][ansi_pkg] package:
 - [`ansi.DecodeEscape`][ansi_decode_escape] provides escape sequence decoding
@@ -90,12 +96,6 @@ Core [`anansi/ansi`][ansi_pkg] package:
 - [`ansi.Mode`][ansi_mode] supports setting and clearing various modes such as
   mouse reporting (and its optional extra levels like motion and full button
   reporting)
-- [`ansi.Buffer`][ansi_buffer] supports deferred writing to a terminal; the
-  primary trick that it adds beyond a basic `bytes.Buffer` convenience, is
-  allowing the users to process escape sequences, no matter how they're
-  written. This enables keeping virtual state (such as cursor position or a
-  cell grid) up to date without locking downstream users into specific APIs for
-  writing
 - [`ansi.Point`][ansi_point] and [`ansi.Rectangle`][ansi_rectangle] support
   sane handling of 1,1-originated screen geometry
 
@@ -176,6 +176,7 @@ useful:
 
 [anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
 [anansi_bitmap]: https://godoc.org/github.com/jcorbin/anansi#Bitmap
+[anansi_buffer]: https://godoc.org/github.com/jcorbin/anansi/ansi#Buffer
 [anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
 [anansi_cursor]: https://godoc.org/github.com/jcorbin/anansi#Cursor
 [anansi_draw_grid]: https://godoc.org/github.com/jcorbin/anansi#DrawGrid
@@ -185,7 +186,6 @@ useful:
 [anansi_render_grid]: https://godoc.org/github.com/jcorbin/anansi#RenderGrid
 [anansi_screen]: https://godoc.org/github.com/jcorbin/anansi#Screen
 [anansi_term]: https://godoc.org/github.com/jcorbin/anansi#Term
-[ansi_buffer]: https://godoc.org/github.com/jcorbin/anansi/ansi#Buffer
 [ansi_cup]: https://godoc.org/github.com/jcorbin/anansi/ansi#CUP
 [ansi_decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
 [ansi_mode]: https://godoc.org/github.com/jcorbin/anansi/ansi#Mode
