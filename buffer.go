@@ -163,3 +163,5 @@ type Processor interface {
 	ProcessEscape(e ansi.Escape, a []byte)
 	ProcessRune(r rune)
 }
+
+var _ ansiWriter = &Buffer{}

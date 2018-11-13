@@ -62,10 +62,11 @@ func main() {
 	sd.setup(cols, squaresPerRow, squaresPerCol)
 	sd.draw()
 
-	var outputBuffer anansi.Buffer
-	anansi.RenderBitmap(&outputBuffer, sd.canvas)
-	outputBuffer.WriteByte('\n')
-	if _, err := outputBuffer.WriteTo(os.Stdout); err != nil {
+	_, err := anansi.WriteBitmap(os.Stdout, sd.canvas)
+	if err == nil {
+		_, err = os.Stdout.WriteString("\n")
+	}
+	if err != nil {
 		log.Fatalln(err)
 	}
 }

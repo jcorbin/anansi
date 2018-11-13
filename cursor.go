@@ -123,5 +123,7 @@ func (c *Cursor) Hide() {
 // Apply the given cursor state, writing any necessary escape sequences into
 // the internal buffer.
 func (c *Cursor) Apply(cs CursorState) {
-	_, c.CursorState = cs.ApplyTo(c.CursorState, &c.buf)
+	_, c.CursorState = cs.applyTo(&c.buf, c.CursorState)
 }
+
+var _ ansiWriter = &Cursor{}

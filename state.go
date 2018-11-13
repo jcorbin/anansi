@@ -3,6 +3,7 @@ package anansi
 import (
 	"fmt"
 	"image"
+	"io"
 	"unicode"
 
 	"github.com/jcorbin/anansi/ansi"
@@ -114,8 +115,7 @@ func (cs *CursorState) To(pt ansi.Point) ansi.Seq {
 		return ansi.CUP.WithPoint(pt)
 	}
 	if pt.Y == cs.Y+1 && pt.X == 1 {
-		cs.X, cs.Y = pt.X, pt.Y
-		return ansi.Escape('\r').With('\n')
+		return cs.NewLine()
 	}
 	if pt.X != cs.X && pt.Y != cs.Y {
 		cs.X, cs.Y = pt.X, pt.Y
@@ -153,6 +153,14 @@ func (cs *CursorState) To(pt ansi.Point) ansi.Seq {
 	return ansi.Seq{}
 }
 
+// NewLine moves the cursor to the start of the next line, returning the
+// necessary ansi sequence.
+func (cs *CursorState) NewLine() ansi.Seq {
+	cs.Y++
+	cs.X = 1
+	return ansi.Escape('\r').With('\n')
+}
+
 func (scs *ScreenState) clamp(pt ansi.Point) ansi.Point {
 	r := scs.Bounds()
 	if pt.X < r.Min.X {
@@ -176,13 +184,19 @@ func (scs *ScreenState) To(pt ansi.Point) {
 // ApplyTo applies the receiver cursor state into the passed state value,
 // writing any necessary control sequences into the provided buffer. Returns
 // the number of bytes written, and the updated cursor state.
-func (cs *CursorState) ApplyTo(cur CursorState, buf *Buffer) (n int, _ CursorState) {
+func (cs *CursorState) ApplyTo(w io.Writer, cur CursorState) (int, CursorState, error) {
+	return withAnsiWriter(w, cur, func(aw ansiWriter, cur CursorState) (int, CursorState) {
+		return cs.applyTo(aw, cur)
+	})
+}
+
+func (cs *CursorState) applyTo(aw ansiWriter, cur CursorState) (n int, _ CursorState) {
 	if cs.Visible && cs.Point.Valid() {
-		n += buf.WriteSeq(cur.To(cs.Point))
-		n += buf.WriteSGR(cur.MergeSGR(cs.Attr))
-		n += buf.WriteSeq(cur.Show())
+		n += aw.WriteSeq(cur.To(cs.Point))
+		n += aw.WriteSGR(cur.MergeSGR(cs.Attr))
+		n += aw.WriteSeq(cur.Show())
 	} else {
-		n += buf.WriteSeq(cur.Hide())
+		n += aw.WriteSeq(cur.Hide())
 	}
 	return n, cur
 }
@@ -190,11 +204,17 @@ func (cs *CursorState) ApplyTo(cur CursorState, buf *Buffer) (n int, _ CursorSta
 // Update performs a Grid differential update with the cursor hidden, and then
 // applies any non-zero UserCursor, returning the number of bytes written into
 // the given buffer, and the final cursor state.
-func (scs *ScreenState) Update(cur CursorState, buf *Buffer, prior Grid) (n int, _ CursorState) {
-	n += buf.WriteSeq(cur.Hide())
-	m, cur := RenderGrid(buf, cur, scs.Grid, prior)
+func (scs *ScreenState) Update(w io.Writer, cur CursorState, prior Grid) (int, CursorState, error) {
+	return withAnsiWriter(w, cur, func(aw ansiWriter, cur CursorState) (int, CursorState) {
+		return scs.update(aw, cur, prior)
+	})
+}
+
+func (scs *ScreenState) update(aw ansiWriter, cur CursorState, prior Grid) (n int, _ CursorState) {
+	n += aw.WriteSeq(cur.Hide())
+	m, cur := writeGrid(aw, cur, scs.Grid, prior, NoopStyle)
 	n += m
-	m, cur = scs.UserCursor.ApplyTo(cur, buf)
+	m, cur = scs.UserCursor.applyTo(aw, cur)
 	n += m
 	return n, cur
 }

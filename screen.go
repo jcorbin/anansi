@@ -45,19 +45,35 @@ func (sc *Screen) Invalidate() {
 // output buffer isn't empty, then the build step is skipped, and another
 // attempt is made to flush the output buffer.
 func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
-	if sc.out.buf.Len() == 0 {
-		_, sc.out.CursorState = sc.ScreenState.Update(sc.out.CursorState, &sc.out.buf, sc.prior)
+	aw, haveAW := w.(ansiWriter)
+
+	// if caller didn't pass a buffered ansi writer, use internal buffer and
+	// then flush to the given io.Writer
+	if !haveAW {
+		defer func() {
+			n, err = sc.out.WriteTo(w)
+			if err == nil {
+				sc.prior.Resize(sc.ScreenState.Grid.Bounds().Size())
+				copy(sc.prior.Rune, sc.ScreenState.Grid.Rune)
+				copy(sc.prior.Attr, sc.ScreenState.Grid.Attr)
+			} else if !isEWouldBlock(err) {
+				sc.Reset()
+				sc.Invalidate()
+			}
+		}()
+
+		// continue prior write (e.g. after isEWouldBlock(err) above)
+		if sc.out.buf.Len() > 0 {
+			return
+		}
+
+		aw = &sc.out.buf
 	}
-	n, err = sc.out.WriteTo(w)
-	if err == nil {
-		sc.prior.Resize(sc.ScreenState.Grid.Bounds().Size())
-		copy(sc.prior.Rune, sc.ScreenState.Grid.Rune)
-		copy(sc.prior.Attr, sc.ScreenState.Grid.Attr)
-	} else if !isEWouldBlock(err) {
-		sc.Reset()
-		sc.Invalidate()
-	}
-	return n, err
+
+	// perform (full or differential) update
+	var m int
+	m, sc.out.CursorState = sc.ScreenState.update(aw, sc.out.CursorState, sc.prior)
+	return int64(m), err
 }
 
 // Write to the internal buffer, updating cursor state per any ANSI escape
@@ -129,3 +145,5 @@ func (sc *Screen) process() {
 	sc.proc.Process(sc)
 	sc.proc.Discard()
 }
+
+var _ ansiWriter = &Screen{}
