@@ -294,6 +294,9 @@ func (cs *CursorState) processEscape(
 
 // ProcessRune sets the rune into the virtual screen grid.
 func (scs *ScreenState) ProcessRune(r rune) {
+	if scs.Point.Point == image.ZP {
+		scs.Point = ansi.Pt(1, 1)
+	}
 	br := scs.Bounds()
 	switch {
 	case unicode.IsGraphic(r):
@@ -316,6 +319,9 @@ func (scs *ScreenState) ProcessRune(r rune) {
 // grid.  Any errors decoding escape arguments are silenced, and the offending
 // escape sequence(s) ignored.
 func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
+	if scs.Point.Point == image.ZP {
+		scs.Point = ansi.Pt(1, 1)
+	}
 	switch e {
 	case ansi.ED:
 		var val byte

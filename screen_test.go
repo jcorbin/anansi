@@ -157,6 +157,32 @@ func TestScreen_blobs(t *testing.T) {
 		lines []string
 	}{
 		{
+			name:  "3-line hello world",
+			size:  image.Pt(10, 5),
+			input: "hello\r\nworld\r\nagain",
+			lines: []string{
+				"hello     ",
+				"world     ",
+				"again     ",
+				"          ",
+				"          ",
+			},
+		},
+
+		{
+			name:  "3-line hello world, sans CR",
+			size:  image.Pt(20, 5),
+			input: "hello\nworld\nagain",
+			lines: []string{
+				"hello               ",
+				"     world          ",
+				"          again     ",
+				"                    ",
+				"                    ",
+			},
+		},
+
+		{
 			name: "empty",
 			size: image.Pt(10, 5),
 			lines: []string{
