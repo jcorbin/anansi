@@ -61,17 +61,19 @@ func init() {
 	log.SetOutput(&logBuf)
 }
 
+func (lb *_logBuf) Run(t *testing.T, f func(t *testing.T)) {
+	lb.t = t
+	defer func() {
+		for sc := bufio.NewScanner(&lb.buf); sc.Scan(); {
+			lb.t.Logf(sc.Text())
+		}
+		lb.t = nil
+	}()
+	f(t)
+}
+
 func (lb *_logBuf) With(f func(t *testing.T)) func(t *testing.T) {
-	return func(t *testing.T) {
-		lb.t = t
-		defer func() {
-			for sc := bufio.NewScanner(&lb.buf); sc.Scan(); {
-				lb.t.Logf(sc.Text())
-			}
-			lb.t = nil
-		}()
-		f(t)
-	}
+	return func(t *testing.T) { lb.Run(t, f) }
 }
 
 func (lb *_logBuf) Write(p []byte) (n int, err error) {
