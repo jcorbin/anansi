@@ -48,6 +48,10 @@ func ESC(b byte) Escape { return Escape(0xEF00 | 0x7F&rune(b)) }
 // CSI returns a CSI control sequence identifier named by the given byte.
 func CSI(b byte) Escape { return Escape(0xEF80 | 0x7F&rune(b)) }
 
+// IsEscape returns true if the esacpe value isn't a normal rune; that is if
+// it's in the range U+EF00 thru U+EFFF.
+func (id Escape) IsEscape() bool { return 0xEF00 <= id && id <= 0xEFFF }
+
 // ESC returns the byte name of the ESCape sequence identified by this escape
 // value, if any; returns 0 false otherwise.
 func (id Escape) ESC() (byte, bool) {
