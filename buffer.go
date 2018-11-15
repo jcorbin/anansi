@@ -150,18 +150,17 @@ func (b *Buffer) Process(proc Processor) {
 				return
 			default:
 				b.off += n
-				proc.ProcessRune(r)
+				e = ansi.Escape(r)
 			}
-		} else {
-			proc.ProcessEscape(e, a)
 		}
+		proc.ProcessANSI(e, a)
 	}
 }
 
-// Processor receives decoded escape sequences and runes from Buffer.Process.
+// Processor receives decoded ANSI escape sequences and Unicode runes from
+// Buffer.Process.
 type Processor interface {
-	ProcessEscape(e ansi.Escape, a []byte)
-	ProcessRune(r rune)
+	ProcessANSI(e ansi.Escape, a []byte)
 }
 
 var _ ansiWriter = &Buffer{}

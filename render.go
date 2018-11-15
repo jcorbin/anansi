@@ -51,7 +51,7 @@ func writeGridFull(aw ansiWriter, cur CursorState, g Grid, style Style) (int, Cu
 			n += aw.WriteSGR(ad)
 			m, _ := aw.WriteRune(gr)
 			n += m
-			cur.ProcessRune(gr)
+			cur.ProcessANSI(ansi.Escape(gr), nil)
 		}
 		i++
 		if pt.X++; pt.X >= g.Rect.Max.X {
@@ -99,7 +99,7 @@ func writeGridDiff(aw ansiWriter, cur CursorState, g, prior Grid, style Style) (
 			n += aw.WriteSGR(ad)
 			m, _ := aw.WriteRune(gr)
 			n += m
-			cur.ProcessRune(gr)
+			cur.ProcessANSI(ansi.Escape(gr), nil)
 		}
 
 	next:
@@ -148,7 +148,7 @@ func writeBitmap(aw ansiWriter, cur CursorState, bi *Bitmap, style Style) (n int
 			m, _ := aw.WriteRune(r)
 			n += m
 
-			cur.ProcessRune(r)
+			cur.ProcessANSI(ansi.Escape(r), nil)
 		}
 	}
 	return n, cur

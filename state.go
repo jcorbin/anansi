@@ -219,24 +219,32 @@ func (scs *ScreenState) update(aw ansiWriter, cur CursorState, prior Grid) (n in
 	return n, cur
 }
 
-// ProcessRune updates the cursor position by the graphic width of the rune.
-func (cs *CursorState) ProcessRune(r rune) {
+// ProcessANSI updates cursor state to reflect having written the given escape
+// value or rune to a terminal.
+//
+// Graphic runes advance the cursor X position.
+//
+// Supported escape sequences:
+//   - CUU, CUD, CUF, and CUB all relatively update Point
+//   - CUP sets Point absolutely
+//   - SGR merges into Attr (see SGRAttr.Merge)
+//   - SM and RM implement modes:
+//     - private mode 25 updates Visible
+//
+// Any errors decoding escape arguments are silenced, and the offending
+// escape sequence(s) ignored.
+func (cs *CursorState) ProcessANSI(e ansi.Escape, a []byte) {
 	switch {
-	case unicode.IsGraphic(r):
-		cs.X++ // TODO support double-width runes
-	// TODO anything for other control runes?
-	case r == '\x0A': // LF
+	case e.IsEscape():
+		cs.processEscape(e, a, ptID)
+	case e == '\x0A': // LF
 		cs.Y++
-	case r == '\x0D': // CR
+	case e == '\x0D': // CR
 		cs.X = 1
+	// TODO anything for other control runes?
+	case unicode.IsGraphic(rune(e)):
+		cs.X++ // TODO support double-width runes
 	}
-}
-
-// ProcessEscape decodes cursor movement and attribute changes, updating state.
-// Any errors decoding escape arguments are silenced, and the offending escape
-// sequence(s) ignored.
-func (cs *CursorState) ProcessEscape(e ansi.Escape, a []byte) {
-	cs.processEscape(e, a, ptID)
 }
 
 func ptID(pt ansi.Point) ansi.Point { return pt }
@@ -312,36 +320,45 @@ func (cs *CursorState) processEscape(
 	}
 }
 
-// ProcessRune sets the rune into the virtual screen grid.
-func (scs *ScreenState) ProcessRune(r rune) {
+// ProcessANSI updates screen state to reflect having written the given escape
+// value or rune to a terminal; in addition to CursorState.ProcessANSI semantics:
+//
+// Graphic runes update the virtual cell grid, using the current cursor SGR
+// attribute, at the current cursor point.
+//
+// Supported escape sequences:
+//   - ED to erase display
+//   - EL to erase line
+//   - cursor movement sequences, as per CursorState.ProcessANSI, but clamped
+//     to the screen bounds
+//
+// Any errors decoding escape arguments are silenced, and the offending
+// escape sequence(s) ignored.
+func (scs *ScreenState) ProcessANSI(e ansi.Escape, a []byte) {
 	if scs.Point.Point == image.ZP {
 		scs.Point = ansi.Pt(1, 1)
 	}
-	br := scs.Bounds()
 	switch {
-	case unicode.IsGraphic(r):
+	case e.IsEscape():
+		scs.processEscape(e, a)
+	case e == '\x0A': // LF
+		scs.linefeed()
+	case e == '\x0D': // CR
+		scs.X = 1
+	// TODO anything for other control runes?
+	case unicode.IsGraphic(rune(e)):
+		br := scs.Bounds()
 		if i, ok := scs.Grid.CellOffset(scs.Point); ok {
-			scs.Grid.Rune[i], scs.Grid.Attr[i] = r, scs.CursorState.Attr
+			scs.Grid.Rune[i], scs.Grid.Attr[i] = rune(e), scs.CursorState.Attr
 		}
 		if scs.X++; scs.X >= br.Max.X {
 			scs.X = br.Min.X
 			scs.linefeed()
 		}
-	case r == '\x0A': // LF
-		scs.linefeed()
-	case r == '\x0D': // CR
-		scs.X = 1
 	}
 }
 
-// ProcessEscape decodes cursor movement and attribute changes, updating cursor
-// state, and decodes screen manipulation sequences, updating the virtual cell
-// grid.  Any errors decoding escape arguments are silenced, and the offending
-// escape sequence(s) ignored.
-func (scs *ScreenState) ProcessEscape(e ansi.Escape, a []byte) {
-	if scs.Point.Point == image.ZP {
-		scs.Point = ansi.Pt(1, 1)
-	}
+func (scs *ScreenState) processEscape(e ansi.Escape, a []byte) {
 	switch e {
 	case ansi.ED:
 		var val byte
