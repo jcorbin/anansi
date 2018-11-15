@@ -12,7 +12,7 @@ import (
 type Screen struct {
 	ScreenState
 	prior Grid
-	proc  Buffer
+	buf   Buffer
 	out   Cursor
 }
 
@@ -20,7 +20,7 @@ type Screen struct {
 // WriteTo.
 func (sc *Screen) Reset() {
 	sc.ScreenState.Clear()
-	sc.proc.Reset()
+	sc.buf.Reset()
 	sc.out.Reset()
 }
 
@@ -28,7 +28,7 @@ func (sc *Screen) Reset() {
 func (sc *Screen) Resize(size image.Point) bool {
 	if sc.ScreenState.Resize(size) {
 		sc.Invalidate()
-		sc.proc.Reset()
+		sc.buf.Reset()
 		sc.out.Reset()
 		return true
 	}
@@ -80,7 +80,7 @@ func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 // sequences, and advancing cursor position by rune count (clamped to screen
 // size).
 func (sc *Screen) Write(p []byte) (n int, err error) {
-	n, _ = sc.proc.Write(p)
+	n, _ = sc.buf.Write(p)
 	sc.process()
 	return n, nil
 }
@@ -89,7 +89,7 @@ func (sc *Screen) Write(p []byte) (n int, err error) {
 // escape sequences, and advancing cursor position by rune count (clamped to
 // screen size).
 func (sc *Screen) WriteString(s string) (n int, err error) {
-	n, _ = sc.proc.WriteString(s)
+	n, _ = sc.buf.WriteString(s)
 	sc.process()
 	return n, nil
 }
@@ -97,7 +97,7 @@ func (sc *Screen) WriteString(s string) (n int, err error) {
 // WriteRune to the internal buffer, advancing cursor position (clamped to
 // screen size).
 func (sc *Screen) WriteRune(r rune) (n int, err error) {
-	n, _ = sc.proc.WriteRune(r)
+	n, _ = sc.buf.WriteRune(r)
 	sc.process()
 	return n, nil
 }
@@ -105,7 +105,7 @@ func (sc *Screen) WriteRune(r rune) (n int, err error) {
 // WriteByte to the internal buffer, advancing cursor position (clamped to
 // screen size).
 func (sc *Screen) WriteByte(b byte) error {
-	_ = sc.proc.WriteByte(b)
+	_ = sc.buf.WriteByte(b)
 	sc.process()
 	return nil
 }
@@ -113,7 +113,7 @@ func (sc *Screen) WriteByte(b byte) error {
 // WriteESC writes one or more ANSI escapes to the internal buffer, returning
 // the number of bytes written; updates cursor state as appropriate.
 func (sc *Screen) WriteESC(seqs ...ansi.Escape) int {
-	n := sc.proc.WriteESC(seqs...)
+	n := sc.buf.WriteESC(seqs...)
 	sc.process()
 	return n
 }
@@ -121,7 +121,7 @@ func (sc *Screen) WriteESC(seqs ...ansi.Escape) int {
 // WriteSeq writes one or more ANSI escape sequences to the internal buffer,
 // returning the number of bytes written; updates cursor state as appropriate.
 func (sc *Screen) WriteSeq(seqs ...ansi.Seq) int {
-	n := sc.proc.WriteSeq(seqs...)
+	n := sc.buf.WriteSeq(seqs...)
 	sc.process()
 	return n
 }
@@ -131,19 +131,19 @@ func (sc *Screen) WriteSeq(seqs ...ansi.Seq) int {
 func (sc *Screen) WriteSGR(attrs ...ansi.SGRAttr) (n int) {
 	for i := range attrs {
 		if attr := sc.ScreenState.MergeSGR(attrs[i]); attr != 0 {
-			n += sc.proc.WriteSGR(attr)
+			n += sc.buf.WriteSGR(attr)
 		}
 	}
 	if n > 0 {
-		sc.proc.Skip(n)
+		sc.buf.Skip(n)
 	}
 	return n
 
 }
 
 func (sc *Screen) process() {
-	sc.proc.Process(sc)
-	sc.proc.Discard()
+	sc.buf.Process(sc)
+	sc.buf.Discard()
 }
 
 var _ ansiWriter = &Screen{}
