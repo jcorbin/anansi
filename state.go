@@ -432,3 +432,8 @@ func (scs *ScreenState) scrollBy(n int) {
 		scs.Grid.Attr[j] = 0
 	}
 }
+
+var (
+	_ Processor = &CursorState{}
+	_ Processor = &ScreenState{}
+)
