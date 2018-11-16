@@ -15,19 +15,24 @@ func NewTerm(f *os.File, cs ...Context) *Term {
 // Term combines a terminal file handle with attribute control and further
 // Context-ual state.
 type Term struct {
-	Attr
 	*os.File
+	Attr
+	Mode
 
 	active bool
 	ctx    Context
 }
 
-// With runs the given function within the terminal's context, activating it if
-// necessary, and deactivating it if activation was necessary. If With Enter()
-// context, then it calls context Exit() even after error or panic.
-func (term *Term) With(within func(*Term) error) (err error) {
+// RunWith runs the given function within the terminal's context, Enter()ing it
+// if necessary, and Exit()ing it if Enter() was called after the given
+// function returns. Exit() is called even if the within function returns an
+// error or panics.
+func (term *Term) RunWith(within func(*Term) error) (err error) {
 	if term.active {
 		return within(term)
+	}
+	if term.ctx == nil {
+		term.ctx = Contexts(term.ctx, &term.Attr, &term.Mode)
 	}
 	defer func() {
 		if cerr := term.ctx.Exit(term); cerr == nil {
@@ -43,16 +48,17 @@ func (term *Term) With(within func(*Term) error) (err error) {
 	return err
 }
 
-// Without runs the given function outside the terminal's context, deactivating
-// it if necessary, and reactivating it if deactivation was necessary.
-// Reactivation is not done if an error or panic occurs.
-func (term *Term) Without(outside func(*Term) error) (err error) {
+// RunWithout runs the given function without the terminal's context, Exit()ing
+// it if necessary, and Enter()ing it if deactivation was necessary.
+// Re-Enter() is not called is not done if a non-nil error is returned, or if
+// the without function panics.
+func (term *Term) RunWithout(without func(*Term) error) (err error) {
 	if !term.active {
-		return outside(term)
+		return without(term)
 	}
 	if err = term.ctx.Exit(term); err == nil {
 		term.active = false
-		if err = outside(term); err == nil {
+		if err = without(term); err == nil {
 			if err = term.ctx.Enter(term); err == nil {
 				term.active = true
 			}

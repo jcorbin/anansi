@@ -8,9 +8,9 @@ import (
 )
 
 // DecodeEscape unpacks a UTF-8 encoded ANSI escape sequence at the beginning
-// of p returning its Escape identifier, argument, and width in bytes. If the
-// returned escape identifier is non-zero, then it represents a complete escape
-// sequence (perhaps malformed!).
+// of p returning its Escape identifier, argument, and the number of bytes
+// consumed by decoding it. If the returned escape identifier is non-zero, then
+// it represents a complete escape sequence (perhaps malformed!).
 //
 // The bytes p[:n] have been processed after DecodeEscape() returns: they're
 // either represented by the returned Escape value or by subsequent bytes
@@ -21,7 +21,7 @@ import (
 // UTF-8 rune from p[n:]; if this rune turns out to be ESCape (U+001B), the
 // caller MAY decide either to process it immediately, or whether to wait for
 // additional input bytes which may complete an ESCape sequence.
-func DecodeEscape(p []byte) (e Escape, a []byte, n int) {
+func DecodeEscape(p []byte) (e Escape, arg []byte, n int) {
 	r, m := decodeRune(p)
 	if r == 0x1B {
 		return decodeESC(p)

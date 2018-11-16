@@ -6,12 +6,15 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-// Cursor processes buffered ansi output, tracking current cursor state.
+// Cursor supports writing buffered ansi output while tracking cursor state.
+// Buffered output can be flushed with WriteTo(), or discarded with Reset().
+// Real cursor state is only affected after a WriteTo(), and is restored after
+// a Reset().
 type Cursor struct {
 	CursorState
 	Real CursorState
 
-	buf ansi.Buffer
+	buf Buffer
 }
 
 // Reset the internal buffer and restore cursor state to last state affected by
@@ -120,5 +123,7 @@ func (c *Cursor) Hide() {
 // Apply the given cursor state, writing any necessary escape sequences into
 // the internal buffer.
 func (c *Cursor) Apply(cs CursorState) {
-	_, c.CursorState = cs.ApplyTo(c.CursorState, &c.buf)
+	_, c.CursorState = cs.applyTo(&c.buf, c.CursorState)
 }
+
+var _ ansiWriter = &Cursor{}

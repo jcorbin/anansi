@@ -27,6 +27,8 @@ type Config struct {
 	StartTiming bool // Whether to start and
 	LogTiming   bool // log timing right away
 
+	TelemetryLogFileName string // log telemetry to file
+
 	logFile       *os.File
 	cpuProfile    cpuProfileContext
 	traceProfile  traceProfileContext
@@ -75,10 +77,19 @@ func (cfg *Config) Merge(other Config) {
 	if other.LogTiming {
 		cfg.LogTiming = true
 	}
+	if other.TelemetryLogFileName != "" && cfg.TelemetryLogFileName == "" {
+		cfg.TelemetryLogFileName = other.TelemetryLogFileName
+	}
 }
 
 func (cfg *Config) setup(p *Platform) error {
 	p.SetTimingEnabled(cfg.LogTiming)
+
+	if cfg.TelemetryLogFileName != "" {
+		if err := p.Telemetry.coll.create(cfg.TelemetryLogFileName); err != nil {
+			return err
+		}
+	}
 
 	if cfg.LogFileName != "" && p.logFile == nil {
 		f, err := os.Create(cfg.LogFileName)

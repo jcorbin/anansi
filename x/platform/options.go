@@ -17,7 +17,7 @@ func (f optionFunc) apply(p *Platform) error { return f(p) }
 func FrameRate(fps int) Option {
 	return optionFunc(func(p *Platform) error {
 		timingPeriod := fps / 4
-		p.ticks.SetGoal(fps)
+		p.ticker.d = time.Second / time.Duration(fps)
 		p.FPSEstimate.data = make([]float64, fps)
 		p.Timing.ts = make([]time.Time, timingPeriod)
 		p.Timing.ds = make([]time.Duration, timingPeriod)

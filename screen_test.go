@@ -16,7 +16,7 @@ import (
 	anansitest "github.com/jcorbin/anansi/test"
 )
 
-func TestScreen(t *testing.T) {
+func TestScreen_steps(t *testing.T) {
 	type step struct {
 		run    func(*Screen)
 		expect string
@@ -145,6 +145,109 @@ func TestScreen(t *testing.T) {
 				assert.Equal(t, step.expect, out.String(), "[%d] expected output", i)
 				t.Logf("[%d] %q", i, out.Bytes())
 			}
+		}))
+	}
+}
+
+func TestScreen_blobs(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		size  image.Point
+		input string
+		lines []string
+	}{
+		{
+			name:  "3-line hello world",
+			size:  image.Pt(10, 5),
+			input: "hello\r\nworld\r\nagain",
+			lines: []string{
+				"hello     ",
+				"world     ",
+				"again     ",
+				"          ",
+				"          ",
+			},
+		},
+
+		{
+			name:  "3-line hello world, sans CR",
+			size:  image.Pt(20, 5),
+			input: "hello\nworld\nagain",
+			lines: []string{
+				"hello               ",
+				"     world          ",
+				"          again     ",
+				"                    ",
+				"                    ",
+			},
+		},
+
+		{
+			name: "empty",
+			size: image.Pt(10, 5),
+			lines: []string{
+				"          ",
+				"          ",
+				"          ",
+				"          ",
+				"          ",
+			},
+		},
+
+		{
+			name:  "hello-lf-world",
+			size:  image.Pt(20, 10),
+			input: "\x1b[5;5Hhello\nworld",
+			lines: []string{
+				"                    ",
+				"                    ",
+				"                    ",
+				"                    ",
+				"    hello           ",
+				"         world      ",
+				"                    ",
+				"                    ",
+				"                    ",
+				"                    ",
+			},
+		},
+
+		{
+			name:  "hello-crlf-world",
+			size:  image.Pt(10, 5),
+			input: "\x1b[2;1Hhello\r\nworld",
+			lines: []string{
+				"          ",
+				"hello     ",
+				"world     ",
+				"          ",
+				"          ",
+			},
+		},
+
+		{
+			name:  "hello-cud-cub-world",
+			size:  image.Pt(20, 10),
+			input: "\x1b[5;5Hhello\x1b[B\x1b[5Dworld",
+			lines: []string{
+				"                    ",
+				"                    ",
+				"                    ",
+				"                    ",
+				"    hello           ",
+				"    world           ",
+				"                    ",
+				"                    ",
+				"                    ",
+				"                    ",
+			},
+		},
+	} {
+		t.Run(tc.name, logBuf.With(func(t *testing.T) {
+			var sc Screen
+			sc.Resize(tc.size)
+			sc.WriteString(tc.input)
+			assert.Equal(t, tc.lines, anansitest.GridLines(sc.Grid, ' '))
 		}))
 	}
 }

@@ -3,23 +3,54 @@ package ansi
 import "fmt"
 
 // Escape identifies an ANSI control code, escape sequence, or control sequence
-// as a Unicode codepoint:
-// - U+0000-U+001F: C0 controls
-// - U+0080-U+009F: C1 controls
-// - U+EF20-U+EF2F: character set selection functions
-// - U+EF30-U+EF3F: private ESCape-sequence functions
-// - U+EF40-U+EF5F: non-standard ESCape-sequence functions
-// - U+EF60-U+EF7E: standard ESCape-sequence functions
-// -        U+EF7F: malformed ESC sequence
-// - U+EFC0-U+EFFE: CSI functions
-// -        U+EFFF: malformed CSI sequence
+// as a Unicode codepoint.
+//
+// C0 and C1 controls are represented using their natural Unicode codepoints:
+//
+//     U+0000-U+001F: C0 controls
+//     U+0080-U+009F: C1 controls
+//
+// The region U+EF00 through U+EFFF within the Private Use Area of the Basic
+// Multilingual Plane is used to identify ANSI escape and control sequences.
+//
+// Escape function are mapped into the range U+EF00-U+EF7f:
+//
+//     U+EF00-U+EF1F: unused / undefined
+//                  : ASCII C0 range
+//     U+EF20-U+EF2F: character set selection functions
+//                  : ASCII symbol range: <Space> and !"#$%&'()*+,-./
+//     U+EF30-U+EF3F: private ESCape-sequence functions
+//                  : ASCII number range: 0123456789:;<=>?
+//     U+EF40-U+EF5F: non-standard ESCape-sequence functions
+//                  : ASCII uppercase range: @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
+//                  : NOTE: won't be seen in practice; translated to C1 controls.
+//     U+EF60-U+EF7E: standard ESCape-sequence functions
+//                  : ASCII lowercase range: `abcdefghijklmnopqrstuvwxyz{|}~
+//            U+EF7F: malformed ESC sequence
+//                  : ASCII <Delete>
+//
+// Control functions are mapped into the range U+EF80-U+EFff:
+//
+//     U+EF80-U+EFBF: unused / undefined
+//                  : ASCII C0, symbols, and numbers
+//     U+EFC0-U+EFFE: CSI functions
+//                  : ASCII uppercase or lowercase
+//            U+EFFF: malformed CSI sequence
+//                  : ASCII <Delete>
+//
+// For example the control sequence for CUrsor Backwards (CUB) is CSI+D,
+// typically encoded as "\x1b[D" identified by U+EFC4 = U+EF80 + 'D'.
 type Escape rune
 
 // ESC returns an ESCape sequence identifier named by the given byte.
 func ESC(b byte) Escape { return Escape(0xEF00 | 0x7F&rune(b)) }
 
 // CSI returns a CSI control sequence identifier named by the given byte.
-func CSI(b byte) Escape { return Escape(0xEF80 | rune(b)) }
+func CSI(b byte) Escape { return Escape(0xEF80 | 0x7F&rune(b)) }
+
+// IsEscape returns true if the esacpe value isn't a normal rune; that is if
+// it's in the range U+EF00 thru U+EFFF.
+func (id Escape) IsEscape() bool { return 0xEF00 <= id && id <= 0xEFFF }
 
 // ESC returns the byte name of the ESCape sequence identified by this escape
 // value, if any; returns 0 false otherwise.
@@ -99,7 +130,7 @@ func (id Escape) String() string {
 	case id == 0xEFFF:
 		return "CSI+INVALID"
 	default:
-		return fmt.Sprintf("%U", rune(id))
+		return fmt.Sprintf("%q", rune(id))
 	}
 }
 

@@ -386,7 +386,6 @@ func (hud *HUD) drawFPSDetail(ctx *Context) {
 func (hud *HUD) drawTelemetry(ctx *Context) {
 	hud.detailHeader(ctx, "# Telemetry:")
 	hud.drawFileEditRow(ctx, &ctx.Telemetry.coll, "Go Log")
-	hud.drawToggleRow(ctx, "Log Ticks", &ctx.LogTicks)
 	hud.drawToggleRow(ctx, "Log Timing", &ctx.LogTiming)
 	hud.drawToggleRow(ctx, "Log Stalls", &ctx.Telemetry.LogStallData)
 }
@@ -396,15 +395,6 @@ func (hud *HUD) drawFrameTiming(ctx *Context) {
 	if n := ctx.Input.CountPressesIn(box, 1); n%2 == 1 {
 		hud.FPSControl = !hud.FPSControl
 	}
-	if hud.FPSControl {
-		hud.detailRow(ctx, "last ∂t", fmt.Sprintf("%.1fms", float64(ctx.LastTick.LastDelta)/float64(time.Millisecond)))
-		hud.detailRow(ctx, "goal", fmt.Sprintf("%.1fms", float64(ctx.LastTick.GoalDelta)/float64(time.Millisecond)))
-		hud.detailRow(ctx, "set", fmt.Sprintf("%.1fms", float64(ctx.LastTick.SetDelta)/float64(time.Millisecond)))
-		hud.detailRow(ctx, "adj", fmt.Sprintf("%.1fms", float64(ctx.LastTick.Adjust)/float64(time.Millisecond)))
-		hud.detailRow(ctx, "err", fmt.Sprintf("%.1fms", float64(ctx.LastTick.Err)/float64(time.Millisecond)))
-		hud.detailRow(ctx, "∫", fmt.Sprintf("%.1fms", float64(ctx.LastTick.CumErr)/float64(time.Millisecond)))
-		hud.detailRow(ctx, "∂", fmt.Sprintf("%.1fms", float64(ctx.LastTick.DeltaDiff)/float64(time.Millisecond)))
-	}
 
 	box = hud.detailHeader(ctx, "# Frame Timing:")
 	if n := ctx.Input.CountPressesIn(box, 1); n%2 == 1 {
@@ -412,23 +402,18 @@ func (hud *HUD) drawFrameTiming(ctx *Context) {
 	}
 	if ctx.Telemetry.TimingEnabled {
 		stats := ctx.Timing.Stats
-		goal := ctx.LastTick.GoalDelta
 		hud.detailRow(ctx, "estimate", fmt.Sprintf("%.0f", ctx.FPSEstimate.Value))
 		hud.detailRow(ctx, "actual", fmt.Sprintf("%.0f", stats.FPS))
-		hud.detailRow(ctx, "∂t min", fmtMSDiff(stats.Min, goal))
-		hud.detailRow(ctx, "q1", fmtMSDiff(stats.Q1, goal))
-		hud.detailRow(ctx, "q2", fmtMSDiff(stats.Q2, goal))
-		hud.detailRow(ctx, "q3", fmtMSDiff(stats.Q3, goal))
-		hud.detailRow(ctx, "max", fmtMSDiff(stats.Max, goal))
+		hud.detailRow(ctx, "∂t min", fmtMS(stats.Min))
+		hud.detailRow(ctx, "q1", fmtMS(stats.Q1))
+		hud.detailRow(ctx, "q2", fmtMS(stats.Q2))
+		hud.detailRow(ctx, "q3", fmtMS(stats.Q3))
+		hud.detailRow(ctx, "max", fmtMS(stats.Max))
 	}
 }
 
-func fmtMSDiff(td, from time.Duration) string {
-	e := float64(td)/float64(from) - 1.0
-	return fmt.Sprintf("% +.1f%% %.1fms",
-		100.0*e,
-		float64(td)/float64(time.Millisecond),
-	)
+func fmtMS(td time.Duration) string {
+	return fmt.Sprintf("%.1fms", float64(td)/float64(time.Millisecond))
 }
 
 func (hud *HUD) drawStallsDetail(ctx *Context) {

@@ -33,48 +33,48 @@ func Run(f *os.File, run func(*Platform) error, opts ...Option) error {
 	if err != nil {
 		return err
 	}
-	return anansi.NewTerm(f, p).With(func(_ *anansi.Term) error {
+	return anansi.NewTerm(f, p).RunWith(func(_ *anansi.Term) error {
 		return run(p)
 	})
 }
 
+const defaultFrameRate = 60
+
 // New creates a platform layer for running interactive fullscreen terminal
 // applications.
 func New(opts ...Option) (*Platform, error) {
-	const defaultFrameRate = 60
 	var p Platform
 
-	p.modes = p.modes.AddMode(
+	p.mode.AddMode(
 		ansi.ModeAlternateScreen,
 		ansi.ModeMouseSgrExt,   // TODO detection?
 		ansi.ModeMouseBtnEvent, // TODO options?
 		ansi.ModeMouseAnyEvent, // TODO options?
 	)
-	p.modes = p.modes.AddSeq(ansi.SoftReset, ansi.SGRReset) // TODO options?
+	p.mode.AddModeSeq(ansi.SoftReset, ansi.SGRReset) // TODO options?
 
 	p.output = anansi.NewOutput(nil)
 
 	p.events = Events{input: anansi.NewInput(nil, 0)}
-	p.ticks = NewTicks(defaultFrameRate)
+	p.ticker.d = time.Second / defaultFrameRate
 	p.termContext = anansi.Contexts(
 		&p.Config,
 		p.events.input,
 		p.output,
-		p.ticks,
+		&p.ticker,
 	)
 
 	timingPeriod := defaultFrameRate / 4
 	p.FPSEstimate.data = make([]float64, defaultFrameRate)
 	p.Timing.ts = make([]time.Time, timingPeriod)
 	p.Timing.ds = make([]time.Duration, timingPeriod)
+	p.Telemetry.coll.rusage.data = make([]rusageEntry, defaultFrameRate*10)
 	p.bgworkers = append(p.bgworkers, &p.Telemetry.coll, &Logs)
 
-	if !hasConfig(opts) {
+	if !flag.Parsed() && !hasConfig(opts) {
 		flagConfig := Config{}
 		flagConfig.AddFlags(flag.CommandLine, "platform.")
-		if !flag.Parsed() {
-			flag.Parse()
-		}
+		flag.Parse()
 		if err := flagConfig.apply(&p); err != nil {
 			return nil, err
 		}
@@ -102,13 +102,13 @@ type Platform struct {
 	Config
 
 	termContext anansi.Context
-	buf         ansi.Buffer
+	buf         anansi.Buffer
 
 	term   *anansi.Term
-	modes  anansi.ModeSeqs
+	mode   anansi.Mode
 	output *anansi.Output
 	events Events
-	ticks  *Ticks
+	ticker Ticker
 
 	recording *os.File
 	replay    *replay
@@ -189,9 +189,11 @@ func (p *Platform) Run(client Client) (err error) {
 		log.Printf("run done: %v", err)
 	}()
 
-	for p.Time = time.Now(); !p.Time.IsZero(); p.Time = p.ticks.Wait(p.Time) {
+	for p.Time = time.Now(); !p.Time.IsZero(); p.Time = p.ticker.Wait() {
 		// update performance data
-		p.Telemetry.update(p)
+		if err := p.Telemetry.update(p); err != nil {
+			return err
+		}
 
 		ctx := p.Context()
 
@@ -262,7 +264,7 @@ func (p *Platform) Enter(term *anansi.Term) error {
 		return err
 	}
 
-	p.buf.Write(p.modes.Set)
+	p.buf.Write(p.mode.Set)
 	if p.buf.Len() > 0 {
 		if _, err := p.buf.WriteTo(term.File); err != nil {
 			return err
@@ -298,7 +300,7 @@ func (p *Platform) Exit(term *anansi.Term) (err error) {
 
 	p.buf.WriteSGR(p.screen.CursorState.MergeSGR(0))
 	p.buf.WriteSeq(p.screen.CursorState.Show())
-	p.buf.Write(p.modes.Reset)
+	p.buf.Write(p.mode.Reset)
 	if p.buf.Len() > 0 {
 		_, err = p.buf.WriteTo(term.File)
 	}
@@ -367,7 +369,7 @@ func (ctx *Context) runClient() error {
 // current process, and then restores platform terminal context once resumed;
 // returns any error preventing any of that.
 func (p *Platform) Suspend() error {
-	return p.term.Without(func(_ *anansi.Term) error {
+	return p.term.RunWithout(func(_ *anansi.Term) error {
 		cont := make(chan os.Signal)
 		signal.Notify(cont, syscall.SIGCONT)
 		log.Printf("suspending")

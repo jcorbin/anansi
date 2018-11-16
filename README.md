@@ -20,15 +20,20 @@
 **Experimental**: AnANSI is currently in initial exploration mode, and while
 things on master are reasonably stable, there's no guarantees yet.
 
-That said, there is a working [demo][demo], which may be a better place to
-start reading than from the various code-level docs linked below.
+### Demos
+
+The [Decode Demo Command][decode_demo] that demonstrates ansi Decoding,
+optionally with mouse reporting and terminal state manipulation (for raw and
+alternate screen mode).
 
 There's also a [lolwut][lolwut] demo, which is a port of antirez's,
-demonstrating braille-bitmap rendering capability.
+demonstrating braille-bitmap rendering capability. It has an optional
+interactive animated mode of which demonstrates the experimental `x/platform`
+layer.
+
+There's another `x/platform` [demo][demo] that draws a colorful test pattern.
 
 ### Done
-
-A 60fps [demo][demo] that draws an animated test pattern, demonstrating the:
 
 Experimental cohesive [`x/platform`][platform_pkg] layer:
 - provides a `platform.Events` queue layered on top of `anansi.input`, which
@@ -47,9 +52,10 @@ Experimental cohesive [`x/platform`][platform_pkg] layer:
   output, FPS, time, mouse state, screen size, etc
 
 Toplevel [`anansi`][anansi_pkg] package:
-- [`anansi.Term`][anansi_term], [`anansi.Context`][anansi_context], and
-  [`anansi.Attr`][anansi_attr] provide cohesive management of terminal state
-  such as raw mode, ANSI escape sequenced modes, and SGR attribute state
+- [`anansi.Term`][anansi_term], [`anansi.Context`][anansi_context],
+  [`anansi.Attr`][anansi_attr], and [`anansi.Mode`][anansi_mode] provide
+  cohesive management of terminal state such as raw mode, ANSI escape sequenced
+  modes, and SGR attribute state
 - [`anansi.Input`][anansi_input] supports reading input from a file handle,
   implementing both blocking `.ReadMore()` and non-blocking `.ReadAny()` modes
 - [`anansi.Output`][anansi_output] mediates flushing output from any
@@ -59,20 +65,23 @@ Toplevel [`anansi`][anansi_pkg] package:
   and `stdout` share the same underlying file descriptor)
 - [`anansi.Cursor`][anansi_cursor] represents cursor state including position,
   visibility, and SGR attribute(s); it supports processing under an
-  [`ansi.Buffer`][ansi_buffer]
-- [`anansi/ansi.Point`][anansi_point] and
-  [`anansi/ansi.Rectangle`][anansi_rectangle] support sane handling of
-  1,1-originated screen geometry
+  [`anansi.Buffer`][anansi_buffer]
 - [`anansi.Grid`][anansi_grid] provides a 2d array of `rune` and`ansi.SGRAttr`
-  data; it supports processing under an [`ansi.Buffer`][ansi_buffer].
+  data; it supports processing under an [`anansi.Buffer`][anansi_buffer].
 - [`anansi.Screen`][anansi_screen] combines an `anansi.Cursor` with
   `anansi.Grid`, supporting differential screen updates and final post-update
   cursor display
 - [`anansi.Bitmap`][anansi_bitmap] provides a 2d bitmap that can be rendered or
   drawn into braille runes.
 - Both `anansi.Grid` and `anansi.Bitmap` support `anansi.Style`d
-  [render][render_grid]ing into an `ansi.Buffer`, or [draw][draw_grid]ing into an (other)
-  `anansi.Grid`.
+  [render][anansi_render_grid]ing into an `anansi.Buffer`, or
+  [draw][anansi_draw_grid]ing into an (other) `anansi.Grid`.
+- [`anansi.Buffer`][anansi_buffer] supports deferred writing to a terminal; the
+  primary trick that it adds beyond a basic `bytes.Buffer` convenience, is
+  allowing the users to process escape sequences, no matter how they're
+  written. This enables keeping virtual state (such as cursor position or a
+  cell grid) up to date without locking downstream users into specific APIs for
+  writing
 
 Core [`anansi/ansi`][ansi_pkg] package:
 - [`ansi.DecodeEscape`][ansi_decode_escape] provides escape sequence decoding
@@ -88,12 +97,8 @@ Core [`anansi/ansi`][ansi_pkg] package:
 - [`ansi.Mode`][ansi_mode] supports setting and clearing various modes such as
   mouse reporting (and its optional extra levels like motion and full button
   reporting)
-- [`ansi.Buffer`][ansi_buffer] supports deferred writing to a terminal; the
-  primary trick that it adds beyond a basic `bytes.Buffer` convenience, is
-  allowing the users to process escape sequences, no matter how they're
-  written. This enables keeping virtual state (such as cursor position or a
-  cell grid) up to date without locking downstream users into specific APIs for
-  writing
+- [`ansi.Point`][ansi_point] and [`ansi.Rectangle`][ansi_rectangle] support
+  sane handling of 1,1-originated screen geometry
 
 ### Errata
 
@@ -113,7 +118,7 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 ### WIP
 
-- an [interact command demo](../../tree/interact/cmd/interact/main.go) which
+- an [interact command demo](../../tree/dev/cmd/interact/main.go) which
   allows you to interactively manipulate arguments passed to a dynamically
   executed command
 
@@ -172,23 +177,24 @@ useful:
 
 [anansi_attr]: https://godoc.org/github.com/jcorbin/anansi#Attr
 [anansi_bitmap]: https://godoc.org/github.com/jcorbin/anansi#Bitmap
+[anansi_buffer]: https://godoc.org/github.com/jcorbin/anansi/ansi#Buffer
 [anansi_context]: https://godoc.org/github.com/jcorbin/anansi#Context
 [anansi_cursor]: https://godoc.org/github.com/jcorbin/anansi#Cursor
 [anansi_draw_grid]: https://godoc.org/github.com/jcorbin/anansi#DrawGrid
 [anansi_grid]: https://godoc.org/github.com/jcorbin/anansi#Grid
 [anansi_input]: https://godoc.org/github.com/jcorbin/anansi#Input
+[anansi_mode]: https://godoc.org/github.com/jcorbin/anansi#Mode
 [anansi_output]: https://godoc.org/github.com/jcorbin/anansi#Output
-[anansi_point]: https://godoc.org/github.com/jcorbin/anansi#Point
-[anansi_rectangle]: https://godoc.org/github.com/jcorbin/anansi#Rectangle
 [anansi_render_grid]: https://godoc.org/github.com/jcorbin/anansi#RenderGrid
 [anansi_screen]: https://godoc.org/github.com/jcorbin/anansi#Screen
 [anansi_term]: https://godoc.org/github.com/jcorbin/anansi#Term
-[ansi_buffer]: https://godoc.org/github.com/jcorbin/anansi/ansi#Buffer
 [ansi_cup]: https://godoc.org/github.com/jcorbin/anansi/ansi#CUP
 [ansi_decode_escape]: https://godoc.org/github.com/jcorbin/anansi/ansi#DecodeEscape
 [ansi_mode]: https://godoc.org/github.com/jcorbin/anansi/ansi#Mode
 [ansi_mousestate]: https://godoc.org/github.com/jcorbin/anansi/ansi#MouseState
 [ansi_parser_sm]: https://www.vt100.net/emu/dec_ansi_parser
+[ansi_point]: https://godoc.org/github.com/jcorbin/anansi/ansi#Point
+[ansi_rectangle]: https://godoc.org/github.com/jcorbin/anansi/ansi#Rectangle
 [ansi_seq]: https://godoc.org/github.com/jcorbin/anansi/ansi#Seq
 [ansi_sgr]: https://godoc.org/github.com/jcorbin/anansi/ansi#SGRAttr
 [ansi_sm]: https://godoc.org/github.com/jcorbin/anansi/ansi#SM
@@ -210,6 +216,7 @@ useful:
 
 [demo]: ../../tree/master/cmd/demo
 [lolwut]: ../../tree/master/cmd/lolwut/main.go
+[decode_demo]: ../../tree/master/cmd/decode/main.go
 [master]: ../../tree/master
 [rc]: ../../tree/rc
 [dev]: ../../tree/dev
