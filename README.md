@@ -52,9 +52,10 @@ Experimental cohesive [`x/platform`][platform_pkg] layer:
   output, FPS, time, mouse state, screen size, etc
 
 Toplevel [`anansi`][anansi_pkg] package:
-- [`anansi.Term`][anansi_term], [`anansi.Context`][anansi_context], and
-  [`anansi.Attr`][anansi_attr] provide cohesive management of terminal state
-  such as raw mode, ANSI escape sequenced modes, and SGR attribute state
+- [`anansi.Term`][anansi_term], [`anansi.Context`][anansi_context],
+  [`anansi.Attr`][anansi_attr], and [`anansi.Mode`][anansi_mode] provide
+  cohesive management of terminal state such as raw mode, ANSI escape sequenced
+  modes, and SGR attribute state
 - [`anansi.Input`][anansi_input] supports reading input from a file handle,
   implementing both blocking `.ReadMore()` and non-blocking `.ReadAny()` modes
 - [`anansi.Output`][anansi_output] mediates flushing output from any
@@ -182,6 +183,7 @@ useful:
 [anansi_draw_grid]: https://godoc.org/github.com/jcorbin/anansi#DrawGrid
 [anansi_grid]: https://godoc.org/github.com/jcorbin/anansi#Grid
 [anansi_input]: https://godoc.org/github.com/jcorbin/anansi#Input
+[anansi_mode]: https://godoc.org/github.com/jcorbin/anansi#Mode
 [anansi_output]: https://godoc.org/github.com/jcorbin/anansi#Output
 [anansi_render_grid]: https://godoc.org/github.com/jcorbin/anansi#RenderGrid
 [anansi_screen]: https://godoc.org/github.com/jcorbin/anansi#Screen
