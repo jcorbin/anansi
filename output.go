@@ -60,8 +60,8 @@ func (out *Output) Stalls(consume bool) []time.Duration {
 	return blocks
 }
 
-// Enter retains the passed file handle, enabling Flush().
-// Panics if another file handle has already been set.
+// Enter retains the passed the terminal file handle if one isn't already,
+// returns an error otherwise.
 func (out *Output) Enter(term *Term) error {
 	if out.file != nil {
 		return errors.New("anansi.Output may only only be attached to one terminal")
@@ -70,8 +70,8 @@ func (out *Output) Enter(term *Term) error {
 	return nil
 }
 
-// Exit clears the retained file handle, disabling Flush().
-// Panics if the retained file handle is different from the one passed.
+// Exit clears the retained file handle (only if it's the same as the
+// terminal's).
 func (out *Output) Exit(term *Term) error {
 	if out.file == term.File {
 		out.file = nil

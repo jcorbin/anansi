@@ -137,9 +137,9 @@ func (in *Input) DecodeRune() (rune, bool) {
 	return r, true
 }
 
-// ReadMore the underlying file into the internal byte buffer; it loops until
-// at least one new byte has been read. Returns the number of bytes read and
-// any error.
+// ReadMore from the underlying file into the internal byte buffer; it loops
+// until at least one new byte has been read. Returns the number of bytes read
+// and any error.
 func (in *Input) ReadMore() (int, error) {
 	// TODO opportunistically read in non-blocking mode if set, only
 	//      transitioning to blocking if needed
@@ -198,22 +198,25 @@ func (in *Input) ReadAny() (int, error) {
 	return n, err
 }
 
-// Enter is a no-op.
+// Enter retains the passed the terminal file handle if one isn't already,
+// returns an error otherwise.
 func (in *Input) Enter(term *Term) error {
-	if in.file == nil {
-		in.file = term.File
+	if in.file != nil {
+		return errors.New("anansi.Input may only only be attached to one terminal")
 	}
+	in.file = term.File
 	return nil
 }
 
-// Exit clears nonblocking mode from the underlying filehandle.
+// Exit clears the retained file handle (only if it's the same as the
+// terminal's). Any non-blocking mode is cleared.
 func (in *Input) Exit(term *Term) error {
-	if in.file == term.File {
-		err := in.setNonblock(false)
-		in.file = nil
-		return err
+	if in.file != term.File {
+		return nil
 	}
-	return nil
+	err := in.setNonblock(false)
+	in.file = nil
+	return err
 }
 
 func (in *Input) write(frm InputFrame) error {
