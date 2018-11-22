@@ -214,7 +214,8 @@ func (in *Input) Exit(term *Term) error {
 	if in.file != term.File {
 		return nil
 	}
-	err := in.setNonblock(false)
+	in.nonblock = false
+	err := in.setFlags()
 	in.file = nil
 	return err
 }
@@ -263,17 +264,25 @@ func (in *Input) readBuf() []byte {
 }
 
 func (in *Input) setNonblock(nonblock bool) error {
-	if nonblock == in.nonblock {
-		return nil
+	if nonblock != in.nonblock {
+		in.nonblock = nonblock
+		return in.setFlags()
 	}
+	return nil
+}
+
+func (in *Input) setFlags() error {
 	var flags uintptr
-	if nonblock {
+	if in.nonblock {
 		flags |= syscall.O_NONBLOCK
 	}
-	if _, _, e := syscall.Syscall(syscall.SYS_FCNTL, in.file.Fd(), syscall.F_SETFL, flags); e != 0 {
+	return in.fcntl(syscall.F_SETFL, flags)
+}
+
+func (in *Input) fcntl(a2, a3 uintptr) error {
+	if _, _, e := syscall.Syscall(syscall.SYS_FCNTL, in.file.Fd(), a2, a3); e != 0 {
 		return e
 	}
-	in.nonblock = nonblock
 	return nil
 }
 
