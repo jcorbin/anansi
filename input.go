@@ -16,7 +16,6 @@ import (
 // NewInput creates an Input around the given file; the optional minRead
 // argument defaults to 128.
 func NewInput(f *os.File, minRead int) *Input {
-	// TODO consider specializing to *os.File
 	if minRead == 0 {
 		minRead = 128
 	}
