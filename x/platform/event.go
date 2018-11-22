@@ -62,12 +62,17 @@ func (es *Events) HasTerminal(r rune) bool {
 	return false
 }
 
-// CountRune counts occurrences of the given rune, striking them out.
-func (es *Events) CountRune(r rune) (n int) {
+// CountRune counts occurrences of any of the given runes, striking them out.
+func (es *Events) CountRune(rs ...rune) (n int) {
 	for i := 0; i < len(es.Type); i++ {
-		if es.Type[i] == EventRune && es.esc[i] == ansi.Escape(r) {
-			es.Type[i] = EventNone
-			n++
+		if es.Type[i] != EventRune {
+			continue
+		}
+		for _, r := range rs {
+			if es.esc[i] == ansi.Escape(r) {
+				es.Type[i] = EventNone
+				n++
+			}
 		}
 	}
 	return n
