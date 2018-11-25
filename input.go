@@ -117,7 +117,7 @@ func (in *Input) DecodeEscape() (e ansi.Escape, a []byte) {
 // from the internal buffer, returning it and true if possible.
 //
 // Otherwise it returns 0 and false, not advancing the internal byte buffer
-// beyond the control or partial rune so that DecodeEscape can have a chance to
+// beyond the partial control/rune so that DecodeEscape can have a chance to
 // decode it with future input.
 func (in *Input) DecodeRune() (rune, bool) {
 	if in.buf.Len() == 0 {
