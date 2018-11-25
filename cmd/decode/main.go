@@ -24,11 +24,10 @@ var (
 func main() {
 	flag.Parse()
 
-	var mode anansi.Mode
-	term := anansi.NewTerm(os.Stdout, &mode)
+	term := anansi.NewTerm(os.Stdout)
 
 	if *mouseMode {
-		mode.AddMode(
+		term.AddMode(
 			ansi.ModeMouseSgrExt,
 			ansi.ModeMouseBtnEvent,
 			ansi.ModeMouseAnyEvent,
@@ -36,7 +35,7 @@ func main() {
 	}
 
 	if *altMode {
-		mode.AddMode(
+		term.AddMode(
 			ansi.ModeAlternateScreen,
 		)
 	}
