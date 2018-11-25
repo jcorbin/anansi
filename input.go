@@ -130,7 +130,7 @@ func (in *Input) DecodeRune() (rune, bool) {
 			return 0, false
 		case utf8.RuneError:
 		case 0x1B: // ESC
-			if p := in.buf.Bytes(); len(p) == cap(p) {
+			if p := in.buf.Bytes(); len(p) == cap(p) && !in.ateof {
 				return 0, false
 			}
 		}
