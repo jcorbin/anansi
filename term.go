@@ -8,7 +8,7 @@ import (
 // associated context.
 func NewTerm(f *os.File, cs ...Context) *Term {
 	term := &Term{File: f}
-	term.ctx = Contexts(&term.Attr, Contexts(cs...))
+	term.ctx = Contexts(&term.Attr, &term.Mode, Contexts(cs...))
 	return term
 }
 
