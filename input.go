@@ -188,11 +188,13 @@ func (in *Input) ReadAny() (int, error) {
 
 	p := in.readBuf()
 	n, err := in.file.Read(p)
-	if isEWouldBlock(err) {
-		err = nil
-	}
+
 	if in.ateof = err == io.EOF; in.ateof {
 		err = nil
+	} else {
+		if in.nonblock && isEWouldBlock(err) {
+			err = nil
+		}
 	}
 
 	if in.rec != nil {
