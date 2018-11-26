@@ -172,11 +172,11 @@ func (in *Input) ReadMore() (int, error) {
 	}
 }
 
-// ReadAny available bytes from the underlying file into the internal byte
-// buffer; uses non-blocking reads. Returns the number of bytes read and any
-// error.
-func (in *Input) ReadAny() (int, error) {
-	if err := in.setNonblock(true); err != nil {
+// ReadAny reads any (and all!) available bytes from the underlying file into
+// the internal byte buffer; uses non-blocking reads. Returns the number of
+// bytes read and any error.
+func (in *Input) ReadAny() (n int, err error) {
+	if err = in.setNonblock(true); err != nil {
 		return 0, err
 	}
 	in.ateof = false
@@ -186,8 +186,16 @@ func (in *Input) ReadAny() (int, error) {
 		frm.T = time.Now()
 	}
 
-	p := in.readBuf()
-	n, err := in.file.Read(p)
+	for err == nil {
+		var m int
+		p := in.readBuf()
+		m, err = in.file.Read(p)
+		if m == 0 {
+			break
+		}
+		_, _ = in.buf.Write(p[:m])
+		n += m
+	}
 
 	if in.ateof = err == io.EOF; in.ateof {
 		err = nil
@@ -200,7 +208,8 @@ func (in *Input) ReadAny() (int, error) {
 	if in.rec != nil {
 		frm.E = err
 		if n > 0 {
-			frm.B = p[:n]
+			p := in.buf.Bytes()
+			frm.B = p[len(p)-n:]
 		}
 		if werr := in.write(frm); err == nil {
 			err = werr
