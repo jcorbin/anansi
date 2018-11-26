@@ -122,8 +122,7 @@ const (
 	SGRBrightCyan
 	SGRBrightWhite
 
-	// 8-bit color space: 216 color cube (6 planes of 6x6 colors, striped
-	// across; see Colors).
+	// 8-bit color space: 216 color cube; see colors.go.
 	SGRCube16
 	SGRCube17
 	SGRCube18
@@ -341,7 +340,7 @@ const (
 	SGRCube230
 	SGRCube231
 
-	// 8-bit color space: 24 shades of gray
+	// 8-bit color space: 24 shades of gray; see colors.go.
 	SGRGray1
 	SGRGray2
 	SGRGray3
