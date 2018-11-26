@@ -81,7 +81,7 @@ func (out *Output) Flush(wer io.WriterTo) error {
 	out.Flushed = 0
 	n, err := wer.WriteTo(out.File)
 	out.Flushed += int(n)
-	if isEWouldBlock(err) {
+	if unwrapOSError(err) == syscall.EWOULDBLOCK {
 		return out.blockingFlush(wer)
 	}
 	return err

@@ -2,6 +2,7 @@ package anansi
 
 import (
 	"io"
+	"syscall"
 
 	"github.com/jcorbin/anansi/ansi"
 )
@@ -29,7 +30,7 @@ func (c *Cursor) Reset() {
 // otherwise, CursorState and Real are both zeroed.
 func (c *Cursor) WriteTo(w io.Writer) (n int64, err error) {
 	n, err = c.buf.WriteTo(w)
-	if isEWouldBlock(err) {
+	if unwrapOSError(err) == syscall.EWOULDBLOCK {
 		c.Real = CursorState{}
 	} else if err != nil {
 		c.Real = CursorState{}

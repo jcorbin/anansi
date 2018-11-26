@@ -3,6 +3,7 @@ package anansi
 import (
 	"image"
 	"io"
+	"syscall"
 
 	"github.com/jcorbin/anansi/ansi"
 )
@@ -56,7 +57,7 @@ func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 				sc.prior.Resize(sc.ScreenState.Grid.Bounds().Size())
 				copy(sc.prior.Rune, sc.ScreenState.Grid.Rune)
 				copy(sc.prior.Attr, sc.ScreenState.Grid.Attr)
-			} else if !isEWouldBlock(err) {
+			} else if unwrapOSError(err) != syscall.EWOULDBLOCK {
 				sc.Reset()
 				sc.Invalidate()
 			}

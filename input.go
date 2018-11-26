@@ -196,10 +196,8 @@ func (in *Input) ReadAny() (n int, err error) {
 
 	if in.ateof = err == io.EOF; in.ateof {
 		err = nil
-	} else {
-		if in.nonblock && isEWouldBlock(err) {
-			err = nil
-		}
+	} else if unwrapOSError(err) == syscall.EWOULDBLOCK {
+		err = nil
 	}
 
 	if n > 0 {
@@ -433,14 +431,17 @@ func ReadInputReplay(f *os.File) (InputReplay, error) {
 	return result, nil
 }
 
-func isEWouldBlock(err error) bool {
-	switch val := err.(type) {
-	case *os.PathError:
-		err = val.Err
-	case *os.LinkError:
-		err = val.Err
-	case *os.SyscallError:
-		err = val.Err
+func unwrapOSError(err error) error {
+	for {
+		switch val := err.(type) {
+		case *os.PathError:
+			err = val.Err
+		case *os.LinkError:
+			err = val.Err
+		case *os.SyscallError:
+			err = val.Err
+		default:
+			return err
+		}
 	}
-	return err == syscall.EWOULDBLOCK
 }
