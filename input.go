@@ -180,10 +180,12 @@ func (in *Input) ReadAny() (int, error) {
 		return 0, err
 	}
 	in.ateof = false
+
 	var frm InputFrame
 	if in.rec != nil {
 		frm.T = time.Now()
 	}
+
 	p := in.readBuf()
 	n, err := in.file.Read(p)
 	if isEWouldBlock(err) {
@@ -192,11 +194,17 @@ func (in *Input) ReadAny() (int, error) {
 	if in.ateof = err == io.EOF; in.ateof {
 		err = nil
 	}
-	frm.E = err
-	if n > 0 {
-		frm.B = p[:n]
+
+	if in.rec != nil {
+		frm.E = err
+		if n > 0 {
+			frm.B = p[:n]
+		}
+		if werr := in.write(frm); err == nil {
+			err = werr
+		}
 	}
-	err = in.write(frm)
+
 	return n, err
 }
 
@@ -226,15 +234,10 @@ func (in *Input) Exit(term *Term) error {
 }
 
 func (in *Input) write(frm InputFrame) error {
-	err := frm.E
 	_, _ = in.buf.Write(frm.B)
-	if in.rec != nil {
-		frm.writeIntoBuffer(&in.recTmp)
-		if _, werr := in.recTmp.WriteTo(in.rec); err == nil {
-			err = werr
-		}
-		in.recTmp.Reset()
-	}
+	frm.writeIntoBuffer(&in.recTmp)
+	_, err := in.recTmp.WriteTo(in.rec)
+	in.recTmp.Reset()
 	return err
 }
 
