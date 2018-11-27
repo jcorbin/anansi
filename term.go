@@ -39,6 +39,11 @@ type Term struct {
 // if necessary, and Exit()ing it if Enter() was called after the given
 // function returns. Exit() is called even if the within function returns an
 // error or panics.
+//
+// If the context implements a `Close() error` method, then it will also be
+// called immediately after Exit(). This allows a Context implementation to
+// differentiate between temporary teardown, e.g. suspending under RunWithout,
+// and final teardown as RunWith returns.
 func (term *Term) RunWith(within func(*Term) error) (err error) {
 	if term.active {
 		return within(term)
@@ -58,6 +63,14 @@ func (term *Term) RunWith(within func(*Term) error) (err error) {
 
 	if term.ctx == nil {
 		term.ctx = Contexts(&term.Attr, &term.Mode)
+	}
+
+	if cl, ok := term.ctx.(interface{ Close() error }); ok {
+		defer func() {
+			if cerr := cl.Close(); err == nil {
+				err = cerr
+			}
+		}()
 	}
 
 	defer func() {
