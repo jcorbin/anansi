@@ -146,4 +146,24 @@ func (sc *Screen) process() {
 	sc.buf.Discard()
 }
 
-var _ ansiWriter = &Screen{}
+// Enter calls SizeToTerm.
+func (sc *Screen) Enter(term *Term) error { return sc.SizeToTerm(term) }
+
+// Exit is a no-op.
+func (sc *Screen) Exit(term *Term) error { return nil }
+
+// SizeToTerm invalidates and resizes the screen to match the passed terminal's
+// current size.
+func (sc *Screen) SizeToTerm(term *Term) error {
+	sz, err := term.Size()
+	if err == nil {
+		sc.Invalidate()
+		sc.Resize(sz)
+	}
+	return nil
+}
+
+var (
+	_ ansiWriter = &Screen{}
+	_ Context    = &Screen{}
+)
