@@ -19,16 +19,7 @@ var Palette3 = Palette{
 
 // Palette4 is the extended 4-bit palette of the 8 classic colors and their
 // bright counterparts.
-var Palette4 = Palette{
-	Palette3[0], // SGRBlack
-	Palette3[1], // SGRRed
-	Palette3[2], // SGRGreen
-	Palette3[3], // SGRYellow
-	Palette3[4], // SGRBlue
-	Palette3[5], // SGRMagenta
-	Palette3[6], // SGRCyan
-	Palette3[7], // SGRWhite
-
+var Palette4 = Palette3.concat(
 	RGB(0x80, 0x80, 0x80), // SGRBrightBlack
 	RGB(0xFF, 0x00, 0x00), // SGRBrightRed
 	RGB(0x00, 0xFF, 0x00), // SGRBrightGreen
@@ -37,31 +28,11 @@ var Palette4 = Palette{
 	RGB(0xFF, 0x00, 0xFF), // SGRBrightMagenta
 	RGB(0x00, 0xFF, 0xFF), // SGRBrightCyan
 	RGB(0xFF, 0xFF, 0xFF), // SGRBrightWhite
-}
+)
 
 // Palette8 is the extended 8-bit palette of the first 16 extended colors, a
 // 6x6x6=216 color cube, and 24 shades of gray.
-var Palette8 = Palette{
-	Palette3[0], // SGRBlack
-	Palette3[1], // SGRRed
-	Palette3[2], // SGRGreen
-	Palette3[3], // SGRYellow
-	Palette3[4], // SGRBlue
-	Palette3[5], // SGRMagenta
-	Palette3[6], // SGRCyan
-	Palette3[7], // SGRWhite
-
-	Palette4[0], // SGRBrightBlack
-	Palette4[1], // SGRBrightRed
-	Palette4[2], // SGRBrightGreen
-	Palette4[3], // SGRBrightYellow
-	Palette4[4], // SGRBrightBlue
-	Palette4[5], // SGRBrightMagenta
-	Palette4[6], // SGRBrightCyan
-	Palette4[7], // SGRBrightWhite
-
-	//// 216 colors (6 planes sliced from a 6x6x6 cube, striped across row-major space):
-
+var Palette8 = Palette4.concat(
 	// plane 1, row 1
 	RGB(0x00, 0x00, 0x00), // SGRCube16
 	RGB(0x00, 0x00, 0x5F), // SGRCube17
@@ -375,7 +346,7 @@ var Palette8 = Palette{
 	RGB(0xDA, 0xDA, 0xDA), // SGRGray22
 	RGB(0xE4, 0xE4, 0xE4), // SGRGray23
 	RGB(0xEE, 0xEE, 0xEE), // SGRGray24
-}
+)
 
 // ColorModel implements an SGR color model.
 type ColorModel interface {
@@ -843,6 +814,10 @@ var UbuntuPalette = ColorTheme{
 	RGB(0x00, 0xFF, 0xFF),
 	RGB(0xE0, 0xFF, 0xFF),
 	RGB(0xFF, 0xFF, 0xFF),
+}
+
+func (p Palette) concat(colors ...SGRColor) Palette {
+	return append(p[:len(p):len(p)], colors...)
 }
 
 // Convert returns the palette color closest to c in Euclidean R,G,B space.
