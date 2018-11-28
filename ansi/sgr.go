@@ -428,7 +428,7 @@ func (c SGRColor) RGBA() (r, g, b, a uint32) {
 // RGB returns the equivalent RGB components.
 func (c SGRColor) RGB() (r, g, b uint8) {
 	if c&sgrColor24 == 0 {
-		c = Palette8[c&0xff]
+		c = Palette8Colors[c&0xff]
 	}
 	return uint8(c), uint8(c >> 8), uint8(c >> 16)
 }
