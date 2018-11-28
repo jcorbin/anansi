@@ -619,6 +619,15 @@ func (attr SGRAttr) Diff(other SGRAttr) SGRAttr {
 	return diff
 }
 
+// ControlString returns the appropriate ansi SGR control sequence as a string
+// value.
+func (attr SGRAttr) ControlString() string {
+	// TODO cache
+	var b [64]byte // over-estimate of max space for SGRAttr.AppendTo
+	p := attr.AppendTo(b[:0])
+	return string(p)
+}
+
 // AppendTo appends the appropriate ansi SGR control sequence to the given byte
 // slice to affect any set bits or fg/bg colors in attr. If no bits or colors
 // are set, append a clear code.
