@@ -45,7 +45,7 @@ const (
 	SGRCodeBGWhite   = 47 // set background to white
 )
 
-// SGRReset resets graphs rendition (foreground, background, text and other
+// SGRReset resets graphic rendition (foreground, background, text and other
 // character attributes) to default.
 var SGRReset = SGR.With(SGRCodeClear)
 
