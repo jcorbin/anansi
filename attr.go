@@ -1,10 +1,13 @@
 package anansi
 
 import (
+	"errors"
 	"image"
 	"os"
 	"syscall"
 )
+
+var errAttrNoFile = errors.New("anansi.Attr.ioctl: no File set")
 
 // Attr implements Context-ual manipulation and interrogation of terminal
 // state, using the termios IOCTLs and ANSI control sequences where possible.
@@ -103,6 +106,9 @@ func (at *Attr) Exit(term *Term) error {
 }
 
 func (at Attr) ioctl(request, arg1, arg2, arg3, arg4 uintptr) error {
+	if at.f == nil {
+		return errAttrNoFile
+	}
 	if _, _, e := syscall.Syscall6(syscall.SYS_IOCTL, at.f.Fd(), request, arg1, arg2, arg3, arg4); e != 0 {
 		return e
 	}
