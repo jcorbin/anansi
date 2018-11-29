@@ -20,6 +20,19 @@ type Attr struct {
 	f *os.File
 }
 
+// IsTerminal returns true only if the given file is attached to an interactive
+// terminal.
+func IsTerminal(f *os.File) bool {
+	return Attr{f: f}.IsTerminal()
+}
+
+// IsTerminal returns true only if the underlying file is attached to an
+// interactive terminal.
+func (at Attr) IsTerminal() bool {
+	_, err := at.getAttr()
+	return err == nil
+}
+
 // Size reads and returns the current terminal size.
 func (at Attr) Size() (size image.Point, err error) {
 	return at.getSize()
