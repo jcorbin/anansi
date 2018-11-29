@@ -18,7 +18,7 @@ type Attr struct {
 }
 
 // Size reads and returns the current terminal size.
-func (at *Attr) Size() (size image.Point, err error) {
+func (at Attr) Size() (size image.Point, err error) {
 	return at.getSize()
 }
 
@@ -57,7 +57,7 @@ func (at *Attr) SetEcho(echo bool) error {
 	return nil
 }
 
-func (at *Attr) modifyTermios(attr syscall.Termios) syscall.Termios {
+func (at Attr) modifyTermios(attr syscall.Termios) syscall.Termios {
 	if at.raw {
 		// TODO read things like antirez's kilo notes again
 
@@ -102,7 +102,7 @@ func (at *Attr) Exit(term *Term) error {
 	return nil
 }
 
-func (at *Attr) ioctl(request, arg1, arg2, arg3, arg4 uintptr) error {
+func (at Attr) ioctl(request, arg1, arg2, arg3, arg4 uintptr) error {
 	if _, _, e := syscall.Syscall6(syscall.SYS_IOCTL, at.f.Fd(), request, arg1, arg2, arg3, arg4); e != 0 {
 		return e
 	}
