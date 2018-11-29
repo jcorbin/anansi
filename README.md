@@ -24,7 +24,10 @@ things on master are reasonably stable, there's no guarantees yet.
 
 The [Decode Demo Command][decode_demo] demonstrates ansi Decoding, optionally
 with mouse reporting and terminal state manipulation (for raw and alternate
-screen mode).
+screen mode). When run in batch mode (on a regular file rather than a
+terminal), it replaces ansi escape sequences with `[ansi ...]` representation
+strings; there is also a `-strip` flag, to simply strip all escape sequences
+from a file.
 
 The [Palette Demo Command][palette_demo] demonstrates the various ansi color
 spaces, and optionally some vendor standard color themes.
