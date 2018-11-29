@@ -23,8 +23,17 @@ var (
 
 func main() {
 	flag.Parse()
+	switch err := run(os.Stdin, os.Stdout); err {
+	case nil:
+	case io.EOF:
+		fmt.Println(err)
+	default:
+		log.Fatal(err)
+	}
+}
 
-	term := anansi.NewTerm(os.Stdout)
+func run(in, out *os.File) error {
+	term := anansi.NewTerm(out)
 
 	if *mouseMode {
 		term.AddMode(
@@ -43,16 +52,10 @@ func main() {
 	term.SetEcho(!*rawMode)
 	term.SetRaw(*rawMode)
 
-	switch err := term.RunWith(run); err {
-	case nil:
-	case io.EOF:
-		fmt.Println(err)
-	default:
-		log.Fatal(err)
-	}
+	return term.RunWith(runInteractive)
 }
 
-func run(term *anansi.Term) error {
+func runInteractive(term *anansi.Term) error {
 	const minRead = 128
 	var buf bytes.Buffer
 	for {
