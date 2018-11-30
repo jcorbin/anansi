@@ -22,9 +22,12 @@ things on master are reasonably stable, there's no guarantees yet.
 
 ### Demos
 
-The [Decode Demo Command][decode_demo] that demonstrates ansi Decoding,
-optionally with mouse reporting and terminal state manipulation (for raw and
-alternate screen mode).
+The [Decode Demo Command][decode_demo] demonstrates ansi Decoding, optionally
+with mouse reporting and terminal state manipulation (for raw and alternate
+screen mode).
+
+The [Palette Demo Command][palette_demo] demonstrates the various ansi color
+spaces, and optionally some vendor standard color themes.
 
 There's also a [lolwut][lolwut] demo, which is a port of antirez's,
 demonstrating braille-bitmap rendering capability. It has an optional
@@ -217,6 +220,8 @@ useful:
 [demo]: ../../tree/master/cmd/demo
 [lolwut]: ../../tree/master/cmd/lolwut/main.go
 [decode_demo]: ../../tree/master/cmd/decode/main.go
+[palette_demo]: ../../tree/master/cmd/palette/main.go
+
 [master]: ../../tree/master
 [rc]: ../../tree/rc
 [dev]: ../../tree/dev

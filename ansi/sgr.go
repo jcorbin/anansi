@@ -45,7 +45,7 @@ const (
 	SGRCodeBGWhite   = 47 // set background to white
 )
 
-// SGRReset resets graphs rendition (foreground, background, text and other
+// SGRReset resets graphic rendition (foreground, background, text and other
 // character attributes) to default.
 var SGRReset = SGR.With(SGRCodeClear)
 
@@ -428,7 +428,7 @@ func (c SGRColor) RGBA() (r, g, b, a uint32) {
 // RGB returns the equivalent RGB components.
 func (c SGRColor) RGB() (r, g, b uint8) {
 	if c&sgrColor24 == 0 {
-		c = Palette8[c&0xff]
+		c = Palette8Colors[c&0xff]
 	}
 	return uint8(c), uint8(c >> 8), uint8(c >> 16)
 }
@@ -617,6 +617,15 @@ func (attr SGRAttr) Diff(other SGRAttr) SGRAttr {
 		diff |= otherBG
 	}
 	return diff
+}
+
+// ControlString returns the appropriate ansi SGR control sequence as a string
+// value.
+func (attr SGRAttr) ControlString() string {
+	// TODO cache
+	var b [64]byte // over-estimate of max space for SGRAttr.AppendTo
+	p := attr.AppendTo(b[:0])
+	return string(p)
 }
 
 // AppendTo appends the appropriate ansi SGR control sequence to the given byte

@@ -7,66 +7,116 @@ type Palette []SGRColor
 
 // Palette3 is the classic 3-bit palette of 8 colors.
 var Palette3 = Palette{
-	// Standard colors
-	RGB(0x00, 0x00, 0x00),
-	RGB(0x80, 0x00, 0x00),
-	RGB(0x00, 0x80, 0x00),
-	RGB(0x80, 0x80, 0x00),
-	RGB(0x00, 0x00, 0x80),
-	RGB(0x80, 0x00, 0x80),
-	RGB(0x00, 0x80, 0x80),
-	RGB(0xC0, 0xC0, 0xC0),
+	SGRBlack,
+	SGRRed,
+	SGRGreen,
+	SGRYellow,
+	SGRBlue,
+	SGRMagenta,
+	SGRCyan,
+	SGRWhite,
 }
 
 // Palette4 is the extended 4-bit palette of the 8 classic colors and their
 // bright counterparts.
-var Palette4 = Palette{
-	// Standard colors
-	RGB(0x00, 0x00, 0x00),
-	RGB(0x80, 0x00, 0x00),
-	RGB(0x00, 0x80, 0x00),
-	RGB(0x80, 0x80, 0x00),
-	RGB(0x00, 0x00, 0x80),
-	RGB(0x80, 0x00, 0x80),
-	RGB(0x00, 0x80, 0x80),
-	RGB(0xC0, 0xC0, 0xC0),
-
-	// High-intensity colors
-	RGB(0x80, 0x80, 0x80),
-	RGB(0xFF, 0x00, 0x00),
-	RGB(0x00, 0xFF, 0x00),
-	RGB(0xFF, 0xFF, 0x00),
-	RGB(0x00, 0x00, 0xFF),
-	RGB(0xFF, 0x00, 0xFF),
-	RGB(0x00, 0xFF, 0xFF),
-	RGB(0xFF, 0xFF, 0xFF),
-}
+var Palette4 = Palette3.concat(
+	SGRBrightBlack,
+	SGRBrightRed,
+	SGRBrightGreen,
+	SGRBrightYellow,
+	SGRBrightBlue,
+	SGRBrightMagenta,
+	SGRBrightCyan,
+	SGRBrightWhite,
+)
 
 // Palette8 is the extended 8-bit palette of the first 16 extended colors, a
 // 6x6x6=216 color cube, and 24 shades of gray.
-var Palette8 = Palette{
-	//// Standard colors (aka Palette3)
-	RGB(0x00, 0x00, 0x00),
-	RGB(0x80, 0x00, 0x00),
-	RGB(0x00, 0x80, 0x00),
-	RGB(0x80, 0x80, 0x00),
-	RGB(0x00, 0x00, 0x80),
-	RGB(0x80, 0x00, 0x80),
-	RGB(0x00, 0x80, 0x80),
-	RGB(0xC0, 0xC0, 0xC0),
+var Palette8 = Palette4.concat(
+	// plane 1, row 1
+	SGRCube16, SGRCube17, SGRCube18, SGRCube19, SGRCube20, SGRCube21,
+	SGRCube22, SGRCube23, SGRCube24, SGRCube25, SGRCube26, SGRCube27,
+	SGRCube28, SGRCube29, SGRCube30, SGRCube31, SGRCube32, SGRCube33,
+	SGRCube34, SGRCube35, SGRCube36, SGRCube37, SGRCube38, SGRCube39,
+	SGRCube40, SGRCube41, SGRCube42, SGRCube43, SGRCube44, SGRCube45,
+	SGRCube46, SGRCube47, SGRCube48, SGRCube49, SGRCube50, SGRCube51,
 
-	//// High-intensity colors (aka Palette4)
-	RGB(0x80, 0x80, 0x80),
-	RGB(0xFF, 0x00, 0x00),
-	RGB(0x00, 0xFF, 0x00),
-	RGB(0xFF, 0xFF, 0x00),
-	RGB(0x00, 0x00, 0xFF),
-	RGB(0xFF, 0x00, 0xFF),
-	RGB(0x00, 0xFF, 0xFF),
-	RGB(0xFF, 0xFF, 0xFF),
+	// plane 2, row 1
+	SGRCube52, SGRCube53, SGRCube54, SGRCube55, SGRCube56, SGRCube57,
+	SGRCube58, SGRCube59, SGRCube60, SGRCube61, SGRCube62, SGRCube63,
+	SGRCube64, SGRCube65, SGRCube66, SGRCube67, SGRCube68, SGRCube69,
+	SGRCube70, SGRCube71, SGRCube72, SGRCube73, SGRCube74, SGRCube75,
+	SGRCube76, SGRCube77, SGRCube78, SGRCube79, SGRCube80, SGRCube81,
+	SGRCube82, SGRCube83, SGRCube84, SGRCube85, SGRCube86, SGRCube87,
 
-	//// 216 colors (6 planes sliced from a 6x6x6 cube, striped across row-major space):
+	// plane 3, row 1
+	SGRCube88, SGRCube89, SGRCube90, SGRCube91, SGRCube92, SGRCube93,
+	SGRCube94, SGRCube95, SGRCube96, SGRCube97, SGRCube98, SGRCube99,
+	SGRCube100, SGRCube101, SGRCube102, SGRCube103, SGRCube104, SGRCube105,
+	SGRCube106, SGRCube107, SGRCube108, SGRCube109, SGRCube110, SGRCube111,
+	SGRCube112, SGRCube113, SGRCube114, SGRCube115, SGRCube116, SGRCube117,
+	SGRCube118, SGRCube119, SGRCube120, SGRCube121, SGRCube122, SGRCube123,
 
+	// plane 4, row 1
+	SGRCube124, SGRCube125, SGRCube126, SGRCube127, SGRCube128, SGRCube129,
+	SGRCube130, SGRCube131, SGRCube132, SGRCube133, SGRCube134, SGRCube135,
+	SGRCube136, SGRCube137, SGRCube138, SGRCube139, SGRCube140, SGRCube141,
+	SGRCube142, SGRCube143, SGRCube144, SGRCube145, SGRCube146, SGRCube147,
+	SGRCube148, SGRCube149, SGRCube150, SGRCube151, SGRCube152, SGRCube153,
+	SGRCube154, SGRCube155, SGRCube156, SGRCube157, SGRCube158, SGRCube159,
+
+	// plane 5, row 1
+	SGRCube160, SGRCube161, SGRCube162, SGRCube163, SGRCube164, SGRCube165,
+	SGRCube166, SGRCube167, SGRCube168, SGRCube169, SGRCube170, SGRCube171,
+	SGRCube172, SGRCube173, SGRCube174, SGRCube175, SGRCube176, SGRCube177,
+	SGRCube178, SGRCube179, SGRCube180, SGRCube181, SGRCube182, SGRCube183,
+	SGRCube184, SGRCube185, SGRCube186, SGRCube187, SGRCube188, SGRCube189,
+	SGRCube190, SGRCube191, SGRCube192, SGRCube193, SGRCube194, SGRCube195,
+
+	// plane 6, row 1
+	SGRCube196, SGRCube197, SGRCube198, SGRCube199, SGRCube200, SGRCube201,
+	SGRCube202, SGRCube203, SGRCube204, SGRCube205, SGRCube206, SGRCube207,
+	SGRCube208, SGRCube209, SGRCube210, SGRCube211, SGRCube212, SGRCube213,
+	SGRCube214, SGRCube215, SGRCube216, SGRCube217, SGRCube218, SGRCube219,
+	SGRCube220, SGRCube221, SGRCube222, SGRCube223, SGRCube224, SGRCube225,
+	SGRCube226, SGRCube227, SGRCube228, SGRCube229, SGRCube230, SGRCube231,
+
+	// Grayscale colors
+	SGRGray1, SGRGray2, SGRGray3, SGRGray4, SGRGray5, SGRGray6,
+	SGRGray7, SGRGray8, SGRGray9, SGRGray10, SGRGray11, SGRGray12,
+	SGRGray13, SGRGray14, SGRGray15, SGRGray16, SGRGray17, SGRGray18,
+	SGRGray19, SGRGray20, SGRGray21, SGRGray22, SGRGray23, SGRGray24,
+)
+
+// Palette3Colors is the canonical 24-bit definitions for the classic 3-bit
+// palette of 8 colors.
+var Palette3Colors = Palette{
+	RGB(0x00, 0x00, 0x00), // SGRBlack
+	RGB(0x80, 0x00, 0x00), // SGRRed
+	RGB(0x00, 0x80, 0x00), // SGRGreen
+	RGB(0x80, 0x80, 0x00), // SGRYellow
+	RGB(0x00, 0x00, 0x80), // SGRBlue
+	RGB(0x80, 0x00, 0x80), // SGRMagenta
+	RGB(0x00, 0x80, 0x80), // SGRCyan
+	RGB(0xC0, 0xC0, 0xC0), // SGRWhite
+}
+
+// Palette4Colors is the canonical 24-bit definitions for the extended 4-bit
+// palette of 16 colors.
+var Palette4Colors = Palette3Colors.concat(
+	RGB(0x80, 0x80, 0x80), // SGRBrightBlack
+	RGB(0xFF, 0x00, 0x00), // SGRBrightRed
+	RGB(0x00, 0xFF, 0x00), // SGRBrightGreen
+	RGB(0xFF, 0xFF, 0x00), // SGRBrightYellow
+	RGB(0x00, 0x00, 0xFF), // SGRBrightBlue
+	RGB(0xFF, 0x00, 0xFF), // SGRBrightMagenta
+	RGB(0x00, 0xFF, 0xFF), // SGRBrightCyan
+	RGB(0xFF, 0xFF, 0xFF), // SGRBrightWhite
+)
+
+// Palette8Colors is the canonical 24-bit definitions for the extended 8-bit
+// palette of 256 colors
+var Palette8Colors = Palette4Colors.concat(
 	// plane 1, row 1
 	RGB(0x00, 0x00, 0x00), // SGRCube16
 	RGB(0x00, 0x00, 0x5F), // SGRCube17
@@ -355,7 +405,7 @@ var Palette8 = Palette{
 	RGB(0xFF, 0xFF, 0xD7), // SGRCube230
 	RGB(0xFF, 0xFF, 0xFF), // SGRCube231
 
-	//// Grayscale colors
+	// Grayscale colors
 	RGB(0x08, 0x08, 0x08), // SGRGray1
 	RGB(0x12, 0x12, 0x12), // SGRGray2
 	RGB(0x1C, 0x1C, 0x1C), // SGRGray3
@@ -380,7 +430,7 @@ var Palette8 = Palette{
 	RGB(0xDA, 0xDA, 0xDA), // SGRGray22
 	RGB(0xE4, 0xE4, 0xE4), // SGRGray23
 	RGB(0xEE, 0xEE, 0xEE), // SGRGray24
-}
+)
 
 // ColorModel implements an SGR color model.
 type ColorModel interface {
@@ -400,263 +450,12 @@ type SGRColorMap map[SGRColor]SGRColor
 
 // SGRColorCanon implements a canonical mapping from 24-bit colors back to
 // their 3, 4, and 8-bit palette aliases.
-var SGRColorCanon = SGRColorMap{
-	Palette3[0]:   SGRBlack,
-	Palette3[1]:   SGRRed,
-	Palette3[2]:   SGRGreen,
-	Palette3[3]:   SGRYellow,
-	Palette3[4]:   SGRBlue,
-	Palette3[5]:   SGRMagenta,
-	Palette3[6]:   SGRCyan,
-	Palette3[7]:   SGRWhite,
-	Palette4[8]:   SGRBrightBlack,
-	Palette4[9]:   SGRBrightRed,
-	Palette4[10]:  SGRBrightGreen,
-	Palette4[11]:  SGRBrightYellow,
-	Palette4[12]:  SGRBrightBlue,
-	Palette4[13]:  SGRBrightMagenta,
-	Palette4[14]:  SGRBrightCyan,
-	Palette4[15]:  SGRBrightWhite,
-	Palette8[16]:  SGRCube16,
-	Palette8[17]:  SGRCube17,
-	Palette8[18]:  SGRCube18,
-	Palette8[19]:  SGRCube19,
-	Palette8[20]:  SGRCube20,
-	Palette8[21]:  SGRCube21,
-	Palette8[22]:  SGRCube22,
-	Palette8[23]:  SGRCube23,
-	Palette8[24]:  SGRCube24,
-	Palette8[25]:  SGRCube25,
-	Palette8[26]:  SGRCube26,
-	Palette8[27]:  SGRCube27,
-	Palette8[28]:  SGRCube28,
-	Palette8[29]:  SGRCube29,
-	Palette8[30]:  SGRCube30,
-	Palette8[31]:  SGRCube31,
-	Palette8[32]:  SGRCube32,
-	Palette8[33]:  SGRCube33,
-	Palette8[34]:  SGRCube34,
-	Palette8[35]:  SGRCube35,
-	Palette8[36]:  SGRCube36,
-	Palette8[37]:  SGRCube37,
-	Palette8[38]:  SGRCube38,
-	Palette8[39]:  SGRCube39,
-	Palette8[40]:  SGRCube40,
-	Palette8[41]:  SGRCube41,
-	Palette8[42]:  SGRCube42,
-	Palette8[43]:  SGRCube43,
-	Palette8[44]:  SGRCube44,
-	Palette8[45]:  SGRCube45,
-	Palette8[46]:  SGRCube46,
-	Palette8[47]:  SGRCube47,
-	Palette8[48]:  SGRCube48,
-	Palette8[49]:  SGRCube49,
-	Palette8[50]:  SGRCube50,
-	Palette8[51]:  SGRCube51,
-	Palette8[52]:  SGRCube52,
-	Palette8[53]:  SGRCube53,
-	Palette8[54]:  SGRCube54,
-	Palette8[55]:  SGRCube55,
-	Palette8[56]:  SGRCube56,
-	Palette8[57]:  SGRCube57,
-	Palette8[58]:  SGRCube58,
-	Palette8[59]:  SGRCube59,
-	Palette8[60]:  SGRCube60,
-	Palette8[61]:  SGRCube61,
-	Palette8[62]:  SGRCube62,
-	Palette8[63]:  SGRCube63,
-	Palette8[64]:  SGRCube64,
-	Palette8[65]:  SGRCube65,
-	Palette8[66]:  SGRCube66,
-	Palette8[67]:  SGRCube67,
-	Palette8[68]:  SGRCube68,
-	Palette8[69]:  SGRCube69,
-	Palette8[70]:  SGRCube70,
-	Palette8[71]:  SGRCube71,
-	Palette8[72]:  SGRCube72,
-	Palette8[73]:  SGRCube73,
-	Palette8[74]:  SGRCube74,
-	Palette8[75]:  SGRCube75,
-	Palette8[76]:  SGRCube76,
-	Palette8[77]:  SGRCube77,
-	Palette8[78]:  SGRCube78,
-	Palette8[79]:  SGRCube79,
-	Palette8[80]:  SGRCube80,
-	Palette8[81]:  SGRCube81,
-	Palette8[82]:  SGRCube82,
-	Palette8[83]:  SGRCube83,
-	Palette8[84]:  SGRCube84,
-	Palette8[85]:  SGRCube85,
-	Palette8[86]:  SGRCube86,
-	Palette8[87]:  SGRCube87,
-	Palette8[88]:  SGRCube88,
-	Palette8[89]:  SGRCube89,
-	Palette8[90]:  SGRCube90,
-	Palette8[91]:  SGRCube91,
-	Palette8[92]:  SGRCube92,
-	Palette8[93]:  SGRCube93,
-	Palette8[94]:  SGRCube94,
-	Palette8[95]:  SGRCube95,
-	Palette8[96]:  SGRCube96,
-	Palette8[97]:  SGRCube97,
-	Palette8[98]:  SGRCube98,
-	Palette8[99]:  SGRCube99,
-	Palette8[100]: SGRCube100,
-	Palette8[101]: SGRCube101,
-	Palette8[102]: SGRCube102,
-	Palette8[103]: SGRCube103,
-	Palette8[104]: SGRCube104,
-	Palette8[105]: SGRCube105,
-	Palette8[106]: SGRCube106,
-	Palette8[107]: SGRCube107,
-	Palette8[108]: SGRCube108,
-	Palette8[109]: SGRCube109,
-	Palette8[110]: SGRCube110,
-	Palette8[111]: SGRCube111,
-	Palette8[112]: SGRCube112,
-	Palette8[113]: SGRCube113,
-	Palette8[114]: SGRCube114,
-	Palette8[115]: SGRCube115,
-	Palette8[116]: SGRCube116,
-	Palette8[117]: SGRCube117,
-	Palette8[118]: SGRCube118,
-	Palette8[119]: SGRCube119,
-	Palette8[120]: SGRCube120,
-	Palette8[121]: SGRCube121,
-	Palette8[122]: SGRCube122,
-	Palette8[123]: SGRCube123,
-	Palette8[124]: SGRCube124,
-	Palette8[125]: SGRCube125,
-	Palette8[126]: SGRCube126,
-	Palette8[127]: SGRCube127,
-	Palette8[128]: SGRCube128,
-	Palette8[129]: SGRCube129,
-	Palette8[130]: SGRCube130,
-	Palette8[131]: SGRCube131,
-	Palette8[132]: SGRCube132,
-	Palette8[133]: SGRCube133,
-	Palette8[134]: SGRCube134,
-	Palette8[135]: SGRCube135,
-	Palette8[136]: SGRCube136,
-	Palette8[137]: SGRCube137,
-	Palette8[138]: SGRCube138,
-	Palette8[139]: SGRCube139,
-	Palette8[140]: SGRCube140,
-	Palette8[141]: SGRCube141,
-	Palette8[142]: SGRCube142,
-	Palette8[143]: SGRCube143,
-	Palette8[144]: SGRCube144,
-	Palette8[145]: SGRCube145,
-	Palette8[146]: SGRCube146,
-	Palette8[147]: SGRCube147,
-	Palette8[148]: SGRCube148,
-	Palette8[149]: SGRCube149,
-	Palette8[150]: SGRCube150,
-	Palette8[151]: SGRCube151,
-	Palette8[152]: SGRCube152,
-	Palette8[153]: SGRCube153,
-	Palette8[154]: SGRCube154,
-	Palette8[155]: SGRCube155,
-	Palette8[156]: SGRCube156,
-	Palette8[157]: SGRCube157,
-	Palette8[158]: SGRCube158,
-	Palette8[159]: SGRCube159,
-	Palette8[160]: SGRCube160,
-	Palette8[161]: SGRCube161,
-	Palette8[162]: SGRCube162,
-	Palette8[163]: SGRCube163,
-	Palette8[164]: SGRCube164,
-	Palette8[165]: SGRCube165,
-	Palette8[166]: SGRCube166,
-	Palette8[167]: SGRCube167,
-	Palette8[168]: SGRCube168,
-	Palette8[169]: SGRCube169,
-	Palette8[170]: SGRCube170,
-	Palette8[171]: SGRCube171,
-	Palette8[172]: SGRCube172,
-	Palette8[173]: SGRCube173,
-	Palette8[174]: SGRCube174,
-	Palette8[175]: SGRCube175,
-	Palette8[176]: SGRCube176,
-	Palette8[177]: SGRCube177,
-	Palette8[178]: SGRCube178,
-	Palette8[179]: SGRCube179,
-	Palette8[180]: SGRCube180,
-	Palette8[181]: SGRCube181,
-	Palette8[182]: SGRCube182,
-	Palette8[183]: SGRCube183,
-	Palette8[184]: SGRCube184,
-	Palette8[185]: SGRCube185,
-	Palette8[186]: SGRCube186,
-	Palette8[187]: SGRCube187,
-	Palette8[188]: SGRCube188,
-	Palette8[189]: SGRCube189,
-	Palette8[190]: SGRCube190,
-	Palette8[191]: SGRCube191,
-	Palette8[192]: SGRCube192,
-	Palette8[193]: SGRCube193,
-	Palette8[194]: SGRCube194,
-	Palette8[195]: SGRCube195,
-	Palette8[196]: SGRCube196,
-	Palette8[197]: SGRCube197,
-	Palette8[198]: SGRCube198,
-	Palette8[199]: SGRCube199,
-	Palette8[200]: SGRCube200,
-	Palette8[201]: SGRCube201,
-	Palette8[202]: SGRCube202,
-	Palette8[203]: SGRCube203,
-	Palette8[204]: SGRCube204,
-	Palette8[205]: SGRCube205,
-	Palette8[206]: SGRCube206,
-	Palette8[207]: SGRCube207,
-	Palette8[208]: SGRCube208,
-	Palette8[209]: SGRCube209,
-	Palette8[210]: SGRCube210,
-	Palette8[211]: SGRCube211,
-	Palette8[212]: SGRCube212,
-	Palette8[213]: SGRCube213,
-	Palette8[214]: SGRCube214,
-	Palette8[215]: SGRCube215,
-	Palette8[216]: SGRCube216,
-	Palette8[217]: SGRCube217,
-	Palette8[218]: SGRCube218,
-	Palette8[219]: SGRCube219,
-	Palette8[220]: SGRCube220,
-	Palette8[221]: SGRCube221,
-	Palette8[222]: SGRCube222,
-	Palette8[223]: SGRCube223,
-	Palette8[224]: SGRCube224,
-	Palette8[225]: SGRCube225,
-	Palette8[226]: SGRCube226,
-	Palette8[227]: SGRCube227,
-	Palette8[228]: SGRCube228,
-	Palette8[229]: SGRCube229,
-	Palette8[230]: SGRCube230,
-	Palette8[231]: SGRCube231,
-	Palette8[232]: SGRGray1,
-	Palette8[233]: SGRGray2,
-	Palette8[234]: SGRGray3,
-	Palette8[235]: SGRGray4,
-	Palette8[236]: SGRGray5,
-	Palette8[237]: SGRGray6,
-	Palette8[238]: SGRGray7,
-	Palette8[239]: SGRGray8,
-	Palette8[240]: SGRGray9,
-	Palette8[241]: SGRGray10,
-	Palette8[242]: SGRGray11,
-	Palette8[243]: SGRGray12,
-	Palette8[244]: SGRGray13,
-	Palette8[245]: SGRGray14,
-	Palette8[246]: SGRGray15,
-	Palette8[247]: SGRGray16,
-	Palette8[248]: SGRGray17,
-	Palette8[249]: SGRGray18,
-	Palette8[250]: SGRGray19,
-	Palette8[251]: SGRGray20,
-	Palette8[252]: SGRGray21,
-	Palette8[253]: SGRGray22,
-	Palette8[254]: SGRGray23,
-	Palette8[255]: SGRGray24,
+var SGRColorCanon = make(SGRColorMap, len(Palette8))
+
+func init() {
+	for i := 0; i < len(Palette8); i++ {
+		SGRColorCanon[Palette8Colors[i]] = Palette8[i]
+	}
 }
 
 // Convert a color through the map, passing through any misses.
@@ -848,6 +647,10 @@ var UbuntuPalette = ColorTheme{
 	RGB(0x00, 0xFF, 0xFF),
 	RGB(0xE0, 0xFF, 0xFF),
 	RGB(0xFF, 0xFF, 0xFF),
+}
+
+func (p Palette) concat(colors ...SGRColor) Palette {
+	return append(p[:len(p):len(p)], colors...)
 }
 
 // Convert returns the palette color closest to c in Euclidean R,G,B space.
