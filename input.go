@@ -145,7 +145,9 @@ func (in *Input) ReadMore() (int, error) {
 				return n, io.EOF
 			}
 			in.ateof = true
-			err = nil
+			if n > 0 {
+				err = nil
+			}
 
 		case syscall.EWOULDBLOCK:
 			in.ateof = false
