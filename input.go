@@ -126,15 +126,10 @@ func (in *Input) DecodeRune() (rune, bool) {
 	return r, true
 }
 
-// ReadMore from the underlying file into the internal byte buffer; it loops
-// until at least one new byte has been read. Returns the number of bytes read
-// and any error.
+// ReadMore from the underlying file into the internal byte buffer; it
+// may block until at least one new byte has been read. Returns the
+// number of bytes read and any error.
 func (in *Input) ReadMore() (int, error) {
-	// TODO opportunistically read in non-blocking mode if set, only
-	//      transitioning to blocking if needed
-	if err := in.setNonblock(false); err != nil {
-		return 0, err
-	}
 	for {
 		var frm InputFrame
 
@@ -151,6 +146,15 @@ func (in *Input) ReadMore() (int, error) {
 			}
 			in.ateof = true
 			err = nil
+
+		case syscall.EWOULDBLOCK:
+			in.ateof = false
+			if n > 0 {
+				return n, nil
+			}
+			if err := in.setNonblock(false); err != nil {
+				return 0, err
+			}
 
 		case nil:
 			in.ateof = false
