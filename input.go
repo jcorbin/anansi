@@ -23,6 +23,7 @@ type Input struct {
 	File        *os.File
 	MinReadSize int
 
+	oldFlags uintptr
 	ateof    bool
 	nonblock bool
 	buf      bytes.Buffer
@@ -233,25 +234,29 @@ func (in *Input) ReadAny() (n int, err error) {
 }
 
 // Enter retains the passed the terminal file handle if one isn't already,
-// returns an error otherwise.
+// returns an error otherwise.  Either way, it then gets the current fcntl
+// flags for restoration during exit, and parses them fur current state.
 func (in *Input) Enter(term *Term) error {
 	if in.File != nil {
 		return errors.New("anansi.Input may only only be attached to one terminal")
 	}
 	in.File = term.File
-	return nil
+	return in.getFlags()
 }
 
 // Exit clears the retained file handle (only if it's the same as the
-// terminal's). Any non-blocking mode is cleared.
+// terminal's). File mode flags are restored to as they were at Enter time.
 func (in *Input) Exit(term *Term) error {
 	if in.File != term.File {
 		return nil
 	}
+	if _, _, err := in.fcntl(syscall.F_SETFL, in.oldFlags); err != nil {
+		return err
+	}
+	in.oldFlags = 0
 	in.nonblock = false
-	err := in.setFlags()
 	in.File = nil
-	return err
+	return nil
 }
 
 func (in *Input) recordFrame(frm InputFrame) error {
@@ -300,6 +305,15 @@ func (in *Input) setNonblock(nonblock bool) error {
 		return in.setFlags()
 	}
 	return nil
+}
+
+func (in *Input) getFlags() error {
+	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
+	if err == nil {
+		in.oldFlags = flags
+		in.nonblock = flags&syscall.O_NONBLOCK != 0
+	}
+	return err
 }
 
 func (in *Input) setFlags() error {
