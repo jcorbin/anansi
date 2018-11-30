@@ -307,14 +307,16 @@ func (in *Input) setFlags() error {
 	if in.nonblock {
 		flags |= syscall.O_NONBLOCK
 	}
-	return in.fcntl(syscall.F_SETFL, flags)
+	_, _, err := in.fcntl(syscall.F_SETFL, flags)
+	return err
 }
 
-func (in *Input) fcntl(a2, a3 uintptr) error {
-	if _, _, e := syscall.Syscall(syscall.SYS_FCNTL, in.File.Fd(), a2, a3); e != 0 {
-		return e
+func (in *Input) fcntl(a2, a3 uintptr) (r1, r2 uintptr, err error) {
+	r1, r2, e := syscall.Syscall(syscall.SYS_FCNTL, in.File.Fd(), a2, a3)
+	if e != 0 {
+		return 0, 0, e
 	}
-	return nil
+	return r1, r2, nil
 }
 
 // InputReplay is a session of recorded input.
