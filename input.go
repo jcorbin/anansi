@@ -136,23 +136,33 @@ func (in *Input) ReadMore() (int, error) {
 		return 0, err
 	}
 	for {
+		var frm InputFrame
+
 		p := in.readBuf()
 		n, err := in.File.Read(p)
+		if in.rec != nil {
+			frm.T = time.Now()
+		}
+
 		if ateof := err == io.EOF; in.ateof && ateof {
 			// TODO if n > 0 the io.Reader is being misbehaved... do we care?
 			return 0, io.EOF
 		} else if in.ateof = ateof; ateof {
 			err = nil
 		}
-		var frm InputFrame
-		if in.rec != nil {
-			frm.T = time.Now()
-		}
-		frm.E = err
+
 		if n > 0 {
 			frm.B = p[:n]
+			_, _ = in.buf.Write(frm.B)
 		}
-		err = in.write(frm)
+
+		if in.rec != nil {
+			frm.E = err
+			if werr := in.recordFrame(frm); err == nil {
+				err = werr
+			}
+		}
+
 		if n > 0 || err != nil {
 			return n, err
 		}
@@ -192,13 +202,14 @@ func (in *Input) ReadAny() (n int, err error) {
 		}
 	}
 
+	if n > 0 {
+		p := in.buf.Bytes()
+		frm.B = p[len(p)-n:]
+	}
+
 	if in.rec != nil {
 		frm.E = err
-		if n > 0 {
-			p := in.buf.Bytes()
-			frm.B = p[len(p)-n:]
-		}
-		if werr := in.write(frm); err == nil {
+		if werr := in.recordFrame(frm); err == nil {
 			err = werr
 		}
 	}
@@ -228,8 +239,7 @@ func (in *Input) Exit(term *Term) error {
 	return err
 }
 
-func (in *Input) write(frm InputFrame) error {
-	_, _ = in.buf.Write(frm.B)
+func (in *Input) recordFrame(frm InputFrame) error {
 	frm.writeIntoBuffer(&in.recTmp)
 	_, err := in.recTmp.WriteTo(in.rec)
 	in.recTmp.Reset()
