@@ -13,30 +13,17 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-const defaultMinRead = 128
-
-// NewInput creates an Input around the given file; the optional minRead
-// argument defaults to 128.
-func NewInput(f *os.File, minRead int) *Input {
-	if minRead == 0 {
-		minRead = defaultMinRead
-	}
-	in := &Input{
-		File:    f,
-		minRead: minRead,
-	}
-	return in
-}
+const defaultMinReadSize = 128
 
 // Input supports reading terminal input from a file handle with a buffer for
 // things like escape sequences. It supports both blocking and non-blocking
 // reads. It is not safe to use Input in parallel from multiple goroutines,
 // such users need to layer a lock around an Input.
 type Input struct {
-	File *os.File
+	File        *os.File
+	MinReadSize int
 
 	ateof    bool
-	minRead  int
 	nonblock bool
 	buf      bytes.Buffer
 
@@ -225,9 +212,6 @@ func (in *Input) Enter(term *Term) error {
 	if in.File != nil {
 		return errors.New("anansi.Input may only only be attached to one terminal")
 	}
-	if in.minRead == 0 {
-		in.minRead = defaultMinRead
-	}
 	in.File = term.File
 	return nil
 }
@@ -276,7 +260,10 @@ func (frm InputFrame) writeIntoBuffer(buf *bytes.Buffer) {
 // readBuf returns a slice into the internal byte buffer with enough space to
 // read at least n bytes.
 func (in *Input) readBuf() []byte {
-	in.buf.Grow(in.minRead)
+	if in.MinReadSize == 0 {
+		in.MinReadSize = defaultMinReadSize
+	}
+	in.buf.Grow(in.MinReadSize)
 	p := in.buf.Bytes()
 	p = p[len(p):cap(p)]
 	return p
@@ -371,7 +358,7 @@ func ReadInputReplay(f *os.File) (InputReplay, error) {
 	}
 
 	var (
-		in     = NewInput(f, 1024)
+		in     = Input{File: f, MinReadSize: 1024}
 		frames = make([]protoFrame, 0, estFrames)
 		bs     = make([]byte, 0, estBytes)
 		off    int

@@ -53,14 +53,12 @@ func New(opts ...Option) (*Platform, error) {
 	)
 	p.mode.AddModeSeq(ansi.SoftReset, ansi.SGRReset) // TODO options?
 
-	p.output = anansi.NewOutput(nil)
-
-	p.events = Events{input: anansi.NewInput(nil, 0)}
+	p.events.input = &p.input
 	p.ticker.d = time.Second / defaultFrameRate
 	p.termContext = anansi.Contexts(
 		&p.Config,
-		p.events.input,
-		p.output,
+		&p.input,
+		&p.output,
 		&p.ticker,
 	)
 
@@ -106,7 +104,9 @@ type Platform struct {
 
 	term   *anansi.Term
 	mode   anansi.Mode
-	output *anansi.Output
+	input  anansi.Input
+	output anansi.Output
+
 	events Events
 	ticker Ticker
 
