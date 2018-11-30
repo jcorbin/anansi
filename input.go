@@ -22,7 +22,7 @@ func NewInput(f *os.File, minRead int) *Input {
 		minRead = defaultMinRead
 	}
 	in := &Input{
-		file:    f,
+		File:    f,
 		minRead: minRead,
 	}
 	return in
@@ -33,7 +33,7 @@ func NewInput(f *os.File, minRead int) *Input {
 // reads. It is not safe to use Input in parallel from multiple goroutines,
 // such users need to layer a lock around an Input.
 type Input struct {
-	file *os.File
+	File *os.File
 
 	ateof    bool
 	minRead  int
@@ -150,7 +150,7 @@ func (in *Input) ReadMore() (int, error) {
 	}
 	for {
 		p := in.readBuf()
-		n, err := in.file.Read(p)
+		n, err := in.File.Read(p)
 		if ateof := err == io.EOF; in.ateof && ateof {
 			// TODO if n > 0 the io.Reader is being misbehaved... do we care?
 			return 0, io.EOF
@@ -189,7 +189,7 @@ func (in *Input) ReadAny() (n int, err error) {
 	for err == nil {
 		var m int
 		p := in.readBuf()
-		m, err = in.file.Read(p)
+		m, err = in.File.Read(p)
 		if m == 0 {
 			break
 		}
@@ -222,25 +222,25 @@ func (in *Input) ReadAny() (n int, err error) {
 // Enter retains the passed the terminal file handle if one isn't already,
 // returns an error otherwise.
 func (in *Input) Enter(term *Term) error {
-	if in.file != nil {
+	if in.File != nil {
 		return errors.New("anansi.Input may only only be attached to one terminal")
 	}
 	if in.minRead == 0 {
 		in.minRead = defaultMinRead
 	}
-	in.file = term.File
+	in.File = term.File
 	return nil
 }
 
 // Exit clears the retained file handle (only if it's the same as the
 // terminal's). Any non-blocking mode is cleared.
 func (in *Input) Exit(term *Term) error {
-	if in.file != term.File {
+	if in.File != term.File {
 		return nil
 	}
 	in.nonblock = false
 	err := in.setFlags()
-	in.file = nil
+	in.File = nil
 	return err
 }
 
@@ -299,7 +299,7 @@ func (in *Input) setFlags() error {
 }
 
 func (in *Input) fcntl(a2, a3 uintptr) error {
-	if _, _, e := syscall.Syscall(syscall.SYS_FCNTL, in.file.Fd(), a2, a3); e != 0 {
+	if _, _, e := syscall.Syscall(syscall.SYS_FCNTL, in.File.Fd(), a2, a3); e != 0 {
 		return e
 	}
 	return nil
