@@ -144,11 +144,16 @@ func (in *Input) ReadMore() (int, error) {
 			frm.T = time.Now()
 		}
 
-		if ateof := err == io.EOF; in.ateof && ateof {
-			// TODO if n > 0 the io.Reader is being misbehaved... do we care?
-			return 0, io.EOF
-		} else if in.ateof = ateof; ateof {
+		switch unwrapOSError(err) {
+		case io.EOF:
+			if in.ateof {
+				return n, io.EOF
+			}
+			in.ateof = true
 			err = nil
+
+		case nil:
+			in.ateof = false
 		}
 
 		if n > 0 {
@@ -194,10 +199,16 @@ func (in *Input) ReadAny() (n int, err error) {
 		n += m
 	}
 
-	if in.ateof = err == io.EOF; in.ateof {
+	switch unwrapOSError(err) {
+	case io.EOF:
+		in.ateof = true
+
+	case syscall.EWOULDBLOCK:
+		in.ateof = false
 		err = nil
-	} else if unwrapOSError(err) == syscall.EWOULDBLOCK {
-		err = nil
+
+	case nil:
+		in.ateof = false
 	}
 
 	if n > 0 {
