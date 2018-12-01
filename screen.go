@@ -14,7 +14,7 @@ type Screen struct {
 	ScreenState
 	prior Grid
 	buf   Buffer
-	out   Cursor
+	cur   Cursor
 }
 
 // Reset the internal buffer and restore cursor state to last state affected by
@@ -22,7 +22,7 @@ type Screen struct {
 func (sc *Screen) Reset() {
 	sc.ScreenState.Clear()
 	sc.buf.Reset()
-	sc.out.Reset()
+	sc.cur.Reset()
 }
 
 // Resize the current screen state, and invalidate to cause a full redraw.
@@ -30,7 +30,7 @@ func (sc *Screen) Resize(size image.Point) bool {
 	if sc.ScreenState.Resize(size) {
 		sc.Invalidate()
 		sc.buf.Reset()
-		sc.out.Reset()
+		sc.cur.Reset()
 		return true
 	}
 	return false
@@ -52,7 +52,7 @@ func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 	// then flush to the given io.Writer
 	if !haveAW {
 		defer func() {
-			n, err = sc.out.WriteTo(w)
+			n, err = sc.cur.WriteTo(w)
 			if err == nil {
 				sc.prior.Resize(sc.ScreenState.Grid.Bounds().Size())
 				copy(sc.prior.Rune, sc.ScreenState.Grid.Rune)
@@ -64,16 +64,16 @@ func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 		}()
 
 		// continue prior write (e.g. after isEWouldBlock(err) above)
-		if sc.out.buf.Len() > 0 {
+		if sc.cur.buf.Len() > 0 {
 			return
 		}
 
-		aw = &sc.out.buf
+		aw = &sc.cur.buf
 	}
 
 	// perform (full or differential) update
 	var m int
-	m, sc.out.CursorState = sc.ScreenState.update(aw, sc.out.CursorState, sc.prior)
+	m, sc.cur.CursorState = sc.ScreenState.update(aw, sc.cur.CursorState, sc.prior)
 	return int64(m), err
 }
 
