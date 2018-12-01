@@ -89,12 +89,7 @@ func (out *Output) Flush(wer io.WriterTo) error {
 
 func (out *Output) blockingFlush(wer io.WriterTo) error {
 	if out.blocks != nil {
-		defer func(t0 time.Time) {
-			t1 := time.Now()
-			if len(out.blocks) < cap(out.blocks) {
-				out.blocks = append(out.blocks, t1.Sub(t0))
-			}
-		}(time.Now())
+		defer out.recordStall(time.Now())
 	}
 
 	const mask = syscall.O_NONBLOCK | syscall.O_ASYNC
@@ -118,4 +113,11 @@ func (out *Output) blockingFlush(wer io.WriterTo) error {
 	}
 
 	return err
+}
+
+func (out *Output) recordStall(t0 time.Time) {
+	t1 := time.Now()
+	if len(out.blocks) < cap(out.blocks) {
+		out.blocks = append(out.blocks, t1.Sub(t0))
+	}
 }
