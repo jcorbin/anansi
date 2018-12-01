@@ -61,7 +61,6 @@ func New(opts ...Option) (*Platform, error) {
 	)
 	p.mode.AddModeSeq(ansi.SoftReset, ansi.SGRReset) // TODO options?
 
-	p.events.input = &p.input
 	p.ticker.d = time.Second / defaultFrameRate
 
 	timingPeriod := defaultFrameRate / 4
@@ -208,7 +207,12 @@ func (p *Platform) Run(client Client) (err error) {
 			case <-resizeSig:
 				ctx.Err = errOr(ctx.Err, p.readSize())
 			default:
-				ctx.Err = errOr(ctx.Err, p.events.Poll())
+				p.events.Clear()
+				n, err := p.input.ReadAny()
+				if n > 0 {
+					p.events.DecodeInput(&p.input)
+				}
+				ctx.Err = errOr(ctx.Err, err)
 				polling = false
 			}
 		}
