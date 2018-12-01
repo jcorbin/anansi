@@ -91,25 +91,18 @@ func (out *Output) blockingFlush(wer io.WriterTo) error {
 	if out.blocks != nil {
 		defer out.recordStall(time.Now())
 	}
-
-	const mask = syscall.O_NONBLOCK | syscall.O_ASYNC
-
 	flags, _, err := out.fcntl(syscall.F_GETFL, 0)
 	if err != nil {
 		return err
 	}
-
-	if _, _, err = out.fcntl(syscall.F_SETFL, 0); err != nil {
+	if _, _, err = out.fcntl(syscall.F_SETFL, flags & ^uintptr(syscall.O_NONBLOCK)); err != nil {
 		return err
 	}
-
 	n, err := wer.WriteTo(out.File)
 	out.Flushed += int(n)
-
-	if _, _, ferr := out.fcntl(syscall.F_SETFL, flags&mask); err == nil {
+	if _, _, ferr := out.fcntl(syscall.F_SETFL, flags); err == nil {
 		err = ferr
 	}
-
 	return err
 }
 
