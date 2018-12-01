@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 	"unicode/utf8"
@@ -26,6 +28,8 @@ type Input struct {
 	oldFlags uintptr
 	ateof    bool
 	nonblock bool
+	async    bool
+	sigio    chan os.Signal
 	buf      bytes.Buffer
 
 	rec    io.Writer
@@ -81,6 +85,21 @@ type fdProvider interface {
 // AtEOF returns true if the last input read returned io.EOF.
 func (in *Input) AtEOF() bool {
 	return in.ateof
+}
+
+// Notify sets up async notification to the given channel, replacing (stopping
+// notifications to) any prior channel passed to Notify(). If the passed
+// channel is nil, async mode is disabled.
+func (in *Input) Notify(sigio chan os.Signal) error {
+	prior := in.sigio
+	in.sigio = sigio
+	if sigio != nil {
+		signal.Notify(in.sigio, syscall.SIGIO)
+	}
+	if prior != nil {
+		signal.Stop(prior)
+	}
+	return in.setAsync(sigio != nil)
 }
 
 // DecodeEscape tries to decode an ANSI escape sequence from the internal byte
@@ -234,7 +253,7 @@ func (in *Input) ReadAny() (n int, err error) {
 }
 
 // Enter gets the current fcntl flags for restoration during Exit(), and sets
-// non-blocking mode if needed.
+// non-blocking/async modes if needed.
 func (in *Input) Enter(term *Term) error {
 	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
 	if err == nil {
@@ -245,11 +264,19 @@ func (in *Input) Enter(term *Term) error {
 	return err
 }
 
-// Exit restores fcntl flags to their Enter() time value. It also stops any
-// signal notification setup by Notify().
+// Exit restores fcntl flags to their Enter() time value.
 func (in *Input) Exit(term *Term) error {
 	_, _, err := in.fcntl(syscall.F_SETFL, in.oldFlags)
 	return err
+}
+
+// Close stops any signal notification setup by Notify().
+func (in *Input) Close() error {
+	if in.sigio != nil {
+		signal.Stop(in.sigio)
+		in.sigio = nil
+	}
+	return nil
 }
 
 func (in *Input) recordFrame(frm InputFrame) error {
@@ -292,6 +319,21 @@ func (in *Input) readBuf() []byte {
 	return p
 }
 
+func (in *Input) setAsync(async bool) error {
+	if async != in.async {
+		in.async = async
+		if err := in.setFlags(); err != nil {
+			return err
+		}
+		if in.async {
+			if _, _, err := in.fcntl(syscall.F_SETOWN, uintptr(syscall.Getpid())); err != nil && runtime.GOOS != "darwin" {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (in *Input) setNonblock(nonblock bool) error {
 	if nonblock != in.nonblock {
 		in.nonblock = nonblock
@@ -313,6 +355,9 @@ func (in *Input) setFlags() error {
 func (in *Input) buildFlags(flags uintptr) uintptr {
 	if in.nonblock {
 		flags |= syscall.O_NONBLOCK
+	}
+	if in.async {
+		flags |= syscall.O_ASYNC
 	}
 	return flags
 }
