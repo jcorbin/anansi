@@ -2,6 +2,8 @@ package platform
 
 import (
 	"sync"
+
+	"github.com/jcorbin/anansi"
 )
 
 // BackgroundWorker supports doing deferred work in between frames of a
@@ -18,6 +20,43 @@ type BackgroundWorker interface {
 	Start() error
 	Stop() error
 	Notify() error
+}
+
+// BackgroundWorkers implements an anansi.Context-ually managed collection of
+// background workers.
+type BackgroundWorkers struct {
+	workers []BackgroundWorker
+}
+
+// Enter starts the background workers, stopping on and returning first error.
+func (bg BackgroundWorkers) Enter(term *anansi.Term) error {
+	for i := 0; i < len(bg.workers); i++ {
+		if err := bg.workers[i].Start(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Exit stops all background workers, returning the first error, but stopping
+// all regardless.
+func (bg BackgroundWorkers) Exit(term *anansi.Term) (err error) {
+	for i := len(bg.workers) - 1; i >= 0; i-- {
+		if serr := bg.workers[i].Stop(); err == nil {
+			err = serr
+		}
+	}
+	return err
+}
+
+// Notify all background workers, stopping on and returning the first error.
+func (bg BackgroundWorkers) Notify() error {
+	for i := 0; i < len(bg.workers); i++ {
+		if err := bg.workers[i].Notify(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type bgWorkerCore struct {

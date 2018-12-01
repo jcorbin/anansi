@@ -60,6 +60,7 @@ func New(opts ...Option) (*Platform, error) {
 		&p.input,
 		&p.output,
 		&p.ticker,
+		&p.bg,
 	)
 
 	timingPeriod := defaultFrameRate / 4
@@ -67,7 +68,7 @@ func New(opts ...Option) (*Platform, error) {
 	p.Timing.ts = make([]time.Time, timingPeriod)
 	p.Timing.ds = make([]time.Duration, timingPeriod)
 	p.Telemetry.coll.rusage.data = make([]rusageEntry, defaultFrameRate*10)
-	p.bgworkers = append(p.bgworkers, &p.Telemetry.coll, &Logs)
+	p.bg.workers = append(p.bg.workers, &p.Telemetry.coll, &Logs)
 
 	if !flag.Parsed() && !hasConfig(opts) {
 		flagConfig := Config{}
@@ -112,7 +113,7 @@ type Platform struct {
 
 	recording *os.File
 	replay    *replay
-	bgworkers []BackgroundWorker
+	bg        BackgroundWorkers
 
 	State
 	Time   time.Time // internal time (rewinds during replay)
@@ -216,8 +217,8 @@ func (p *Platform) Run(client Client) (err error) {
 		}
 
 		// notify background workers
-		for i := 0; ctx.Err == nil && i < len(p.bgworkers); i++ {
-			ctx.Err = p.bgworkers[i].Notify()
+		if ctx.Err == nil {
+			ctx.Err = p.bg.Notify()
 		}
 
 		if ctx.Err != nil {
@@ -275,13 +276,6 @@ func (p *Platform) Enter(term *anansi.Term) error {
 		return err
 	}
 
-	// start background workers
-	for i := 0; i < len(p.bgworkers); i++ {
-		if err := p.bgworkers[i].Start(); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -289,13 +283,6 @@ func (p *Platform) Enter(term *anansi.Term) error {
 func (p *Platform) Exit(term *anansi.Term) (err error) {
 	if term != p.term {
 		return nil
-	}
-
-	// stop background workers
-	for i := len(p.bgworkers) - 1; i >= 0; i-- {
-		if serr := p.bgworkers[i].Stop(); err == nil {
-			err = serr
-		}
 	}
 
 	p.buf.WriteSGR(p.screen.CursorState.MergeSGR(0))
