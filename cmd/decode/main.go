@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -153,7 +154,7 @@ func runInteractive(term *anansi.Term) (err error) {
 				}
 				e = ansi.Escape(r)
 			}
-			handle(term, e, a)
+			err = handle(term, e, a)
 		}
 	}
 	return err
@@ -161,11 +162,15 @@ func runInteractive(term *anansi.Term) (err error) {
 
 var prior ansi.Escape
 
-func handle(term *anansi.Term, e ansi.Escape, a []byte) {
-	fmt.Printf("%U %v", e, e)
+func handle(term *anansi.Term, e ansi.Escape, a []byte) error {
+	if _, err := fmt.Printf("%U %v", e, e); err != nil {
+		return err
+	}
 
 	if len(a) > 0 {
-		fmt.Printf(" %q", a)
+		if _, err := fmt.Printf(" %q", a); err != nil {
+			return err
+		}
 	}
 
 	switch e {
@@ -174,42 +179,48 @@ func handle(term *anansi.Term, e ansi.Escape, a []byte) {
 	case ansi.CSI('M'), ansi.CSI('m'):
 		btn, pt, decErr := ansi.DecodeXtermExtendedMouse(e, a)
 		if decErr != nil {
-			fmt.Printf(" mouse-err:%v", decErr)
-		} else {
-			fmt.Printf(" mouse-%v@%v", btn, pt)
+			if _, err := fmt.Printf(" mouse-err:%v", decErr); err != nil {
+				return err
+			}
+		} else if _, err := fmt.Printf(" mouse-%v@%v", btn, pt); err != nil {
+			return err
 		}
 
 	// ^C to quit
 	case 0x03:
 		if prior == 0x03 {
-			panic("goodbye")
-		} else {
-			fmt.Printf(" \x1b[91m<press Ctrl-C again to quit>\x1b[0m")
+			return errors.New("goodbye")
+		} else if _, err := fmt.Printf(" \x1b[91m<press Ctrl-C again to quit>\x1b[0m"); err != nil {
+			return err
 		}
 
 	// ^L to clear
 	case 0x0c:
 		if prior == 0x0c {
-			fmt.Printf("\x1b[2J\x1b[H") // 2 ED CUP
-		} else {
-			fmt.Printf(" \x1b[93m<press Ctrl-L again to quit>\x1b[0m")
+			// 2 ED CUP
+			if _, err := fmt.Printf("\x1b[2J\x1b[H"); err != nil {
+				return err
+			}
+		} else if _, err := fmt.Printf(" \x1b[93m<press Ctrl-L again to quit>\x1b[0m"); err != nil {
+			return err
 		}
 
 	// ^Z to suspend
 	case 0x1a:
 		if prior == 0x1a {
 			if err := term.RunWithout(suspend); err != nil {
-				panic(err)
+				return err
 			}
-		} else {
-			fmt.Printf(" \x1b[92m<press Ctrl-Z again to suspend>\x1b[0m")
+		} else if _, err := fmt.Printf(" \x1b[92m<press Ctrl-Z again to suspend>\x1b[0m"); err != nil {
+			return err
 		}
 
 	}
 
 	prior = e
 
-	fmt.Printf("\r\n")
+	_, err := fmt.Printf("\r\n")
+	return err
 }
 
 func suspend(_ *anansi.Term) error {
