@@ -40,6 +40,9 @@ func (bg BackgroundWorkers) Enter(term *anansi.Term) error {
 
 // Exit stops all background workers, returning the first error, but stopping
 // all regardless.
+//
+// TODO consider whether Close() error would be a better idea: don't gracefully
+// stop background work, e.g. when preparing to suspend.
 func (bg BackgroundWorkers) Exit(term *anansi.Term) (err error) {
 	for i := len(bg.workers) - 1; i >= 0; i-- {
 		if serr := bg.workers[i].Stop(); err == nil {
