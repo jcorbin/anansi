@@ -168,17 +168,16 @@ func handle(term *anansi.Term, e ansi.Escape, a []byte) {
 		fmt.Printf(" %q", a)
 	}
 
+	switch e {
+
 	// print detail for mouse reporting
-	if e == ansi.CSI('M') || e == ansi.CSI('m') {
-		btn, pt, err := ansi.DecodeXtermExtendedMouse(e, a)
-		if err != nil {
-			fmt.Printf(" mouse-err:%v", err)
+	case ansi.CSI('M'), ansi.CSI('m'):
+		btn, pt, decErr := ansi.DecodeXtermExtendedMouse(e, a)
+		if decErr != nil {
+			fmt.Printf(" mouse-err:%v", decErr)
 		} else {
 			fmt.Printf(" mouse-%v@%v", btn, pt)
 		}
-	}
-
-	switch e {
 
 	// ^C to quit
 	case 0x03:
