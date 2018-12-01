@@ -43,7 +43,15 @@ const defaultFrameRate = 60
 // New creates a platform layer for running interactive fullscreen terminal
 // applications.
 func New(opts ...Option) (*Platform, error) {
-	var p Platform
+	p := &Platform{}
+
+	p.termContext = anansi.Contexts(
+		&p.input,
+		&p.output,
+		&p.Config,
+		&p.ticker,
+		&p.bg,
+	)
 
 	p.mode.AddMode(
 		ansi.ModeAlternateScreen,
@@ -55,13 +63,6 @@ func New(opts ...Option) (*Platform, error) {
 
 	p.events.input = &p.input
 	p.ticker.d = time.Second / defaultFrameRate
-	p.termContext = anansi.Contexts(
-		&p.Config,
-		&p.input,
-		&p.output,
-		&p.ticker,
-		&p.bg,
-	)
 
 	timingPeriod := defaultFrameRate / 4
 	p.FPSEstimate.data = make([]float64, defaultFrameRate)
@@ -74,25 +75,25 @@ func New(opts ...Option) (*Platform, error) {
 		flagConfig := Config{}
 		flagConfig.AddFlags(flag.CommandLine, "platform.")
 		flag.Parse()
-		if err := flagConfig.apply(&p); err != nil {
+		if err := flagConfig.apply(p); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := p.HUD.apply(&p); err != nil {
+	if err := p.HUD.apply(p); err != nil {
 		return nil, err
 	}
 	for _, opt := range opts {
-		if err := opt.apply(&p); err != nil {
+		if err := opt.apply(p); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := p.Config.setup(&p); err != nil {
+	if err := p.Config.setup(p); err != nil {
 		return nil, err
 	}
 
-	return &p, nil
+	return p, nil
 }
 
 // Platform is a high level abstraction for implementing frame-oriented
@@ -100,10 +101,11 @@ func New(opts ...Option) (*Platform, error) {
 type Platform struct {
 	Config
 
+	term *anansi.Term
+
 	termContext anansi.Context
 	buf         anansi.Buffer
 
-	term   *anansi.Term
 	mode   anansi.Mode
 	input  anansi.Input
 	output anansi.Output
@@ -166,7 +168,7 @@ func IsReplayStop(err error) bool {
 }
 
 // Run a client under a platform. It loads client state from any active replay
-// buffer, and then runs the client under anansi.Term.With.
+// buffer, and then runs the client under a ticker loop.
 func (p *Platform) Run(client Client) (err error) {
 	p.client = client
 
