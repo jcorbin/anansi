@@ -13,30 +13,18 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-const defaultMinRead = 128
-
-// NewInput creates an Input around the given file; the optional minRead
-// argument defaults to 128.
-func NewInput(f *os.File, minRead int) *Input {
-	if minRead == 0 {
-		minRead = defaultMinRead
-	}
-	in := &Input{
-		file:    f,
-		minRead: minRead,
-	}
-	return in
-}
+const defaultMinReadSize = 128
 
 // Input supports reading terminal input from a file handle with a buffer for
 // things like escape sequences. It supports both blocking and non-blocking
 // reads. It is not safe to use Input in parallel from multiple goroutines,
 // such users need to layer a lock around an Input.
 type Input struct {
-	file *os.File
+	File        *os.File
+	MinReadSize int
 
+	oldFlags uintptr
 	ateof    bool
-	minRead  int
 	nonblock bool
 	buf      bytes.Buffer
 
@@ -139,33 +127,54 @@ func (in *Input) DecodeRune() (rune, bool) {
 	return r, true
 }
 
-// ReadMore from the underlying file into the internal byte buffer; it loops
-// until at least one new byte has been read. Returns the number of bytes read
-// and any error.
+// ReadMore from the underlying file into the internal byte buffer; it
+// may block until at least one new byte has been read. Returns the
+// number of bytes read and any error.
 func (in *Input) ReadMore() (int, error) {
-	// TODO opportunistically read in non-blocking mode if set, only
-	//      transitioning to blocking if needed
-	if err := in.setNonblock(false); err != nil {
-		return 0, err
-	}
 	for {
-		p := in.readBuf()
-		n, err := in.file.Read(p)
-		if ateof := err == io.EOF; in.ateof && ateof {
-			// TODO if n > 0 the io.Reader is being misbehaved... do we care?
-			return 0, io.EOF
-		} else if in.ateof = ateof; ateof {
-			err = nil
-		}
 		var frm InputFrame
+
+		p := in.readBuf()
+		n, err := in.File.Read(p)
 		if in.rec != nil {
 			frm.T = time.Now()
 		}
-		frm.E = err
+
+		switch unwrapOSError(err) {
+		case io.EOF:
+			if in.ateof {
+				return n, io.EOF
+			}
+			in.ateof = true
+			if n > 0 {
+				err = nil
+			}
+
+		case syscall.EWOULDBLOCK:
+			in.ateof = false
+			if n > 0 {
+				return n, nil
+			}
+			if err := in.setNonblock(false); err != nil {
+				return 0, err
+			}
+
+		case nil:
+			in.ateof = false
+		}
+
 		if n > 0 {
 			frm.B = p[:n]
+			_, _ = in.buf.Write(frm.B)
 		}
-		err = in.write(frm)
+
+		if in.rec != nil {
+			frm.E = err
+			if werr := in.recordFrame(frm); err == nil {
+				err = werr
+			}
+		}
+
 		if n > 0 || err != nil {
 			return n, err
 		}
@@ -189,7 +198,7 @@ func (in *Input) ReadAny() (n int, err error) {
 	for err == nil {
 		var m int
 		p := in.readBuf()
-		m, err = in.file.Read(p)
+		m, err = in.File.Read(p)
 		if m == 0 {
 			break
 		}
@@ -197,21 +206,26 @@ func (in *Input) ReadAny() (n int, err error) {
 		n += m
 	}
 
-	if in.ateof = err == io.EOF; in.ateof {
+	switch unwrapOSError(err) {
+	case io.EOF:
+		in.ateof = true
+
+	case syscall.EWOULDBLOCK:
+		in.ateof = false
 		err = nil
-	} else {
-		if in.nonblock && isEWouldBlock(err) {
-			err = nil
-		}
+
+	case nil:
+		in.ateof = false
+	}
+
+	if n > 0 {
+		p := in.buf.Bytes()
+		frm.B = p[len(p)-n:]
 	}
 
 	if in.rec != nil {
 		frm.E = err
-		if n > 0 {
-			p := in.buf.Bytes()
-			frm.B = p[len(p)-n:]
-		}
-		if werr := in.write(frm); err == nil {
+		if werr := in.recordFrame(frm); err == nil {
 			err = werr
 		}
 	}
@@ -220,32 +234,32 @@ func (in *Input) ReadAny() (n int, err error) {
 }
 
 // Enter retains the passed the terminal file handle if one isn't already,
-// returns an error otherwise.
+// returns an error otherwise.  Either way, it then gets the current fcntl
+// flags for restoration during exit, and parses them fur current state.
 func (in *Input) Enter(term *Term) error {
-	if in.file != nil {
+	if in.File != nil {
 		return errors.New("anansi.Input may only only be attached to one terminal")
 	}
-	if in.minRead == 0 {
-		in.minRead = defaultMinRead
-	}
-	in.file = term.File
-	return nil
+	in.File = term.File
+	return in.getFlags()
 }
 
 // Exit clears the retained file handle (only if it's the same as the
-// terminal's). Any non-blocking mode is cleared.
+// terminal's). File mode flags are restored to as they were at Enter time.
 func (in *Input) Exit(term *Term) error {
-	if in.file != term.File {
+	if in.File != term.File {
 		return nil
 	}
+	if _, _, err := in.fcntl(syscall.F_SETFL, in.oldFlags); err != nil {
+		return err
+	}
+	in.oldFlags = 0
 	in.nonblock = false
-	err := in.setFlags()
-	in.file = nil
-	return err
+	in.File = nil
+	return nil
 }
 
-func (in *Input) write(frm InputFrame) error {
-	_, _ = in.buf.Write(frm.B)
+func (in *Input) recordFrame(frm InputFrame) error {
 	frm.writeIntoBuffer(&in.recTmp)
 	_, err := in.recTmp.WriteTo(in.rec)
 	in.recTmp.Reset()
@@ -276,7 +290,10 @@ func (frm InputFrame) writeIntoBuffer(buf *bytes.Buffer) {
 // readBuf returns a slice into the internal byte buffer with enough space to
 // read at least n bytes.
 func (in *Input) readBuf() []byte {
-	in.buf.Grow(in.minRead)
+	if in.MinReadSize == 0 {
+		in.MinReadSize = defaultMinReadSize
+	}
+	in.buf.Grow(in.MinReadSize)
 	p := in.buf.Bytes()
 	p = p[len(p):cap(p)]
 	return p
@@ -290,19 +307,33 @@ func (in *Input) setNonblock(nonblock bool) error {
 	return nil
 }
 
-func (in *Input) setFlags() error {
-	var flags uintptr
-	if in.nonblock {
-		flags |= syscall.O_NONBLOCK
+func (in *Input) getFlags() error {
+	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
+	if err == nil {
+		in.oldFlags = flags
+		in.nonblock = flags&syscall.O_NONBLOCK != 0
 	}
-	return in.fcntl(syscall.F_SETFL, flags)
+	return err
 }
 
-func (in *Input) fcntl(a2, a3 uintptr) error {
-	if _, _, e := syscall.Syscall(syscall.SYS_FCNTL, in.file.Fd(), a2, a3); e != 0 {
-		return e
+func (in *Input) setFlags() error {
+	var flags uintptr
+	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
+	if err == nil {
+		if in.nonblock {
+			flags |= syscall.O_NONBLOCK
+		}
+		_, _, err = in.fcntl(syscall.F_SETFL, flags)
 	}
-	return nil
+	return err
+}
+
+func (in *Input) fcntl(a2, a3 uintptr) (r1, r2 uintptr, err error) {
+	r1, r2, e := syscall.Syscall(syscall.SYS_FCNTL, in.File.Fd(), a2, a3)
+	if e != 0 {
+		return 0, 0, e
+	}
+	return r1, r2, nil
 }
 
 // InputReplay is a session of recorded input.
@@ -371,7 +402,7 @@ func ReadInputReplay(f *os.File) (InputReplay, error) {
 	}
 
 	var (
-		in     = NewInput(f, 1024)
+		in     = Input{File: f, MinReadSize: 1024}
 		frames = make([]protoFrame, 0, estFrames)
 		bs     = make([]byte, 0, estBytes)
 		off    int
@@ -436,14 +467,17 @@ func ReadInputReplay(f *os.File) (InputReplay, error) {
 	return result, nil
 }
 
-func isEWouldBlock(err error) bool {
-	switch val := err.(type) {
-	case *os.PathError:
-		err = val.Err
-	case *os.LinkError:
-		err = val.Err
-	case *os.SyscallError:
-		err = val.Err
+func unwrapOSError(err error) error {
+	for {
+		switch val := err.(type) {
+		case *os.PathError:
+			err = val.Err
+		case *os.LinkError:
+			err = val.Err
+		case *os.SyscallError:
+			err = val.Err
+		default:
+			return err
+		}
 	}
-	return err == syscall.EWOULDBLOCK
 }

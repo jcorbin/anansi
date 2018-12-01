@@ -8,7 +8,7 @@ import (
 	"unsafe"
 )
 
-func (at *Attr) getSize() (size image.Point, err error) {
+func (at Attr) getSize() (size image.Point, err error) {
 	var dim struct {
 		rows    uint16
 		cols    uint16
@@ -23,11 +23,11 @@ func (at *Attr) getSize() (size image.Point, err error) {
 	return size, err
 }
 
-func (at *Attr) getAttr() (attr syscall.Termios, err error) {
+func (at Attr) getAttr() (attr syscall.Termios, err error) {
 	err = at.ioctl(syscall.TIOCGETA, uintptr(unsafe.Pointer(&attr)), 0, 0, 0)
 	return
 }
 
-func (at *Attr) setAttr(attr syscall.Termios) error {
+func (at Attr) setAttr(attr syscall.Termios) error {
 	return at.ioctl(syscall.TIOCSETA, uintptr(unsafe.Pointer(&attr)), 0, 0, 0)
 }
