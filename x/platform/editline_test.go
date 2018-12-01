@@ -27,7 +27,8 @@ func (steps testSteps) run(t *testing.T, sz image.Point, client Client) {
 	for i, step := range steps {
 		t.Logf("[%d] input %q", i, step.in)
 		ctx := p.Context()
-		ctx.Input.Load([]byte(step.in))
+		ctx.Input.Clear()
+		ctx.Input.DecodeBytes([]byte(step.in))
 		ctx.Update()
 		require.NoError(t, ctx.Err, "[%d] unexpected update error", i)
 		for sc := bufio.NewScanner(&Logs); sc.Scan(); {
