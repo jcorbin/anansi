@@ -120,7 +120,7 @@ func (hud *HUD) Update(ctx *Context, client Client) error {
 	}
 
 	hud.rightSegment(ctx, outBounds.Size().String())
-	hud.rightSegment(ctx, fmt.Sprintf("W:% 5v", ctx.Platform.output.Flushed))
+	hud.rightSegment(ctx, fmt.Sprintf("W:% 5v", ctx.Platform.term.Flushed))
 	hud.rightSegment(ctx, hud.Mouse.String())
 
 	// TODO better placed in footer? overlay?

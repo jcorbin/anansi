@@ -153,7 +153,7 @@ func (rep *replay) next() bool {
 }
 
 func (p *Platform) setRecording(f *os.File, err error) {
-	p.input.SetRecording(nil)
+	p.term.Input.SetRecording(nil)
 	if p.recording != nil {
 		if err := p.recording.Close(); err != nil {
 			log.Printf("failed to close record file %q: %v", p.recording.Name(), err)
@@ -181,7 +181,7 @@ func (p *Platform) setRecording(f *os.File, err error) {
 			return
 		}
 
-		p.input.SetRecording(f)
+		p.term.Input.SetRecording(f)
 		log.Printf("recording input to %q", f.Name())
 	}
 }

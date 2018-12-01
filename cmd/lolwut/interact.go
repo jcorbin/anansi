@@ -12,7 +12,7 @@ import (
 
 func runInteractive() {
 	sd.squareSide = 20 // TODO push down, pre-compute based on initial width and squaresPerRow
-	platform.MustRun(os.Stdout, func(p *platform.Platform) error {
+	platform.MustRun(os.Stdin, os.Stdout, func(p *platform.Platform) error {
 		return p.Run(&sd)
 	}, platform.FrameRate(60))
 }

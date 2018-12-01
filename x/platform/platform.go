@@ -19,8 +19,8 @@ import (
 var errNoTerm = errors.New("platform not attached to a terminal")
 
 // MustRun call Run, calling os.Exit(1) if it returns a non-nil error.
-func MustRun(f *os.File, run func(*Platform) error, opts ...Option) {
-	if err := Run(f, run, opts...); err != nil {
+func MustRun(in, out *os.File, run func(*Platform) error, opts ...Option) {
+	if err := Run(in, out, run, opts...); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -28,12 +28,12 @@ func MustRun(f *os.File, run func(*Platform) error, opts ...Option) {
 
 // Run is a convenience wrapper that calls the run function with a newly
 // created Platform activated under a newly constructed anansi.Term.
-func Run(f *os.File, run func(*Platform) error, opts ...Option) error {
-	p, err := New(opts...)
+func Run(in, out *os.File, run func(*Platform) error, opts ...Option) error {
+	p, err := New(in, out, opts...)
 	if err != nil {
 		return err
 	}
-	return anansi.NewTerm(f, p).RunWith(func(_ *anansi.Term) error {
+	return anansi.NewTerm(in, out, p).RunWith(func(_ *anansi.Term) error {
 		return run(p)
 	})
 }
@@ -42,12 +42,11 @@ const defaultFrameRate = 60
 
 // New creates a platform layer for running interactive fullscreen terminal
 // applications.
-func New(opts ...Option) (*Platform, error) {
+func New(in, out *os.File, opts ...Option) (*Platform, error) {
 	p := &Platform{}
 
 	p.termContext = anansi.Contexts(
-		&p.input,
-		&p.output,
+		&p.screen,
 		&p.Config,
 		&p.ticker,
 		&p.bg,
@@ -106,9 +105,6 @@ type Platform struct {
 	buf         anansi.Buffer
 
 	mode   anansi.Mode
-	input  anansi.Input
-	output anansi.Output
-
 	events Events
 	ticker Ticker
 
@@ -208,9 +204,9 @@ func (p *Platform) Run(client Client) (err error) {
 				ctx.Err = errOr(ctx.Err, p.readSize())
 			default:
 				p.events.Clear()
-				n, err := p.input.ReadAny()
+				n, err := p.term.ReadAny()
 				if n > 0 {
-					p.events.DecodeInput(&p.input)
+					p.events.DecodeInput(&p.term.Input)
 				}
 				ctx.Err = errOr(ctx.Err, err)
 				polling = false
@@ -219,7 +215,7 @@ func (p *Platform) Run(client Client) (err error) {
 
 		// run current frame update
 		if ctx.Update(); ctx.Err == nil {
-			ctx.Err = p.output.Flush(ctx.Output)
+			ctx.Err = p.term.Flush(ctx.Output)
 		}
 
 		// notify background workers
@@ -273,7 +269,7 @@ func (p *Platform) Enter(term *anansi.Term) error {
 
 	p.buf.Write(p.mode.Set)
 	if p.buf.Len() > 0 {
-		if _, err := p.buf.WriteTo(term.File); err != nil {
+		if _, err := p.buf.WriteTo(term.Output.File); err != nil {
 			return err
 		}
 	}
@@ -295,7 +291,7 @@ func (p *Platform) Exit(term *anansi.Term) (err error) {
 	p.buf.WriteSeq(p.screen.CursorState.Show())
 	p.buf.Write(p.mode.Reset)
 	if p.buf.Len() > 0 {
-		_, err = p.buf.WriteTo(term.File)
+		_, err = p.buf.WriteTo(term.Output.File)
 	}
 
 	err = errOr(err, p.termContext.Exit(term))
