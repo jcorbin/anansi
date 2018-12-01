@@ -244,6 +244,7 @@ func (in *Input) ReadAny() (n int, err error) {
 		}
 		_, _ = in.buf.Write(p[:m])
 		n += m
+		// XXX if m < len(p) { break }
 	}
 
 	switch unwrapOSError(err) {

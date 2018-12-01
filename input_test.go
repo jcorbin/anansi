@@ -119,6 +119,62 @@ func TestInput_ReadMore(t *testing.T) {
 	}
 }
 
+func TestInput_ReadAny(t *testing.T) {
+	type write struct {
+		d time.Duration
+		s string
+	}
+
+	type read struct {
+		n int
+		s string
+	}
+
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	defer w.Close()
+	defer r.Close()
+
+	in := anansi.Input{File: r}
+
+	steps := []struct {
+		read
+		write
+	}{
+		{write: write{s: "hello"}},
+		{read: read{s: "hello", n: 5}},
+		{write: write{s: "world"}},
+		{read: read{s: "world", n: 5}},
+	}
+
+	var got bytes.Buffer
+	for i, step := range steps {
+		if step.write.s != "" {
+			_, err := w.WriteString(step.write.s)
+			require.NoError(t, err, "w[%v] unexpected error", i)
+			if step.read.s == "" {
+				continue
+			}
+		}
+
+		n, err := in.ReadAny()
+
+		got.Reset()
+		slurpInput(&got, &in)
+		t.Logf("r[%v] got %v %q", i, err, got.String())
+
+		assert.Equal(t, step.read, read{n, got.String()}, "r[%v] expected read result", i)
+
+		if err == io.EOF {
+			i++
+			assert.True(t, i <= len(steps)+1, "r[ ] expected all chunks")
+			break
+		}
+		require.NoError(t, err, "r[%v] unexpected error", i)
+	}
+
+}
+
 func slurpInput(buf *bytes.Buffer, in *anansi.Input) {
 	for {
 		if e, a, ok := in.Decode(); !ok {
