@@ -150,8 +150,19 @@ func (sc *Screen) process() {
 // Enter calls SizeToTerm.
 func (sc *Screen) Enter(term *Term) error { return sc.SizeToTerm(term) }
 
-// Exit is a no-op.
-func (sc *Screen) Exit(term *Term) error { return nil }
+// Exit Reset()s all virtual state, and restores real terminal graphics and
+// cursor state.
+func (sc *Screen) Exit(term *Term) error {
+	// discard all virtual state...
+	sc.Reset()
+	// ...and restore real cursor state
+	n := sc.buf.WriteSGR(sc.cur.Real.MergeSGR(0))
+	n += sc.buf.WriteSeq(sc.cur.Real.Show())
+	if n > 0 {
+		return term.Flush(&sc.buf)
+	}
+	return nil
+}
 
 // SizeToTerm invalidates and resizes the screen to match the passed terminal's
 // current size.
