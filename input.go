@@ -233,10 +233,16 @@ func (in *Input) ReadAny() (n int, err error) {
 	return n, err
 }
 
-// Enter gets the current fcntl flags for restoration during Exit(), and parses
-// them for current state.
+// Enter gets the current fcntl flags for restoration during Exit(), and sets
+// non-blocking mode if needed.
 func (in *Input) Enter(term *Term) error {
-	return in.getFlags()
+	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
+	if err == nil {
+		in.oldFlags = flags
+		flags = in.buildFlags(flags)
+		_, _, err = in.fcntl(syscall.F_SETFL, flags)
+	}
+	return err
 }
 
 // Exit restores fcntl flags to their Enter() time value. It also stops any
@@ -294,25 +300,21 @@ func (in *Input) setNonblock(nonblock bool) error {
 	return nil
 }
 
-func (in *Input) getFlags() error {
-	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
-	if err == nil {
-		in.oldFlags = flags
-		in.nonblock = flags&syscall.O_NONBLOCK != 0
-	}
-	return err
-}
-
 func (in *Input) setFlags() error {
 	var flags uintptr
 	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
 	if err == nil {
-		if in.nonblock {
-			flags |= syscall.O_NONBLOCK
-		}
+		flags = in.buildFlags(flags)
 		_, _, err = in.fcntl(syscall.F_SETFL, flags)
 	}
 	return err
+}
+
+func (in *Input) buildFlags(flags uintptr) uintptr {
+	if in.nonblock {
+		flags |= syscall.O_NONBLOCK
+	}
+	return flags
 }
 
 func (in *Input) fcntl(a2, a3 uintptr) (r1, r2 uintptr, err error) {
