@@ -233,30 +233,17 @@ func (in *Input) ReadAny() (n int, err error) {
 	return n, err
 }
 
-// Enter retains the passed the terminal file handle if one isn't already,
-// returns an error otherwise.  Either way, it then gets the current fcntl
-// flags for restoration during exit, and parses them fur current state.
+// Enter gets the current fcntl flags for restoration during Exit(), and parses
+// them for current state.
 func (in *Input) Enter(term *Term) error {
-	if in.File != nil {
-		return errors.New("anansi.Input may only only be attached to one terminal")
-	}
-	in.File = term.File
 	return in.getFlags()
 }
 
-// Exit clears the retained file handle (only if it's the same as the
-// terminal's). File mode flags are restored to as they were at Enter time.
+// Exit restores fcntl flags to their Enter() time value. It also stops any
+// signal notification setup by Notify().
 func (in *Input) Exit(term *Term) error {
-	if in.File != term.File {
-		return nil
-	}
-	if _, _, err := in.fcntl(syscall.F_SETFL, in.oldFlags); err != nil {
-		return err
-	}
-	in.oldFlags = 0
-	in.nonblock = false
-	in.File = nil
-	return nil
+	_, _, err := in.fcntl(syscall.F_SETFL, in.oldFlags)
+	return err
 }
 
 func (in *Input) recordFrame(frm InputFrame) error {

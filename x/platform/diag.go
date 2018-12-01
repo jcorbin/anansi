@@ -180,9 +180,9 @@ func (p *Platform) SetTimingEnabled(enabled bool) {
 func (p *Platform) SetStallTracking(enabled bool) {
 	p.StallDataEnabled = enabled
 	if p.StallDataEnabled {
-		p.output.TrackStalls(len(p.Timing.ts))
+		p.term.TrackStalls(len(p.Timing.ts))
 	} else {
-		p.output.TrackStalls(0)
+		p.term.TrackStalls(0)
 		p.Stalls.reset()
 	}
 }
@@ -218,7 +218,7 @@ func (tel *Telemetry) update(p *Platform) error {
 		if tel.LogTiming && timingFrame {
 			tel.coll.timing = tel.Timing.ds
 		}
-		if stalls := p.output.Stalls(consumeStalls); stalls != nil {
+		if stalls := p.term.Stalls(consumeStalls); stalls != nil {
 			if tel.LogStallData {
 				tel.coll.stalls = stalls
 			}

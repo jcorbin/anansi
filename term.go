@@ -7,20 +7,28 @@ import (
 	"syscall"
 )
 
-// NewTerm creates a new Term attached to the given file, and with optional
-// associated context.
-func NewTerm(f *os.File, cs ...Context) *Term {
-	term := &Term{File: f}
-	term.ctx = Contexts(&term.Attr, &term.Mode, Contexts(cs...))
+// NewTerm constructs a new terminal attached the given file pair, and with the
+// given context.
+func NewTerm(in, out *os.File, cs ...Context) *Term {
+	term := &Term{}
+	term.Input.File = in
+	term.Output.File = out
+	term.ctx = Contexts(
+		&term.Input,
+		&term.Output,
+		&term.Attr,
+		&term.Mode,
+		Contexts(cs...))
 	return term
 }
 
 // Term combines a terminal file handle with attribute control and further
 // Context-ual state.
 type Term struct {
-	*os.File
 	Attr
 	Mode
+	Input
+	Output
 
 	active bool
 	under  bool

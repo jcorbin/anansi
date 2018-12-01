@@ -1,7 +1,6 @@
 package anansi
 
 import (
-	"errors"
 	"io"
 	"os"
 	"syscall"
@@ -53,24 +52,13 @@ func (out *Output) Stalls(consume bool) []time.Duration {
 	return blocks
 }
 
-// Enter retains the passed the terminal file handle if one isn't already,
-// returns an error otherwise.
-func (out *Output) Enter(term *Term) error {
-	if out.File != nil {
-		return errors.New("anansi.Output may only only be attached to one terminal")
-	}
-	out.File = term.File
-	return nil
-}
+// Enter is a no-op.
+func (out *Output) Enter(term *Term) error { return nil }
 
-// Exit clears the retained file handle (only if it's the same as the
-// terminal's).
-func (out *Output) Exit(term *Term) error {
-	if out.File == term.File {
-		out.File = nil
-	}
-	return nil
-}
+// Exit is a no-op.
+func (out *Output) Exit(term *Term) error { return nil }
+
+// TODO should this be ReadFrom(r Reader) (n int64, err error) ?
 
 // Flush calls the given io.Writerto on any active file handle. If EWOULDBLOCK
 // occurs, it transitions the file into blocking mode, and restarts the write.

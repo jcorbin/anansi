@@ -6,17 +6,19 @@ import "github.com/jcorbin/anansi/ansi"
 // Enter/Exit. Primary useful for set/reset mode control sequences.
 type Mode struct {
 	Set, Reset []byte
+
+	// TODO support active use with an *os.File
 }
 
-// Enter writes the modes' Set() string to the terminal's file.
+// Enter writes the modes' Set() string to the terminal's output file.
 func (mode *Mode) Enter(term *Term) error {
-	_, err := term.File.Write(mode.Set)
+	_, err := term.Output.File.Write(mode.Set)
 	return err
 }
 
-// Exit writes the modes' Reset() string to the terminal's file.
+// Exit writes the modes' Reset() string to the terminal's output file.
 func (mode *Mode) Exit(term *Term) error {
-	_, err := term.File.Write(mode.Reset)
+	_, err := term.Output.File.Write(mode.Reset)
 	return err
 }
 

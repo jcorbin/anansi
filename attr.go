@@ -12,18 +12,26 @@ var errAttrNoFile = errors.New("anansi.Attr.ioctl: no File set")
 // Attr implements Context-ual manipulation and interrogation of terminal
 // state, using the termios IOCTLs and ANSI control sequences where possible.
 type Attr struct {
-	orig syscall.Termios
-	cur  syscall.Termios
-	raw  bool
-	echo bool
+	file *os.File // XXX re-export
 
-	f *os.File
+	ownFile bool
+	orig    syscall.Termios
+	cur     syscall.Termios
+	raw     bool
+	echo    bool
 }
 
 // IsTerminal returns true only if the given file is attached to an interactive
 // terminal.
 func IsTerminal(f *os.File) bool {
-	return Attr{f: f}.IsTerminal()
+	return Attr{file: f}.IsTerminal()
+}
+
+// IsTerminal returns true only if both terminal input and output file handles
+// are both connected to a valid terminal.
+func (term *Term) IsTerminal() bool {
+	return IsTerminal(term.Input.File) &&
+		IsTerminal(term.Output.File)
 }
 
 // IsTerminal returns true only if the underlying file is attached to an
@@ -48,7 +56,7 @@ func (at *Attr) SetRaw(raw bool) error {
 		return nil
 	}
 	at.raw = raw
-	if at.f != nil {
+	if at.file != nil {
 		at.cur = at.modifyTermios(at.orig)
 		return at.setAttr(at.cur)
 	}
@@ -62,7 +70,7 @@ func (at *Attr) SetEcho(echo bool) error {
 		return nil
 	}
 	at.echo = echo
-	if at.f != nil {
+	if at.file != nil {
 		if echo {
 			at.cur.Lflag |= syscall.ECHO
 		} else {
@@ -95,10 +103,15 @@ func (at Attr) modifyTermios(attr syscall.Termios) syscall.Termios {
 	return attr
 }
 
-// Enter applies termios attributes, retaining the file handle so that all
-// future calls to Set* now immediately.
+// Enter default the Attr's file to the term's Output File, records its
+// original termios attributes, and then applies termios attributes.
 func (at *Attr) Enter(term *Term) (err error) {
-	at.f = term.File
+	if at.file == nil {
+		at.file = term.Output.File
+		at.ownFile = false
+	} else {
+		at.ownFile = true
+	}
 	if at.orig, err = at.getAttr(); err == nil {
 		at.cur = at.modifyTermios(at.orig)
 		err = at.setAttr(at.cur)
@@ -106,23 +119,25 @@ func (at *Attr) Enter(term *Term) (err error) {
 	return err
 }
 
-// Exit restores termios attributes only if the given file is the retained one,
-// clearing the retained file pointer to transition out of immediate
-// application mode.
+// Exit restores termios attributes, and clears the File pointer if it was set
+// by Enter
 func (at *Attr) Exit(term *Term) error {
-	if at.f == term.File {
-		err := at.setAttr(at.orig)
-		at.f = nil
-		return err
+	if at.file == nil {
+		return nil
 	}
-	return nil
+	err := at.setAttr(at.orig)
+	if !at.ownFile && err == nil {
+		at.file = nil
+		at.ownFile = false
+	}
+	return err
 }
 
 func (at Attr) ioctl(request, arg1, arg2, arg3, arg4 uintptr) error {
-	if at.f == nil {
+	if at.file == nil {
 		return errAttrNoFile
 	}
-	if _, _, e := syscall.Syscall6(syscall.SYS_IOCTL, at.f.Fd(), request, arg1, arg2, arg3, arg4); e != 0 {
+	if _, _, e := syscall.Syscall6(syscall.SYS_IOCTL, at.file.Fd(), request, arg1, arg2, arg3, arg4); e != 0 {
 		return e
 	}
 	return nil

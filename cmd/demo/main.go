@@ -15,7 +15,7 @@ import (
 var errInt = errors.New("interrupt")
 
 func main() {
-	platform.MustRun(os.Stdout, Run, platform.FrameRate(60))
+	platform.MustRun(os.Stdin, os.Stdout, Run, platform.FrameRate(60))
 }
 
 // Run the demo under an active terminal platform.
