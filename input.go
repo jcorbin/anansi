@@ -318,10 +318,13 @@ func (in *Input) getFlags() error {
 
 func (in *Input) setFlags() error {
 	var flags uintptr
-	if in.nonblock {
-		flags |= syscall.O_NONBLOCK
+	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
+	if err == nil {
+		if in.nonblock {
+			flags |= syscall.O_NONBLOCK
+		}
+		_, _, err = in.fcntl(syscall.F_SETFL, flags)
 	}
-	_, _, err := in.fcntl(syscall.F_SETFL, flags)
 	return err
 }
 
