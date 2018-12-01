@@ -94,22 +94,20 @@ func (out *Output) blockingFlush(wer io.WriterTo) error {
 
 	const mask = syscall.O_NONBLOCK | syscall.O_ASYNC
 
-	flags, _, e := syscall.Syscall(syscall.SYS_FCNTL, out.File.Fd(), syscall.F_GETFL, 0)
-	if e != 0 {
-		return e
+	flags, _, err := out.fcntl(syscall.F_GETFL, 0)
+	if err != nil {
+		return err
 	}
 
-	if _, _, e = syscall.Syscall(syscall.SYS_FCNTL, out.File.Fd(), syscall.F_SETFL, 0); e != 0 {
-		return e
+	if _, _, err = out.fcntl(syscall.F_SETFL, 0); err != nil {
+		return err
 	}
 
 	n, err := wer.WriteTo(out.File)
 	out.Flushed += int(n)
 
-	if _, _, e = syscall.Syscall(syscall.SYS_FCNTL, out.File.Fd(), syscall.F_SETFL, flags&mask); e != 0 {
-		if err == nil {
-			err = e
-		}
+	if _, _, ferr := out.fcntl(syscall.F_SETFL, flags&mask); err == nil {
+		err = ferr
 	}
 
 	return err
@@ -120,4 +118,12 @@ func (out *Output) recordStall(t0 time.Time) {
 	if len(out.blocks) < cap(out.blocks) {
 		out.blocks = append(out.blocks, t1.Sub(t0))
 	}
+}
+
+func (out *Output) fcntl(a2, a3 uintptr) (r1, r2 uintptr, err error) {
+	r1, r2, e := syscall.Syscall(syscall.SYS_FCNTL, out.File.Fd(), a2, a3)
+	if e != 0 {
+		return 0, 0, e
+	}
+	return r1, r2, nil
 }
