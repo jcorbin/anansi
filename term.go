@@ -13,12 +13,8 @@ func NewTerm(in, out *os.File, cs ...Context) *Term {
 	term := &Term{}
 	term.Input.File = in
 	term.Output.File = out
-	term.ctx = Contexts(
-		&term.Input,
-		&term.Output,
-		&term.Attr,
-		&term.Mode,
-		Contexts(cs...))
+	term.initContext()
+	term.ctx = Contexts(term.ctx, Contexts(cs...))
 	return term
 }
 
@@ -33,6 +29,16 @@ type Term struct {
 	active bool
 	under  bool
 	ctx    Context
+}
+
+func (term *Term) initContext() {
+	if term.ctx == nil {
+		term.ctx = Contexts(
+			&term.Input,
+			&term.Output,
+			&term.Attr,
+			&term.Mode)
+	}
 }
 
 // RunWith runs the given function within the terminal's context, Enter()ing it
@@ -56,9 +62,7 @@ func (term *Term) RunWith(within func(*Term) error) (err error) {
 		}()
 	}
 
-	if term.ctx == nil {
-		term.ctx = Contexts(&term.Attr, &term.Mode)
-	}
+	term.initContext()
 
 	defer func() {
 		if cerr := term.ctx.Exit(term); err == nil {
