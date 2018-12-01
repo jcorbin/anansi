@@ -140,63 +140,23 @@ func readMore(buf *bytes.Buffer, r io.Reader) error {
 	return err
 }
 
-func runInteractive(term *anansi.Term) error {
-	const minRead = 128
-	var buf bytes.Buffer
-	for {
-		// read more input…
-		buf.Grow(minRead)
-		p := buf.Bytes()
-		p = p[len(p):cap(p)]
-		n, err := os.Stdin.Read(p)
-		if err != nil {
-			return err
-		}
-		if n == 0 {
-			continue
-		}
-		_, _ = buf.Write(p[:n])
-
-		// …and process it
-		if err := process(term, &buf); err != nil {
-			return err
-		}
-	}
-}
-
-func process(term *anansi.Term, buf *bytes.Buffer) error {
-	for buf.Len() > 0 {
-		// Try to decode an escape sequence…
-		e, a, n := ansi.DecodeEscape(buf.Bytes())
-		if n > 0 {
-			buf.Next(n)
-		}
-
-		// …fallback to decoding a rune otherwise…
-		if e == 0 {
-			r, n := utf8.DecodeRune(buf.Bytes())
-			switch r {
-			case 0x90, 0x9D, 0x9E, 0x9F: // DCS, OSC, PM, APC
-				return nil // …need more bytes to complete a partial string.
-
-			case 0x9B: // CSI
-				return nil // …need more bytes to complete a partial control sequence.
-
-			case 0x1B: // ESC
-				if p := buf.Bytes(); len(p) == cap(p) {
-					return nil // …need more bytes to determine if an escape sequence can be decoded.
+func runInteractive(term *anansi.Term) (err error) {
+	in := anansi.Input{File: term.File}
+	for err == nil {
+		_, err = in.ReadMore()
+		for err == nil {
+			e, a := in.DecodeEscape()
+			if e == 0 {
+				r, ok := in.DecodeRune()
+				if !ok {
+					break
 				}
-				// …pass as literal ESC…
+				e = ansi.Escape(r)
 			}
-
-			// …consume and handle the rune.
-			buf.Next(n)
-			e = ansi.Escape(r)
+			handle(term, e, a)
 		}
-
-		handle(term, e, a)
 	}
-	return nil
+	return err
 }
 
 var prior ansi.Escape
