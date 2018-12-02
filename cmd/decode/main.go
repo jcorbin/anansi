@@ -183,7 +183,7 @@ func runInteractive(term *anansi.Term) error {
 	for {
 		select {
 		case sig := <-stop.C:
-			return fmt.Errorf("signal %v", sig)
+			return anansi.SigErr(sig)
 
 		case <-interrupt.C:
 			// synthesize and handle a ^C escape
