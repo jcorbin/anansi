@@ -34,18 +34,22 @@ func (term *Term) RunWith(within func(*Term) error) (err error) {
 	if term.active {
 		return within(term)
 	}
+
+	term.active = true
+	defer func() {
+		term.active = false
+	}()
+
 	if term.ctx == nil {
 		term.ctx = Contexts(&term.Attr, &term.Mode)
 	}
+
 	defer func() {
-		if cerr := term.ctx.Exit(term); cerr == nil {
-			term.active = false
-		} else if err == nil {
+		if cerr := term.ctx.Exit(term); err == nil {
 			err = cerr
 		}
 	}()
 	if err = term.ctx.Enter(term); err == nil {
-		term.active = true
 		err = within(term)
 	}
 	return err
