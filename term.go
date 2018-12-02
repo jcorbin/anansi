@@ -23,6 +23,7 @@ type Term struct {
 	Mode
 
 	active bool
+	under  bool
 	ctx    Context
 }
 
@@ -39,6 +40,13 @@ func (term *Term) RunWith(within func(*Term) error) (err error) {
 	defer func() {
 		term.active = false
 	}()
+
+	if !term.under {
+		term.under = true
+		defer func() {
+			term.under = false
+		}()
+	}
 
 	if term.ctx == nil {
 		term.ctx = Contexts(&term.Attr, &term.Mode)
