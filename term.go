@@ -109,3 +109,11 @@ func (term *Term) Suspend() error {
 	log.Printf("resumed, signal: %v", sig)
 	return nil
 }
+
+// MustRun is a useful wrapper for the outermost Term.RunWith: it log.Fatals
+// any non-nil error.
+func MustRun(err error) {
+	if err != nil {
+		log.Fatalln(err)
+	}
+}

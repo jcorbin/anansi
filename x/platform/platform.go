@@ -17,10 +17,7 @@ import (
 
 // MustRun call Run, calling os.Exit(1) if it returns a non-nil error.
 func MustRun(in, out *os.File, run func(*Platform) error, opts ...Option) {
-	if err := Run(in, out, run, opts...); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	anansi.MustRun(Run(in, out, run, opts...))
 }
 
 // Run is a convenience wrapper that calls the run function with a newly
