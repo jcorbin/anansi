@@ -1,7 +1,10 @@
 package anansi
 
 import (
+	"log"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 // NewTerm creates a new Term attached to the given file, and with optional
@@ -65,4 +68,24 @@ func (term *Term) RunWithout(without func(*Term) error) (err error) {
 		}
 	}
 	return err
+}
+
+// Suspend signals the process to stop, and blocks on its later restart. If the
+// terminal is currently active, this is done under RunWithout to restore prior
+// terminal state.
+func (term *Term) Suspend() error {
+	if term.active {
+		return term.RunWithout((*Term).Suspend)
+	}
+
+	cont := make(chan os.Signal)
+	signal.Notify(cont, syscall.SIGCONT)
+	defer signal.Stop(cont)
+	log.Printf("suspending")
+	if err := syscall.Kill(0, syscall.SIGTSTP); err != nil {
+		return err
+	}
+	sig := <-cont
+	log.Printf("resumed, signal: %v", sig)
+	return nil
 }

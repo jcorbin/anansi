@@ -9,8 +9,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
 	"unicode/utf8"
 
 	"github.com/jcorbin/anansi"
@@ -208,7 +206,7 @@ func handle(term *anansi.Term, e ansi.Escape, a []byte) error {
 	// ^Z to suspend
 	case 0x1a:
 		if prior == 0x1a {
-			if err := term.RunWithout(suspend); err != nil {
+			if err := term.Suspend(); err != nil {
 				return err
 			}
 		} else if _, err := fmt.Printf(" \x1b[92m<press Ctrl-Z again to suspend>\x1b[0m"); err != nil {
@@ -221,16 +219,4 @@ func handle(term *anansi.Term, e ansi.Escape, a []byte) error {
 
 	_, err := fmt.Printf("\r\n")
 	return err
-}
-
-func suspend(_ *anansi.Term) error {
-	cont := make(chan os.Signal)
-	signal.Notify(cont, syscall.SIGCONT)
-	log.Printf("suspending")
-	if err := syscall.Kill(0, syscall.SIGTSTP); err != nil {
-		return err
-	}
-	<-cont
-	log.Printf("resumed")
-	return nil
 }

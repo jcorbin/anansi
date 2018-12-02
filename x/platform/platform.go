@@ -357,19 +357,7 @@ func (ctx *Context) runClient() error {
 // Suspend restores terminal context to pre-platform-run settings, suspends the
 // current process, and then restores platform terminal context once resumed;
 // returns any error preventing any of that.
-func (p *Platform) Suspend() error {
-	return p.term.RunWithout(func(_ *anansi.Term) error {
-		cont := make(chan os.Signal)
-		signal.Notify(cont, syscall.SIGCONT)
-		log.Printf("suspending")
-		if err := syscall.Kill(0, syscall.SIGTSTP); err != nil {
-			return err
-		}
-		<-cont
-		log.Printf("resumed")
-		return nil
-	})
-}
+func (p *Platform) Suspend() error { return p.term.Suspend() }
 
 type signalError struct{ sig os.Signal }
 
