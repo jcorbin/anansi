@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"syscall"
 	"unicode/utf8"
 
 	"github.com/jcorbin/anansi"
@@ -135,22 +136,78 @@ func readMore(buf *bytes.Buffer, r io.Reader) error {
 	return err
 }
 
-func runInteractive(term *anansi.Term) (err error) {
-	for err == nil {
-		_, err = term.ReadMore()
-		for err == nil {
-			e, a := term.DecodeEscape()
-			if e == 0 {
-				r, ok := term.DecodeRune()
-				if !ok {
-					break
-				}
-				e = ansi.Escape(r)
+func runInteractive(term *anansi.Term) error {
+	var (
+		stop      = anansi.Notify(syscall.SIGTERM, syscall.SIGHUP)
+		interrupt = anansi.Notify(syscall.SIGINT)
+		resize    = anansi.Notify(syscall.SIGWINCH)
+	)
+
+	type readData struct {
+		e   ansi.Escape
+		a   []byte
+		err error
+	}
+
+	input := make(chan readData)
+	go func() {
+		for {
+			if _, err := term.ReadMore(); err != nil {
+				input <- readData{err: err}
+				return
 			}
-			err = handle(term, e, a)
+			for {
+				e, a := term.DecodeEscape()
+				if e == 0 {
+					r, ok := term.DecodeRune()
+					if !ok {
+						break
+					}
+					input <- readData{e: ansi.Escape(r)}
+				} else if a != nil {
+					input <- readData{e: e, a: append([]byte(nil), a...)}
+				} else {
+					input <- readData{e: e}
+				}
+			}
+		}
+	}()
+
+	stop.Open()
+	interrupt.Open()
+	resize.Open()
+
+	defer stop.Close()
+	defer interrupt.Close()
+	defer resize.Close()
+
+	for {
+		select {
+		case sig := <-stop.C:
+			return anansi.SigErr(sig)
+
+		case <-interrupt.C:
+			// synthesize and handle a ^C escape
+			if err := handle(term, 0x03, nil); err != nil {
+				return err
+			}
+
+		case <-resize.C:
+			if sz, err := term.Size(); err != nil {
+				fmt.Printf("[ resize err:%v ]", err)
+			} else {
+				fmt.Printf("[ resize size:%v ]", sz)
+			}
+
+		case in := <-input:
+			if in.err != nil {
+				return in.err
+			}
+			if err := handle(term, in.e, in.a); err != nil {
+				return err
+			}
 		}
 	}
-	return err
 }
 
 var prior ansi.Escape
