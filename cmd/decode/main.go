@@ -24,13 +24,7 @@ var (
 
 func main() {
 	flag.Parse()
-	switch err := run(anansi.NewTerm(os.Stdin, os.Stdout)); err {
-	case nil:
-	case io.EOF:
-		fmt.Println(err)
-	default:
-		log.Fatal(err)
-	}
+	anansi.MustRun(run(anansi.NewTerm(os.Stdin, os.Stdout)))
 }
 
 func run(term *anansi.Term) error {
