@@ -136,6 +136,12 @@ func readMore(buf *bytes.Buffer, r io.Reader) error {
 }
 
 func runInteractive(term *anansi.Term) error {
+	var (
+		stop      = anansi.Notify(syscall.SIGTERM, syscall.SIGHUP)
+		interrupt = anansi.Notify(syscall.SIGINT)
+		resize    = anansi.Notify(syscall.SIGWINCH)
+	)
+
 	type readData struct {
 		e   ansi.Escape
 		a   []byte
@@ -166,8 +172,32 @@ func runInteractive(term *anansi.Term) error {
 		}
 	}()
 
+	stop.Open()
+	interrupt.Open()
+	resize.Open()
+
+	defer stop.Close()
+	defer interrupt.Close()
+	defer resize.Close()
+
 	for {
 		select {
+		case sig := <-stop.C:
+			return fmt.Errorf("signal %v", sig)
+
+		case <-interrupt.C:
+			// synthesize and handle a ^C escape
+			if err := handle(term, 0x03, nil); err != nil {
+				return err
+			}
+
+		case <-resize.C:
+			if sz, err := term.Size(); err != nil {
+				fmt.Printf("[ resize err:%v ]", err)
+			} else {
+				fmt.Printf("[ resize size:%v ]", sz)
+			}
+
 		case in := <-input:
 			if in.err != nil {
 				return in.err
