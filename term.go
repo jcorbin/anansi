@@ -123,10 +123,24 @@ func (term *Term) Suspend() error {
 	return nil
 }
 
-// MustRun is a useful wrapper for the outermost Term.RunWith: it log.Fatals
-// any non-nil error.
+// ExitError may be implemented by an error to customize the exit code under
+// MustRun.
+type ExitError interface {
+	error
+	ExitCode() int
+}
+
+// MustRun is a useful wrapper for the outermost Term.RunWith: if the error
+// value implements ExitError, and its ExitCode method returns non-0, it calls
+// os.Exit; otherwise any non-nil error value is log.Fatal-ed.
 func MustRun(err error) {
 	if err != nil {
+		if ex, ok := err.(ExitError); ok {
+			log.Printf("exiting due to %v", ex)
+			if ec := ex.ExitCode(); ec != 0 {
+				os.Exit(ec)
+			}
+		}
 		log.Fatalln(err)
 	}
 }
