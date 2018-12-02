@@ -1,8 +1,15 @@
 package anansi
 
 // Context provides a piece of terminal context setup and teardown logic.
+//
+// See Term.RunWith and Term.RunWithout for more detail.
 type Context interface {
+	// Enter is called to (re)establish terminal context at the start of the
+	// first Term.RunWith and at the end of every Term.RunWithout.
 	Enter(term *Term) error
+
+	// Exit is called to restore original terminal context at the end of the
+	// first Term.RunWith and at the start of Term.RunWithout.
 	Exit(term *Term) error
 }
 
