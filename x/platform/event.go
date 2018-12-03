@@ -184,13 +184,12 @@ func (es *Events) Load(b []byte) {
 	for len(b) > 0 {
 		e, a, n := ansi.DecodeEscape(b)
 		b = b[n:]
-		if e != 0 {
-			es.add(e, a, 0)
-		} else {
+		if e == 0 {
 			r, n := utf8.DecodeRune(b)
 			b = b[n:]
-			es.add(0, nil, r)
+			e = ansi.Escape(r)
 		}
+		es.add(e, a)
 	}
 }
 
@@ -203,23 +202,23 @@ func (es *Events) Poll() error {
 	}
 	for {
 		e, a := es.input.DecodeEscape()
-		if e != 0 {
-			es.add(e, a, 0)
-		} else if r, ok := es.input.DecodeRune(); ok {
-			es.add(0, nil, r)
-		} else {
-			return nil
+		if e == 0 {
+			r, ok := es.input.DecodeRune()
+			if !ok {
+				return nil
+			}
+			e = ansi.Escape(r)
 		}
+		es.add(e, a)
 	}
 }
 
-func (es *Events) add(e ansi.Escape, a []byte, r rune) {
+func (es *Events) add(e ansi.Escape, a []byte) {
 	kind := EventEscape
 	m := Mouse{}
 
-	if e == 0 {
+	if !e.IsEscape() {
 		kind = EventRune
-		e = ansi.Escape(r)
 	}
 
 	switch e {
