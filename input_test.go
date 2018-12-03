@@ -131,3 +131,39 @@ func slurpInput(buf *bytes.Buffer, in *anansi.Input) {
 		}
 	}
 }
+
+// Reading input in blocking mode, like a simple REPL-style program might.
+//
+// See cmd/decode/main.go for a more advanced example (including use of raw
+// mode in addition to line-oriented as shown here).
+func ExampleInput_blocking() {
+	term := anansi.NewTerm(os.Stdin, os.Stdout)
+	term.SetEcho(true)
+	anansi.MustRun(term.RunWith(func(term *anansi.Term) error {
+		for {
+			n, err := term.ReadMore()
+
+			// process any (maybe partial) input first before stopping on error
+			if n > 0 {
+				for i := 0; ; i++ {
+					e, a := term.DecodeEscape()
+					if e == 0 {
+						r, ok := term.DecodeRune()
+						if !ok {
+							break
+						}
+						fmt.Printf("read[%v]: %q\n", i, r)
+					} else if a != nil {
+						fmt.Printf("read[%v]: %v %q\n", i, e, a)
+					} else {
+						fmt.Printf("read[%v]: %v\n", i, e)
+					}
+				}
+			}
+
+			if err != nil {
+				return err // likely io.EOF
+			}
+		}
+	}))
+}
