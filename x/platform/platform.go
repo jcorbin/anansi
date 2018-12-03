@@ -3,11 +3,9 @@ package platform
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"image"
 	"log"
 	"os"
-	"os/signal"
 	"syscall"
 	"time"
 
@@ -37,7 +35,12 @@ const defaultFrameRate = 60
 func New(in, out *os.File, opts ...Option) (*Platform, error) {
 	p := &Platform{}
 
+	p.stop = anansi.Notify(syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+	p.resize = anansi.Notify(syscall.SIGWINCH)
+
 	p.term = anansi.NewTerm(in, out,
+		&p.stop,
+		&p.resize,
 		&p.screen,
 		&p.Config,
 		&p.ticker,
@@ -93,6 +96,8 @@ type Platform struct {
 	Config
 
 	term   *anansi.Term
+	stop   anansi.Signal
+	resize anansi.Signal
 	buf    anansi.Buffer
 	events Events
 	ticker Ticker
@@ -171,14 +176,6 @@ func (p *Platform) Run(client Client) (err error) {
 		p.replay.cur = p.replay.input
 	}
 
-	stopSig := make(chan os.Signal, 1)
-	signal.Notify(stopSig, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
-	defer signal.Stop(stopSig)
-
-	resizeSig := make(chan os.Signal, 1)
-	signal.Notify(resizeSig, syscall.SIGWINCH)
-	defer signal.Stop(resizeSig)
-
 	log.Printf("running %T", p.client)
 	defer func() {
 		log.Printf("run done: %v", err)
@@ -195,9 +192,9 @@ func (p *Platform) Run(client Client) (err error) {
 		// poll for events and input
 		for polling := true; polling; {
 			select {
-			case sig := <-stopSig:
-				ctx.Err = errOr(ctx.Err, signalError{sig})
-			case <-resizeSig:
+			case sig := <-p.stop.C:
+				ctx.Err = errOr(ctx.Err, anansi.SigErr(sig))
+			case <-p.resize.C:
 				ctx.Err = errOr(ctx.Err, p.screen.SizeToTerm(p.term))
 			default:
 				p.events.Clear()
@@ -295,11 +292,6 @@ func (ctx *Context) runClient() error {
 // current process, and then restores platform terminal context once resumed;
 // returns any error preventing any of that.
 func (p *Platform) Suspend() error { return p.term.Suspend() }
-
-type signalError struct{ sig os.Signal }
-
-func (se signalError) String() string { return fmt.Sprintf("signal %v", se.sig) }
-func (se signalError) Error() string  { return se.String() }
 
 func errOr(a, b error) error {
 	if a != nil {
