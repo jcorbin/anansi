@@ -47,6 +47,16 @@ type Mouse struct {
 // ZM is a convenience name for the zero value of Mouse.
 var ZM Mouse
 
+// Empty returns true if there are non-EventNone typed events left.
+func (es *Events) Empty() bool {
+	for i := 0; i < len(es.Type); i++ {
+		if es.Type[i] != EventNone {
+			return false
+		}
+	}
+	return true
+}
+
 // HasTerminal returns true if the given terminal rune is in the event queue,
 // striking it and truncating any events after it.
 func (es *Events) HasTerminal(r rune) bool {
