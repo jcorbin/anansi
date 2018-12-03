@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jcorbin/anansi"
+	"github.com/jcorbin/anansi/ansi"
 )
 
 func TestInput_ReadMore(t *testing.T) {
@@ -165,5 +167,63 @@ func ExampleInput_blocking() {
 				return err // likely io.EOF
 			}
 		}
+	}))
+}
+
+// Reading input in non-blocking mode 10 times a second, like an animated
+// frame-rendering-loop program might.
+func ExampleInput_nonblocking() {
+	// We need to handle these signals so that we restore terminal state
+	// properly (raw mode and exit the alternate screen).
+	halt := anansi.Notify(syscall.SIGTERM, syscall.SIGINT)
+
+	term := anansi.NewTerm(os.Stdin, os.Stdout, &halt)
+
+	// run in a dedicated fullscreen, and handle input as it comes in
+	term.SetRaw(true)
+	term.AddMode(ansi.ModeAlternateScreen)
+
+	anansi.MustRun(term.RunWith(func(term *anansi.Term) error {
+		for range time.Tick(time.Second / 10) {
+			if err := halt.AsErr(); err != nil {
+				return err
+			}
+
+			n, err := term.ReadAny()
+
+			// process any (maybe partial) input first before stopping on error
+			if n > 0 {
+				for i := 0; ; i++ {
+					e, a := term.DecodeEscape()
+					if e == 0 {
+						r, ok := term.DecodeRune()
+						if !ok {
+							break
+						}
+						e = ansi.Escape(r)
+					}
+
+					// stop on Ctrl-C
+					if e == 0x03 {
+						return fmt.Errorf("read %v", e)
+					}
+
+					// simple character/escape-at-a-time handling
+					// NOTE the need for CR below since we're in raw mode
+					if !e.IsEscape() {
+						fmt.Printf("read[%v]: %q\r\n", i, rune(e))
+					} else if a != nil {
+						fmt.Printf("read[%v]: %v %q\r\n", i, e, a)
+					} else {
+						fmt.Printf("read[%v]: %v\r\n", i, e)
+					}
+				}
+			}
+
+			if err != nil {
+				return err // likely io.EOF
+			}
+		}
+		return nil
 	}))
 }
