@@ -227,3 +227,70 @@ func ExampleInput_nonblocking() {
 		return nil
 	}))
 }
+
+// Reading input driven by asynchronous notifications (and doing so in the
+// normative non-blocking way). This is another option for a fullscreen program
+// when there's no need for an animation frame rendering loop or when input is
+// processed independently from one.
+func ExampleInput_nonblockingAsync() {
+	// We need to handle these signals so that we restore terminal state
+	// properly (raw mode and exit the alternate screen).
+	halt := anansi.Notify(syscall.SIGTERM, syscall.SIGINT)
+
+	term := anansi.NewTerm(os.Stdin, os.Stdout, &halt)
+
+	// run in a dedicated fullscreen, and handle input as it comes in
+	term.SetRaw(true)
+	term.AddMode(ansi.ModeAlternateScreen)
+
+	anansi.MustRun(term.RunWith(func(term *anansi.Term) error {
+		canRead := make(chan os.Signal, 1)
+		if err := term.Notify(canRead); err != nil {
+			return err
+		}
+
+		for {
+			select {
+
+			case sig := <-halt.C:
+				return anansi.SigErr(sig)
+
+			case <-canRead:
+
+				n, err := term.ReadAny()
+
+				// process any (maybe partial) input first before stopping on error
+				if n > 0 {
+					for i := 0; ; i++ {
+						e, a := term.DecodeEscape()
+						if e == 0 {
+							r, ok := term.DecodeRune()
+							if !ok {
+								break
+							}
+							e = ansi.Escape(r)
+						}
+
+						// stop on Ctrl-C
+						if e == 0x03 {
+							return fmt.Errorf("read %v", e)
+						}
+
+						// simple character/escape-at-a-time handling
+						if !e.IsEscape() {
+							fmt.Printf("read[%v]: %q\r\n", i, rune(e))
+						} else if a != nil {
+							fmt.Printf("read[%v]: %v %q\r\n", i, e, a)
+						} else {
+							fmt.Printf("read[%v]: %v\r\n", i, e)
+						}
+					}
+				}
+
+				if err != nil {
+					return err // likely io.EOF
+				}
+			}
+		}
+	}))
+}
