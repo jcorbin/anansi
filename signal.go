@@ -69,6 +69,25 @@ func (sig *Signal) AsErr() error {
 	}
 }
 
+type syntheticSignal string
+
+func (ss syntheticSignal) String() string { return string(ss) }
+func (ss syntheticSignal) Signal()        {}
+
+// Send a synthetic signal to the channel, e.g. to prime it so that it fires
+// immediately to initialize a run loop.
+func (sig *Signal) Send(mess string) {
+	if sig.C == nil {
+		sig.C = make(chan os.Signal, 1)
+		sig.C <- syntheticSignal(mess)
+		return
+	}
+	select {
+	case sig.C <- syntheticSignal(mess):
+	default:
+	}
+}
+
 // SigErr is a convenience constructor for SignalError values.
 func SigErr(sig os.Signal) error { return SignalError{sig} }
 
