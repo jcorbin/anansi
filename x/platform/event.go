@@ -200,15 +200,7 @@ func (es *Events) DecodeBytes(b []byte) {
 
 // DecodeInput decodes all input currently read into the given input.
 func (es *Events) DecodeInput(in *anansi.Input) {
-	for {
-		e, a := in.DecodeEscape()
-		if e == 0 {
-			r, ok := in.DecodeRune()
-			if !ok {
-				break
-			}
-			e = ansi.Escape(r)
-		}
+	for e, a, ok := in.Decode(); ok; e, a, ok = in.Decode() {
 		es.add(e, a)
 	}
 }

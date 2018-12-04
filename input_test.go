@@ -121,15 +121,12 @@ func TestInput_ReadMore(t *testing.T) {
 
 func slurpInput(buf *bytes.Buffer, in *anansi.Input) {
 	for {
-		e, a := in.DecodeEscape()
-		if e == 0 {
-			r, ok := in.DecodeRune()
-			if !ok {
-				break
-			}
-			buf.WriteRune(r)
-		} else {
+		if e, a, ok := in.Decode(); !ok {
+			break
+		} else if e.IsEscape() {
 			fmt.Fprintf(buf, "[ansi %v %q]", e, a)
+		} else {
+			buf.WriteRune(rune(e))
 		}
 	}
 }
@@ -143,24 +140,19 @@ func ExampleInput_blocking() {
 	term.SetEcho(true)
 	anansi.MustRun(term.RunWith(func(term *anansi.Term) error {
 		for {
-			n, err := term.ReadMore()
-
 			// process any (maybe partial) input first before stopping on error
-			if n > 0 {
-				for i := 0; ; i++ {
-					e, a := term.DecodeEscape()
-					if e == 0 {
-						r, ok := term.DecodeRune()
-						if !ok {
-							break
-						}
-						fmt.Printf("read[%v]: %q\n", i, r)
-					} else if a != nil {
-						fmt.Printf("read[%v]: %v %q\n", i, e, a)
-					} else {
-						fmt.Printf("read[%v]: %v\n", i, e)
-					}
+			_, err := term.ReadMore()
+
+			i := 0
+			for e, a, ok := term.Decode(); ok; e, a, ok = term.Decode() {
+				if !e.IsEscape() {
+					fmt.Printf("read[%v]: %q\n", i, rune(e))
+				} else if a != nil {
+					fmt.Printf("read[%v]: %v %q\n", i, e, a)
+				} else {
+					fmt.Printf("read[%v]: %v\n", i, e)
 				}
+				i++
 			}
 
 			if err != nil {
@@ -185,39 +177,27 @@ func ExampleInput_nonblocking() {
 
 	anansi.MustRun(term.RunWith(func(term *anansi.Term) error {
 		for range time.Tick(time.Second / 10) {
+			// poll for halting signal before reading input
 			if err := halt.AsErr(); err != nil {
 				return err
 			}
 
-			n, err := term.ReadAny()
-
 			// process any (maybe partial) input first before stopping on error
-			if n > 0 {
-				for i := 0; ; i++ {
-					e, a := term.DecodeEscape()
-					if e == 0 {
-						r, ok := term.DecodeRune()
-						if !ok {
-							break
-						}
-						e = ansi.Escape(r)
-					}
+			// NOTE the need for CR below since we're in raw mode
+			_, err := term.ReadAny()
 
-					// stop on Ctrl-C
-					if e == 0x03 {
-						return fmt.Errorf("read %v", e)
-					}
-
-					// simple character/escape-at-a-time handling
-					// NOTE the need for CR below since we're in raw mode
-					if !e.IsEscape() {
-						fmt.Printf("read[%v]: %q\r\n", i, rune(e))
-					} else if a != nil {
-						fmt.Printf("read[%v]: %v %q\r\n", i, e, a)
-					} else {
-						fmt.Printf("read[%v]: %v\r\n", i, e)
-					}
+			i := 0
+			for e, a, ok := term.Decode(); ok; e, a, ok = term.Decode() {
+				if e == 0x03 {
+					return fmt.Errorf("read %v", e) // stop on Ctrl-C
+				} else if !e.IsEscape() {
+					fmt.Printf("read[%v]: %q\r\n", i, rune(e))
+				} else if a != nil {
+					fmt.Printf("read[%v]: %v %q\r\n", i, e, a)
+				} else {
+					fmt.Printf("read[%v]: %v\r\n", i, e)
 				}
+				i++
 			}
 
 			if err != nil {
@@ -256,35 +236,22 @@ func ExampleInput_nonblockingAsync() {
 				return anansi.SigErr(sig)
 
 			case <-canRead:
-
-				n, err := term.ReadAny()
-
 				// process any (maybe partial) input first before stopping on error
-				if n > 0 {
-					for i := 0; ; i++ {
-						e, a := term.DecodeEscape()
-						if e == 0 {
-							r, ok := term.DecodeRune()
-							if !ok {
-								break
-							}
-							e = ansi.Escape(r)
-						}
+				// NOTE the need for CR below since we're in raw mode
+				_, err := term.ReadAny()
 
-						// stop on Ctrl-C
-						if e == 0x03 {
-							return fmt.Errorf("read %v", e)
-						}
-
-						// simple character/escape-at-a-time handling
-						if !e.IsEscape() {
-							fmt.Printf("read[%v]: %q\r\n", i, rune(e))
-						} else if a != nil {
-							fmt.Printf("read[%v]: %v %q\r\n", i, e, a)
-						} else {
-							fmt.Printf("read[%v]: %v\r\n", i, e)
-						}
+				i := 0
+				for e, a, ok := term.Decode(); ok; e, a, ok = term.Decode() {
+					if e == 0x03 {
+						return fmt.Errorf("read %v", e) // stop on Ctrl-C
+					} else if !e.IsEscape() {
+						fmt.Printf("read[%v]: %q\r\n", i, rune(e))
+					} else if a != nil {
+						fmt.Printf("read[%v]: %v %q\r\n", i, e, a)
+					} else {
+						fmt.Printf("read[%v]: %v\r\n", i, e)
 					}
+					i++
 				}
 
 				if err != nil {

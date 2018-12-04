@@ -151,24 +151,18 @@ func runInteractive(term *anansi.Term) error {
 
 	input := make(chan readData)
 	go func() {
+		defer close(input)
 		for {
-			if _, err := term.ReadMore(); err != nil {
+			_, err := term.ReadMore()
+			for e, a, ok := term.Decode(); ok; e, a, ok = term.Decode() {
+				if a != nil {
+					a = append([]byte(nil), a...)
+				}
+				input <- readData{e: e, a: a}
+			}
+			if err != nil {
 				input <- readData{err: err}
 				return
-			}
-			for {
-				e, a := term.DecodeEscape()
-				if e == 0 {
-					r, ok := term.DecodeRune()
-					if !ok {
-						break
-					}
-					input <- readData{e: ansi.Escape(r)}
-				} else if a != nil {
-					input <- readData{e: e, a: append([]byte(nil), a...)}
-				} else {
-					input <- readData{e: e}
-				}
 			}
 		}
 	}()

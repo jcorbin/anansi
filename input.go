@@ -102,14 +102,27 @@ func (in *Input) Notify(sigio chan os.Signal) error {
 	return in.setAsync(sigio != nil)
 }
 
-// DecodeEscape tries to decode an ANSI escape sequence from the internal byte
-// buffer; if the returned escape identifier is 0, then the user may proceed to
-// call DecodeRune().
+// Decode decodes the next available ANSI escape sequence or UTF8 rune from the
+// internal buffer filled by ReadMore or ReadAny. If the ok return value is
+// false, then none can be decoded without first reading more input.
 //
-// NOTE any returned argument slice becomes invalid after the next call to
-// DecodeEscape or DecodeRune; the caller must copy any bytes out if it needs
-// to retain them.
-func (in *Input) DecodeEscape() (e ansi.Escape, a []byte) {
+// The caller should call e.IsEscape() to tell the difference between
+// escape-sequence-signifying runes, and normal ones. Normal runes may then be
+// cast and handled ala `if !e.IsEscape() { r := rune(e) }`.
+//
+// NOTE any returned escape argument slice becomes invalid after the next call
+// to Decode; the caller MUST copy any bytes out if it needs to retain them.
+func (in *Input) Decode() (e ansi.Escape, a []byte, ok bool) {
+	if e, a := in.decodeEscape(); e != 0 {
+		return e, a, true
+	}
+	if r, ok := in.decodeRune(); ok {
+		return ansi.Escape(r), nil, true
+	}
+	return 0, nil, false
+}
+
+func (in *Input) decodeEscape() (e ansi.Escape, a []byte) {
 	if in.buf.Len() == 0 {
 		return 0, nil
 	}
@@ -120,13 +133,7 @@ func (in *Input) DecodeEscape() (e ansi.Escape, a []byte) {
 	return e, a
 }
 
-// DecodeRune tries to decode a complete non ANSI escape-sequence-related rune
-// from the internal buffer, returning it and true if possible.
-//
-// Otherwise it returns 0 and false, not advancing the internal byte buffer
-// beyond the partial control/rune so that DecodeEscape can have a chance to
-// decode it with future input.
-func (in *Input) DecodeRune() (rune, bool) {
+func (in *Input) decodeRune() (rune, bool) {
 	if in.buf.Len() == 0 {
 		return 0, false
 	}
@@ -135,7 +142,6 @@ func (in *Input) DecodeRune() (rune, bool) {
 		switch r {
 		case 0x90, 0x9B, 0x9D, 0x9E, 0x9F: // DCS, CSI, OSC, PM, APC
 			return 0, false
-		case utf8.RuneError:
 		case 0x1B: // ESC
 			if p := in.buf.Bytes(); len(p) == cap(p) && !in.ateof {
 				return 0, false
@@ -453,7 +459,17 @@ func ReadInputReplay(f *os.File) (InputReplay, error) {
 	}
 
 	for {
-		if e, a := in.DecodeEscape(); e == 0x9F { // APC
+		e, a, ok := in.Decode()
+		if !ok {
+			if _, err := in.ReadMore(); err == io.EOF {
+				push()
+				break
+			} else if err != nil {
+				return nil, err
+			}
+		}
+
+		if e == 0x9F { // APC
 			switch {
 			case bytes.HasPrefix(a, []byte("recTime:")):
 				push()
@@ -471,17 +487,12 @@ func ReadInputReplay(f *os.File) (InputReplay, error) {
 				prot.m = [2]int{off, len(bs)}
 				off = len(bs)
 			}
-		} else if e != 0 {
+		} else if e.IsEscape() {
 			bs = e.AppendWith(bs, a...)
-		} else if r, ok := in.DecodeRune(); ok {
+		} else {
 			var tmp [4]byte
-			n := utf8.EncodeRune(tmp[:], r)
+			n := utf8.EncodeRune(tmp[:], rune(e))
 			bs = append(bs, tmp[:n]...)
-		} else if _, err := in.ReadMore(); err == io.EOF {
-			push()
-			break
-		} else if err != nil {
-			return nil, err
 		}
 	}
 
