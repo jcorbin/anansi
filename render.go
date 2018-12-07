@@ -6,6 +6,15 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
+func WriteGrid(w io.Writer, g Grid, styles ...Style) (n int, err error) {
+	style := Styles(styles...)
+	var cur CursorState
+	n, cur, err = withAnsiWriter(w, cur, func(aw ansiWriter, cur CursorState) (int, CursorState) {
+		return writeGridFull(aw, cur, g, style)
+	})
+	return n, err
+}
+
 // WriteGridUpdate writes a grid's contents into an io.Writer, relative to
 // current cursor state and any prior screen contents. To force an absolute
 // (non-differential) update, pass an empty prior grid. Returns the number of
