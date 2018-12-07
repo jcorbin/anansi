@@ -56,9 +56,12 @@ func (at *Attr) SetRaw(raw bool) error {
 		return nil
 	}
 	at.raw = raw
-	if at.file != nil {
-		at.cur = at.modifyTermios(at.orig)
-		return at.setAttr(at.cur)
+	if at.file == nil {
+		return nil
+	}
+	at.cur = at.modifyTermios(at.orig)
+	if err := at.setAttr(at.cur); err != nil {
+		return err
 	}
 	return nil
 }
@@ -70,13 +73,16 @@ func (at *Attr) SetEcho(echo bool) error {
 		return nil
 	}
 	at.echo = echo
-	if at.file != nil {
-		if echo {
-			at.cur.Lflag |= syscall.ECHO
-		} else {
-			at.cur.Lflag &^= syscall.ECHO
-		}
-		return at.setAttr(at.cur)
+	if at.file == nil {
+		return nil
+	}
+	if echo {
+		at.cur.Lflag |= syscall.ECHO
+	} else {
+		at.cur.Lflag &^= syscall.ECHO
+	}
+	if err := at.setAttr(at.cur); err != nil {
+		return err
 	}
 	return nil
 }
@@ -112,11 +118,15 @@ func (at *Attr) Enter(term *Term) (err error) {
 	} else {
 		at.ownFile = true
 	}
-	if at.orig, err = at.getAttr(); err == nil {
-		at.cur = at.modifyTermios(at.orig)
-		err = at.setAttr(at.cur)
+	at.orig, err = at.getAttr()
+	if err != nil {
+		return err
 	}
-	return err
+	at.cur = at.modifyTermios(at.orig)
+	if err = at.setAttr(at.cur); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Exit restores termios attributes, and clears the File pointer if it was set
@@ -125,12 +135,14 @@ func (at *Attr) Exit(term *Term) error {
 	if at.file == nil {
 		return nil
 	}
-	err := at.setAttr(at.orig)
-	if !at.ownFile && err == nil {
+	if err := at.setAttr(at.orig); err != nil {
+		return err
+	}
+	if !at.ownFile {
 		at.file = nil
 		at.ownFile = false
 	}
-	return err
+	return nil
 }
 
 func (at Attr) ioctl(request, arg1, arg2, arg3, arg4 uintptr) error {

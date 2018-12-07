@@ -324,27 +324,29 @@ func (in *Input) readBuf() []byte {
 }
 
 func (in *Input) setAsync(async bool) error {
-	if async != in.async {
-		in.async = async
-		if _, err := in.setFlags(); err != nil {
+	if async == in.async {
+		return nil
+	}
+	in.async = async
+	if _, err := in.setFlags(); err != nil {
+		return err
+	}
+	if in.async {
+		_, _, err := in.fcntl(syscall.F_SETOWN, uintptr(syscall.Getpid()))
+		if err != nil && runtime.GOOS != "darwin" {
 			return err
-		}
-		if in.async {
-			if _, _, err := in.fcntl(syscall.F_SETOWN, uintptr(syscall.Getpid())); err != nil && runtime.GOOS != "darwin" {
-				return err
-			}
 		}
 	}
 	return nil
 }
 
 func (in *Input) setNonblock(nonblock bool) error {
-	if nonblock != in.nonblock {
-		in.nonblock = nonblock
-		_, err := in.setFlags()
-		return err
+	if nonblock == in.nonblock {
+		return nil
 	}
-	return nil
+	in.nonblock = nonblock
+	_, err := in.setFlags()
+	return err
 }
 
 func (in *Input) setFlags() (prior uintptr, _ error) {
