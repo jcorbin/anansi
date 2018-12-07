@@ -80,3 +80,19 @@ func (tcs contexts) Close() (rerr error) {
 	}
 	return rerr
 }
+
+// RawMode is a convenience for setting up terminal raw mode as a
+// Context value.
+var RawMode Context = rawMode{}
+
+type rawMode struct{}
+
+func (rm rawMode) Enter(term *Term) error {
+	err := term.SetRaw(true)
+	if err == nil {
+		err = term.SetEcho(false)
+	}
+	return err
+}
+
+func (rm rawMode) Exit(term *Term) error { return nil }
