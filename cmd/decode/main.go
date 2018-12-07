@@ -54,7 +54,7 @@ func run(term *anansi.Term) error {
 		return err
 	}
 
-	return term.RunWith(runInteractive)
+	return term.RunWithFunc(runInteractive)
 }
 
 func runBatch(in, out *os.File) (err error) {

@@ -165,7 +165,7 @@ func IsReplayStop(err error) bool {
 // RunWith runs the given function under the platform anansi.Term; such
 // function should call Platform.Run one or more times.
 func (p *Platform) RunWith(run func(*Platform) error) error {
-	return p.term.RunWith(func(_ *anansi.Term) error {
+	return p.term.RunWithFunc(func(_ *anansi.Term) error {
 		return run(p)
 	})
 }

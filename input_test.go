@@ -194,7 +194,7 @@ func slurpInput(buf *bytes.Buffer, in *anansi.Input) {
 func ExampleInput_blocking() {
 	term := anansi.NewTerm(os.Stdin, os.Stdout)
 	term.SetEcho(true)
-	anansi.MustRun(term.RunWith(func(term *anansi.Term) error {
+	anansi.MustRun(term.RunWithFunc(func(term *anansi.Term) error {
 		for {
 			// process any (maybe partial) input first before stopping on error
 			_, err := term.ReadMore()
@@ -231,7 +231,7 @@ func ExampleInput_nonblocking() {
 	term.SetRaw(true)
 	term.AddMode(ansi.ModeAlternateScreen)
 
-	anansi.MustRun(term.RunWith(func(term *anansi.Term) error {
+	anansi.MustRun(term.RunWithFunc(func(term *anansi.Term) error {
 		for range time.Tick(time.Second / 10) {
 			// poll for halting signal before reading input
 			if err := halt.AsErr(); err != nil {
@@ -279,7 +279,7 @@ func ExampleInput_nonblockingAsync() {
 	term.SetRaw(true)
 	term.AddMode(ansi.ModeAlternateScreen)
 
-	anansi.MustRun(term.RunWith(func(term *anansi.Term) error {
+	anansi.MustRun(term.RunWithFunc(func(term *anansi.Term) error {
 		canRead := make(chan os.Signal, 1)
 		if err := term.Notify(canRead); err != nil {
 			return err

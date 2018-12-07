@@ -39,7 +39,7 @@ func ExampleTermScreen_termapp() {
 	term.SetRaw(true)
 	term.AddMode(ansi.ModeAlternateScreen)
 	resize.Send("initialize screen size")
-	anansi.MustRun(term.RunWith(run))
+	anansi.MustRun(term.RunWithFunc(run))
 }
 
 // run implements the main event loop under managed terminal context.

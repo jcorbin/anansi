@@ -24,7 +24,7 @@ func ExampleSignal() {
 		&resize,
 	)
 
-	anansi.MustRun(term.RunWith(func(term *anansi.Term) error {
+	anansi.MustRun(term.RunWithFunc(func(term *anansi.Term) error {
 		for {
 			select {
 
