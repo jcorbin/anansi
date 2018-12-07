@@ -119,6 +119,9 @@ func (at *Attr) Enter(term *Term) (err error) {
 	} else {
 		at.ownFile = true
 	}
+	if at.file == nil {
+		return nil
+	}
 	at.orig, err = at.getAttr()
 	if err != nil {
 		return fmt.Errorf("failed to get termios attrs: %v", err)

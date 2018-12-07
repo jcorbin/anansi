@@ -16,16 +16,20 @@ type Mode struct {
 
 // Enter writes the modes' Set() string to the terminal's output file.
 func (mode *Mode) Enter(term *Term) error {
-	if _, err := term.Output.File.Write(mode.Set); err != nil {
-		return fmt.Errorf("failed to write mode set string: %v", err)
+	if term.Output.File != nil {
+		if _, err := term.Output.File.Write(mode.Set); err != nil {
+			return fmt.Errorf("failed to write mode set string: %v", err)
+		}
 	}
 	return nil
 }
 
 // Exit writes the modes' Reset() string to the terminal's output file.
 func (mode *Mode) Exit(term *Term) error {
-	if _, err := term.Output.File.Write(mode.Reset); err != nil {
-		return fmt.Errorf("failed to write mode reset string: %v", err)
+	if term.Output.File != nil {
+		if _, err := term.Output.File.Write(mode.Reset); err != nil {
+			return fmt.Errorf("failed to write mode reset string: %v", err)
+		}
 	}
 	return nil
 }

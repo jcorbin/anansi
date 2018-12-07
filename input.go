@@ -270,6 +270,9 @@ func (in *Input) Enter(term *Term) error {
 
 // Exit restores fcntl flags to their Enter() time value.
 func (in *Input) Exit(term *Term) error {
+	if in.File == nil {
+		return nil
+	}
 	if _, _, err := in.fcntl(syscall.F_SETFL, in.oldFlags); err != nil {
 		return fmt.Errorf("failed to set input file flags: %v", err)
 	}
@@ -333,7 +336,7 @@ func (in *Input) setAsync(async bool) error {
 	if _, err := in.setFlags(); err != nil {
 		return err
 	}
-	if in.async {
+	if in.async && in.File != nil {
 		_, _, err := in.fcntl(syscall.F_SETOWN, uintptr(syscall.Getpid()))
 		if err != nil && runtime.GOOS != "darwin" {
 			return fmt.Errorf("failed to set input file owner: %v", err)
@@ -352,6 +355,9 @@ func (in *Input) setNonblock(nonblock bool) error {
 }
 
 func (in *Input) setFlags() (prior uintptr, _ error) {
+	if in.File == nil {
+		return 0, nil
+	}
 	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get input file flags: %v", err)
