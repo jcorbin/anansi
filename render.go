@@ -27,6 +27,7 @@ func writeGridUpdate(aw ansiWriter, cur CursorState, g, prior Grid, style Style)
 	n := 0
 	if len(g.Attr) > 0 && len(g.Rune) > 0 {
 		if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Rect.Empty() || !prior.Rect.Eq(g.Rect) {
+			n += aw.WriteSeq(ansi.ED.With('2'))
 			n, cur = writeGridFull(aw, cur, g, style)
 		} else {
 			n, cur = writeGridDiff(aw, cur, g, prior, style)
@@ -41,7 +42,7 @@ func writeGridFull(aw ansiWriter, cur CursorState, g Grid, style Style) (int, Cu
 		style = Styles(style, ZeroRuneStyle(empty))
 	}
 	style = Styles(style, DefaultRuneStyle(empty))
-	n := aw.WriteSeq(ansi.ED.With('2'))
+	n := 0
 	for i, pt := 0, ansi.Pt(1, 1); i < len(g.Rune); {
 		if gr, ga := style.Style(pt, 0, g.Rune[i], 0, g.Attr[i]); gr != 0 {
 			mv := cur.To(pt)
