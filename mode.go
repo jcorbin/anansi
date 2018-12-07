@@ -1,6 +1,10 @@
 package anansi
 
-import "github.com/jcorbin/anansi/ansi"
+import (
+	"fmt"
+
+	"github.com/jcorbin/anansi/ansi"
+)
 
 // Mode holds a set/reset byte buffer to write to a terminal file during
 // Enter/Exit. Primary useful for set/reset mode control sequences.
@@ -12,14 +16,18 @@ type Mode struct {
 
 // Enter writes the modes' Set() string to the terminal's output file.
 func (mode *Mode) Enter(term *Term) error {
-	_, err := term.Output.File.Write(mode.Set)
-	return err
+	if _, err := term.Output.File.Write(mode.Set); err != nil {
+		return fmt.Errorf("failed to write mode set string: %v", err)
+	}
+	return nil
 }
 
 // Exit writes the modes' Reset() string to the terminal's output file.
 func (mode *Mode) Exit(term *Term) error {
-	_, err := term.Output.File.Write(mode.Reset)
-	return err
+	if _, err := term.Output.File.Write(mode.Reset); err != nil {
+		return fmt.Errorf("failed to write mode reset string: %v", err)
+	}
+	return nil
 }
 
 // AddMode adds Set/Reset pairs from one or more ansi.Mode values.

@@ -2,6 +2,7 @@ package anansi
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"os"
 	"syscall"
@@ -61,7 +62,7 @@ func (at *Attr) SetRaw(raw bool) error {
 	}
 	at.cur = at.modifyTermios(at.orig)
 	if err := at.setAttr(at.cur); err != nil {
-		return err
+		return fmt.Errorf("failed to set termios attr: %v", err)
 	}
 	return nil
 }
@@ -82,7 +83,7 @@ func (at *Attr) SetEcho(echo bool) error {
 		at.cur.Lflag &^= syscall.ECHO
 	}
 	if err := at.setAttr(at.cur); err != nil {
-		return err
+		return fmt.Errorf("failed to set termios attr: %v", err)
 	}
 	return nil
 }
@@ -120,11 +121,11 @@ func (at *Attr) Enter(term *Term) (err error) {
 	}
 	at.orig, err = at.getAttr()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get termios attrs: %v", err)
 	}
 	at.cur = at.modifyTermios(at.orig)
 	if err = at.setAttr(at.cur); err != nil {
-		return err
+		return fmt.Errorf("failed to set termios attr: %v", err)
 	}
 	return nil
 }
@@ -136,7 +137,7 @@ func (at *Attr) Exit(term *Term) error {
 		return nil
 	}
 	if err := at.setAttr(at.orig); err != nil {
-		return err
+		return fmt.Errorf("failed to set termios attr: %v", err)
 	}
 	if !at.ownFile {
 		at.file = nil
