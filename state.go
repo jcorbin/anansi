@@ -212,7 +212,7 @@ func (scs *ScreenState) Update(w io.Writer, cur CursorState, prior Grid) (int, C
 
 func (scs *ScreenState) update(aw ansiWriter, cur CursorState, prior Grid) (n int, _ CursorState) {
 	n += aw.WriteSeq(cur.Hide())
-	m, cur := writeGrid(aw, cur, scs.Grid, prior, NoopStyle)
+	m, cur := writeGridUpdate(aw, cur, scs.Grid, prior, NoopStyle)
 	n += m
 	m, cur = scs.UserCursor.applyTo(aw, cur)
 	n += m

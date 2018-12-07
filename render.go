@@ -6,12 +6,11 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-// WriteGrid writes a grid's contents into an io.Writer, relative to current
-// cursor state and any prior screen contents.
-// To force an absolute (non-differential) update, pass an empty prior grid.
-// Returns the number of bytes written, final cursor state, and any write error
-// encountered.
-func WriteGrid(w io.Writer, cur CursorState, g, prior Grid, styles ...Style) (int, CursorState, error) {
+// WriteGridUpdate writes a grid's contents into an io.Writer, relative to
+// current cursor state and any prior screen contents. To force an absolute
+// (non-differential) update, pass an empty prior grid. Returns the number of
+// bytes written, final cursor state, and any write error encountered.
+func WriteGridUpdate(w io.Writer, cur CursorState, g, prior Grid, styles ...Style) (int, CursorState, error) {
 	if g.Stride != g.Rect.Dx() {
 		panic("sub-grid update not implemented")
 	}
@@ -20,11 +19,11 @@ func WriteGrid(w io.Writer, cur CursorState, g, prior Grid, styles ...Style) (in
 	}
 	return withAnsiWriter(w, cur, func(aw ansiWriter, cur CursorState) (int, CursorState) {
 		style := Styles(styles...)
-		return writeGrid(aw, cur, g, prior, style)
+		return writeGridUpdate(aw, cur, g, prior, style)
 	})
 }
 
-func writeGrid(aw ansiWriter, cur CursorState, g, prior Grid, style Style) (int, CursorState) {
+func writeGridUpdate(aw ansiWriter, cur CursorState, g, prior Grid, style Style) (int, CursorState) {
 	n := 0
 	if len(g.Attr) > 0 && len(g.Rune) > 0 {
 		if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Rect.Empty() || !prior.Rect.Eq(g.Rect) {
