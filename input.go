@@ -102,6 +102,21 @@ func (in *Input) Notify(sigio chan os.Signal) error {
 	return in.setAsync(sigio != nil)
 }
 
+// InputSignal is a convenience wrapper for using a Signal and Input.Notify
+// contextually.
+type InputSignal struct {
+	Signal
+}
+
+// Enter opens the signal, and sets up input notification.
+func (is *InputSignal) Enter(term *Term) error {
+	err := is.Open()
+	if err == nil {
+		err = term.Input.Notify(is.C)
+	}
+	return err
+}
+
 // Decode decodes the next available ANSI escape sequence or UTF8 rune from the
 // internal buffer filled by ReadMore or ReadAny. If the ok return value is
 // false, then none can be decoded without first reading more input.
