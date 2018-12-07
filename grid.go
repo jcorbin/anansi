@@ -6,8 +6,6 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-// TODO grid composition/copy function
-
 // Grid is a grid of screen cells.
 type Grid struct {
 	Attr []ansi.SGRAttr
