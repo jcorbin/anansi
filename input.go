@@ -261,11 +261,9 @@ func (in *Input) ReadAny() (n int, err error) {
 // Enter gets the current fcntl flags for restoration during Exit(), and sets
 // non-blocking/async modes if needed.
 func (in *Input) Enter(term *Term) error {
-	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
+	prior, err := in.setFlags()
 	if err == nil {
-		in.oldFlags = flags
-		flags = in.buildFlags(flags)
-		_, _, err = in.fcntl(syscall.F_SETFL, flags)
+		in.oldFlags = prior
 	}
 	return err
 }
@@ -328,7 +326,7 @@ func (in *Input) readBuf() []byte {
 func (in *Input) setAsync(async bool) error {
 	if async != in.async {
 		in.async = async
-		if err := in.setFlags(); err != nil {
+		if _, err := in.setFlags(); err != nil {
 			return err
 		}
 		if in.async {
@@ -343,19 +341,21 @@ func (in *Input) setAsync(async bool) error {
 func (in *Input) setNonblock(nonblock bool) error {
 	if nonblock != in.nonblock {
 		in.nonblock = nonblock
-		return in.setFlags()
+		_, err := in.setFlags()
+		return err
 	}
 	return nil
 }
 
-func (in *Input) setFlags() error {
-	var flags uintptr
+func (in *Input) setFlags() (prior uintptr, _ error) {
 	flags, _, err := in.fcntl(syscall.F_GETFL, 0)
-	if err == nil {
-		flags = in.buildFlags(flags)
-		_, _, err = in.fcntl(syscall.F_SETFL, flags)
+	if err != nil {
+		return 0, err
 	}
-	return err
+	prior = flags
+	flags = in.buildFlags(flags)
+	_, _, err = in.fcntl(syscall.F_SETFL, flags)
+	return prior, err
 }
 
 func (in *Input) buildFlags(flags uintptr) uintptr {
