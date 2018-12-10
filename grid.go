@@ -36,14 +36,17 @@ func (g *Grid) Resize(size image.Point) bool {
 		g.Rect.Max = g.Rect.Min.Add(size)
 		g.Stride = size.X
 		n := g.Stride * size.Y
-		for n > cap(g.Attr) {
-			g.Attr = append(g.Attr, 0)
+		if n > cap(g.Rune) {
+			as := make([]ansi.SGRAttr, n)
+			rs := make([]rune, n)
+			copy(as, g.Attr)
+			copy(rs, g.Rune)
+			g.Attr, g.Rune = as, rs
+		} else {
+			g.Attr = g.Attr[:n]
+			g.Rune = g.Rune[:n]
 		}
-		for n > cap(g.Rune) {
-			g.Rune = append(g.Rune, 0)
-		}
-		g.Attr = g.Attr[:n]
-		g.Rune = g.Rune[:n]
+		// TODO re-stride data
 	}
 	return true
 }
