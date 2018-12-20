@@ -46,6 +46,8 @@ const (
 	ModeAlternateScroll = ModePrivate | 1007
 	ModeMetaReporting   = ModePrivate | 1036
 	ModeAlternateScreen = ModePrivate | 1049
+
+	ModeBracketedPaste = ModePrivate | 2004
 )
 
 // TODO http://www.disinterest.org/resource/MUD-Dev/1997q1/000244.html and others
