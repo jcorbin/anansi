@@ -13,19 +13,22 @@ type Bitmap struct {
 	Rect   image.Rectangle
 }
 
-// NewBitmap creates a new bitmap with the given bit data and stride.
-func NewBitmap(stride int, data []bool) *Bitmap {
+// Load the given bit data into the bitmap.
+func (bi *Bitmap) Load(stride int, data []bool) {
 	h := len(data) / stride
 	for i, n := 0, len(data)%h; i < n; i++ {
 		data = append(data, false)
 	}
-	sz := image.Pt(stride, h)
-	return &Bitmap{data, stride, image.Rectangle{image.ZP, sz}}
+	bi.Bit = data
+	bi.Stride = stride
+	bi.Rect = image.Rectangle{image.ZP, image.Pt(stride, h)}
 }
 
-// NewBitmapSize creates a new bitmap with the given size anchored at 0,0.
-func NewBitmapSize(sz image.Point) *Bitmap {
-	return &Bitmap{make([]bool, sz.X*sz.Y), sz.X, image.Rectangle{image.ZP, sz}}
+// Resize the bitmap, re-allocating its bit storage.
+func (bi *Bitmap) Resize(sz image.Point) {
+	bi.Bit = make([]bool, sz.X*sz.Y)
+	bi.Stride = sz.X
+	bi.Rect = image.Rectangle{image.ZP, sz}
 }
 
 // ParseBitmap parses a convenience representation for creating bitmaps.
@@ -189,4 +192,37 @@ func (bi *Bitmap) Rune(p image.Point) (c rune) {
 	}
 
 	return 0x2800 | c
+}
+
+// SubAt is a convenience for calling SubRect with at as the new Min point, and
+// the receiver's Rect.Max point.
+func (bi Bitmap) SubAt(at image.Point) Bitmap {
+	return bi.SubRect(image.Rectangle{Min: at, Max: bi.Rect.Max})
+}
+
+// SubSize is a convenience for calling SubRect with a Max point determined by
+// adding the given size to the receiver's Rect.Min point.
+func (bi Bitmap) SubSize(sz image.Point) Bitmap {
+	return bi.SubRect(image.Rectangle{Min: bi.Rect.Min, Max: bi.Rect.Min.Add(sz)})
+}
+
+// SubRect returns a subgrid, sharing the receiver's Rune/Attr/Stride data, but
+// with a new bounding Rect.
+// Clamps r.Max to bi.Rect.Max, and returns the zero Bitmap if r.Min is not in
+// bi.Rect.
+func (bi Bitmap) SubRect(r image.Rectangle) Bitmap {
+	if !r.Min.In(bi.Rect) {
+		return Bitmap{}
+	}
+	if r.Max.X > bi.Rect.Max.X {
+		r.Max.X = bi.Rect.Max.X
+	}
+	if r.Max.Y > bi.Rect.Max.Y {
+		r.Max.Y = bi.Rect.Max.Y
+	}
+	return Bitmap{
+		Bit:    bi.Bit,
+		Stride: bi.Stride,
+		Rect:   r,
+	}
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"image"
 	"math"
 	"os"
 
@@ -44,10 +43,7 @@ func (sd *schotterDemo) Update(ctx *platform.Context) (err error) {
 		zoomed = true
 	}
 
-	var canvasSize image.Point
-	if sd.canvas != nil {
-		canvasSize = sd.canvas.Rect.Size()
-	}
+	canvasSize := sd.canvas.Rect.Size()
 
 	if screenSize := ctx.Output.Bounds().Size(); screenSize.X != canvasSize.X/2 || zoomed {
 		sd.padding = 0
@@ -63,7 +59,7 @@ func (sd *schotterDemo) Update(ctx *platform.Context) (err error) {
 		sd.squaresPerCol = ((screenSize.Y-sd.padding)*4 + roundUp) / sd.squareSide
 
 		// TODO resize if != nil
-		sd.canvas = anansi.NewBitmapSize(canvasSize)
+		sd.canvas.Resize(canvasSize)
 	}
 
 	for i := range sd.canvas.Bit {

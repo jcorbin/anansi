@@ -115,7 +115,7 @@ func writeGridDiff(aw ansiWriter, cur CursorState, g, prior Grid, style Style) (
 // WriteBitmap writes a bitmap's contents as braille runes into an io.Writer.
 // Optional style(s) may be passed to control graphical rendition of the
 // braille runes.
-func WriteBitmap(w io.Writer, bi *Bitmap, styles ...Style) (int, error) {
+func WriteBitmap(w io.Writer, bi Bitmap, styles ...Style) (int, error) {
 	// TODO deal with CursorState?
 	n, _, err := withAnsiWriter(w, CursorState{}, func(aw ansiWriter, cur CursorState) (int, CursorState) {
 		style := Styles(styles...)
@@ -130,7 +130,7 @@ func WriteBitmap(w io.Writer, bi *Bitmap, styles ...Style) (int, error) {
 	return n, err
 }
 
-func writeBitmap(aw ansiWriter, cur CursorState, bi *Bitmap, style Style) (n int, _ CursorState) {
+func writeBitmap(aw ansiWriter, cur CursorState, bi Bitmap, style Style) (n int, _ CursorState) {
 	for bp := bi.Rect.Min; bp.Y < bi.Rect.Max.Y; bp.Y += 4 {
 		if bp.Y > 0 {
 			n += aw.WriteSeq(cur.NewLine())

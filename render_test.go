@@ -13,11 +13,17 @@ import (
 	anansitest "github.com/jcorbin/anansi/test"
 )
 
+func makeTestBitmap(set string, lines ...string) Bitmap {
+	var bi Bitmap
+	bi.Load(MustParseBitmap(set, lines...))
+	return bi
+}
+
 func TestWriteBitmap(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		sz       image.Point
-		bi       *Bitmap
+		bi       Bitmap
 		outLines []string
 		styles   []Style
 	}{
@@ -25,7 +31,7 @@ func TestWriteBitmap(t *testing.T) {
 		{
 			name: "basic test pattern",
 			sz:   image.Pt(2, 2),
-			bi: NewBitmap(MustParseBitmap("# ",
+			bi: makeTestBitmap("# ",
 				"# . # . ",
 				". # . # ",
 				"# . # . ",
@@ -34,7 +40,7 @@ func TestWriteBitmap(t *testing.T) {
 				". # . # ",
 				"# . # . ",
 				". # . # ",
-			)),
+			),
 			outLines: []string{
 				"⢕⢕",
 				"⢕⢕",
@@ -44,7 +50,7 @@ func TestWriteBitmap(t *testing.T) {
 		{
 			name: "basic test pattern",
 			sz:   image.Pt(3, 3),
-			bi: NewBitmap(MustParseBitmap("# ",
+			bi: makeTestBitmap("# ",
 				"# . # . ",
 				". # . # ",
 				"# . # . ",
@@ -53,7 +59,7 @@ func TestWriteBitmap(t *testing.T) {
 				". # . # ",
 				"# . # . ",
 				". # . # ",
-			)),
+			),
 			outLines: []string{
 				"⢕⢕ ",
 				"⢕⢕ ",

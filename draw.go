@@ -77,7 +77,7 @@ func copySetup(dst, src Grid) (dp, sp ansi.Point, di, si int) {
 // runes to be drawn.
 //
 // Use sub-grids to target specific regions; see Grid.SubRect.
-func DrawBitmap(dst Grid, src *Bitmap, styles ...Style) {
+func DrawBitmap(dst Grid, src Bitmap, styles ...Style) {
 	style := Styles(styles...)
 	for gp, bp := dst.Rect.Min, src.Rect.Min; bp.Y < src.Rect.Max.Y; bp.Y += 4 {
 		gp.X, bp.X = dst.Rect.Min.X, src.Rect.Min.X

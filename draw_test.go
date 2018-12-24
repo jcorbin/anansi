@@ -164,7 +164,7 @@ func TestDrawBitmap(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		gridSize image.Point
-		bi       *Bitmap
+		bi       Bitmap
 		outLines []string
 		at       ansi.Point
 		styles   []Style
@@ -173,7 +173,7 @@ func TestDrawBitmap(t *testing.T) {
 		{
 			name:     "2x2 alternating into 2x2 grid",
 			gridSize: image.Pt(2, 2),
-			bi:       newTestBitmap(image.Pt(2*2, 2*4), alternating),
+			bi:       fillTestBitmap(image.Pt(2*2, 2*4), alternating),
 			outLines: []string{
 				"⢕⢕",
 				"⢕⢕",
@@ -183,7 +183,7 @@ func TestDrawBitmap(t *testing.T) {
 		{
 			name:     "2x2 alternating into 3x3 grid",
 			gridSize: image.Pt(3, 3),
-			bi:       newTestBitmap(image.Pt(2*2, 2*4), alternating),
+			bi:       fillTestBitmap(image.Pt(2*2, 2*4), alternating),
 			outLines: []string{
 				"⢕⢕_",
 				"⢕⢕_",
@@ -195,7 +195,7 @@ func TestDrawBitmap(t *testing.T) {
 			name:     "2x2 alternating into 3x3 grid @2,2",
 			gridSize: image.Pt(3, 3),
 			at:       ansi.Pt(2, 2),
-			bi:       newTestBitmap(image.Pt(2*2, 2*4), alternating),
+			bi:       fillTestBitmap(image.Pt(2*2, 2*4), alternating),
 			outLines: []string{
 				"___",
 				"_⢕⢕",
@@ -207,7 +207,7 @@ func TestDrawBitmap(t *testing.T) {
 			name:     "2x2 alternating into 3x3 grid @3,3",
 			gridSize: image.Pt(3, 3),
 			at:       ansi.Pt(3, 3),
-			bi:       newTestBitmap(image.Pt(2*2, 2*4), alternating),
+			bi:       fillTestBitmap(image.Pt(2*2, 2*4), alternating),
 			outLines: []string{
 				"___",
 				"___",
@@ -218,7 +218,7 @@ func TestDrawBitmap(t *testing.T) {
 		{
 			name:     "8x4 alternating into 16x8 grid",
 			gridSize: image.Pt(16, 8),
-			bi:       newTestBitmap(image.Pt(8*2, 4*4), alternating),
+			bi:       fillTestBitmap(image.Pt(8*2, 4*4), alternating),
 			outLines: []string{
 				"⢕⢕⢕⢕⢕⢕⢕⢕________",
 				"⢕⢕⢕⢕⢕⢕⢕⢕________",
@@ -235,7 +235,7 @@ func TestDrawBitmap(t *testing.T) {
 			name:     "8x4 alternating into 16x8 grid @9,1",
 			gridSize: image.Pt(16, 8),
 			at:       ansi.Pt(9, 1),
-			bi:       newTestBitmap(image.Pt(8*2, 4*4), alternating),
+			bi:       fillTestBitmap(image.Pt(8*2, 4*4), alternating),
 			outLines: []string{
 				"________⢕⢕⢕⢕⢕⢕⢕⢕",
 				"________⢕⢕⢕⢕⢕⢕⢕⢕",
@@ -252,7 +252,7 @@ func TestDrawBitmap(t *testing.T) {
 			name:     "8x4 alternating into 16x8 grid @9,5",
 			gridSize: image.Pt(16, 8),
 			at:       ansi.Pt(9, 5),
-			bi:       newTestBitmap(image.Pt(8*2, 4*4), alternating),
+			bi:       fillTestBitmap(image.Pt(8*2, 4*4), alternating),
 			outLines: []string{
 				"________________",
 				"________________",
@@ -269,7 +269,7 @@ func TestDrawBitmap(t *testing.T) {
 			name:     "8x4 alternating into 16x8 grid @1,5",
 			gridSize: image.Pt(16, 8),
 			at:       ansi.Pt(1, 5),
-			bi:       newTestBitmap(image.Pt(8*2, 4*4), alternating),
+			bi:       fillTestBitmap(image.Pt(8*2, 4*4), alternating),
 			outLines: []string{
 				"________________",
 				"________________",
@@ -285,7 +285,7 @@ func TestDrawBitmap(t *testing.T) {
 		{
 			name:     "16x8 alternating into 16x8 grid",
 			gridSize: image.Pt(16, 8),
-			bi:       newTestBitmap(image.Pt(16*2, 8*4), alternating),
+			bi:       fillTestBitmap(image.Pt(16*2, 8*4), alternating),
 			outLines: []string{
 				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
 				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
@@ -301,7 +301,7 @@ func TestDrawBitmap(t *testing.T) {
 		{
 			name:     "32x16 alternating into 16x8 grid",
 			gridSize: image.Pt(16, 8),
-			bi:       newTestBitmap(image.Pt(32*2, 16*4), alternating),
+			bi:       fillTestBitmap(image.Pt(32*2, 16*4), alternating),
 			outLines: []string{
 				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
 				"⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕⢕",
@@ -349,7 +349,7 @@ func BenchmarkDrawBitmap(b *testing.B) {
 				b.Run(fmt.Sprintf("size:%v", sz), func(b *testing.B) {
 					var g Grid
 					g.Resize(sz)
-					bi := newTestBitmap(image.Pt(2*sz.X, 4*sz.Y), bc.pattern)
+					bi := fillTestBitmap(image.Pt(2*sz.X, 4*sz.Y), bc.pattern)
 					for i := 0; i < b.N; i++ {
 						resetTestGrid(g)
 						DrawBitmap(g, bi, bc.styles...)
@@ -364,8 +364,9 @@ func alternating(pt image.Point) bool {
 	return pt.X%2 == pt.Y%2
 }
 
-func newTestBitmap(sz image.Point, f func(image.Point) bool) *Bitmap {
-	bi := NewBitmapSize(sz)
+func fillTestBitmap(sz image.Point, f func(image.Point) bool) Bitmap {
+	var bi Bitmap
+	bi.Resize(sz)
 	var pt image.Point
 	i := 0
 	for pt.Y = bi.Rect.Min.Y; pt.Y < bi.Rect.Max.Y; pt.Y++ {
