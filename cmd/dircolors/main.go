@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -67,7 +66,7 @@ func run() error {
 func readModel() (ansi.ColorModel, error) {
 	name := flag.Arg(0)
 	if name == "" {
-		return nil, errors.New("missing palette argument")
+		return nil, nil
 	}
 	f, err := os.Open(name)
 	if err != nil {
