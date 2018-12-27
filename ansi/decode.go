@@ -306,7 +306,14 @@ func DecodeSGR(a []byte) (attr SGRAttr, n int, _ error) {
 		case ';':
 			n++
 			continue
-		case '0', '1', '2', '3', '4', '5', '6', '7', '8':
+		case '0':
+			if m := n + 1; m < len(a) && '0' <= a[m] && a[m] <= '9' {
+				n++
+				continue
+			}
+			fallthrough
+
+		case '1', '2', '3', '4', '5', '6', '7', '8':
 			if m := n + 1; m == len(a) || a[m] == ';' {
 				switch at := []SGRAttr{
 					SGRAttrClear,
