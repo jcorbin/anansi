@@ -26,7 +26,9 @@ type Seq struct {
 	argExtraInts  []int
 }
 
-func (id Escape) seq() Seq {
+// Seq returns a control sequence with no arguments, and this escape id;
+// panics if the escape id is a normal rune.
+func (id Escape) Seq() Seq {
 	switch {
 	case 0x0000 < id && id < 0x001F,
 		0xEF00 < id && id < 0xEFFF:
@@ -39,13 +41,13 @@ func (id Escape) seq() Seq {
 // byte(s).
 // Panics if the escape id is a normal non-Escape rune.
 // See Seq.With for details.
-func (id Escape) With(arg ...byte) Seq { return id.seq().With(arg...) }
+func (id Escape) With(arg ...byte) Seq { return id.Seq().With(arg...) }
 
 // WithInts constructs an escape sequence with this identifier and the given
 // integer argument(s).
 // Panics if the escape id is a normal non-Escape rune.
 // See Seq.WithInts for details.
-func (id Escape) WithInts(args ...int) Seq { return id.seq().WithInts(args...) }
+func (id Escape) WithInts(args ...int) Seq { return id.Seq().WithInts(args...) }
 
 // WithPoint contstructs an escape sequence with an screen point component
 // values added as integer arguments in column,row (Y,X) order.
