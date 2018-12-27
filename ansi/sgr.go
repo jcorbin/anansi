@@ -512,6 +512,34 @@ func (c SGRColor) rgbSize() int {
 		len(colorStrings[uint8(c>>16)])
 }
 
+func (c SGRColor) addFGSeq(seq Seq) Seq {
+	switch {
+	case c&sgrColor24 != 0:
+		return seq.WithInts(38, 2, int(c), int(c>>8), int(c>>16)) // TODO support color space identifier?
+	case c <= SGRWhite:
+		return seq.WithInts(30 + int(c))
+	case c <= SGRBrightWhite:
+		return seq.WithInts(90 + int(c) - 8)
+	case c <= SGRGray24:
+		return seq.WithInts(38, 5, int(c))
+	}
+	return seq
+}
+
+func (c SGRColor) addBGSeq(seq Seq) Seq {
+	switch {
+	case c&sgrColor24 != 0:
+		return seq.WithInts(48, 2, int(c), int(c>>8), int(c>>16)) // TODO support color space identifier?
+	case c <= SGRWhite:
+		return seq.WithInts(40 + int(c))
+	case c <= SGRBrightWhite:
+		return seq.WithInts(100 + int(c) - 8)
+	case c <= SGRGray24:
+		return seq.WithInts(48, 5, int(c))
+	}
+	return seq
+}
+
 var colorNames = [16]string{
 	"black",
 	"red",
@@ -681,6 +709,43 @@ func (attr SGRAttr) AppendTo(p []byte) []byte {
 	}
 
 	return append(p, final)
+}
+
+// Seq constructs a control sequence value for the SGR attribute, including
+// arguments for attributes, foreground and background color as appropriate.
+func (attr SGRAttr) Seq() Seq {
+	seq := SGR.Seq()
+
+	if attr == 0 || attr == SGRAttrClear {
+		return seq.WithInts(0)
+	}
+
+	// attr arguments
+	for i, b := range []byte{
+		'0', // SGRAttrClear
+		'1', // SGRAttrBold
+		'2', // SGRAttrDim
+		'3', // SGRAttrItalic
+		'4', // SGRAttrUnderscore
+		'7', // SGRAttrNegative
+		'8', // SGRAttrConceal
+	} {
+		if attr&(1<<uint(i)) != 0 {
+			seq = seq.WithInts(int(b))
+		}
+	}
+
+	// any fg color
+	if fg, set := attr.FG(); set {
+		seq = fg.addFGSeq(seq)
+	}
+
+	// any bg color
+	if bg, set := attr.BG(); set {
+		seq = bg.addBGSeq(seq)
+	}
+
+	return seq
 }
 
 // Size returns the number of bytes needed to encode the SGR control sequence needed.
