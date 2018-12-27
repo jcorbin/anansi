@@ -720,6 +720,6 @@ func (p Palette) Index(c SGRColor) int {
 
 // sqDiff borrowed from image/color
 func sqDiff(x, y uint8) uint32 {
-	d := uint32(x - y)
+	d := uint32(x) - uint32(y)
 	return (d * d) >> 2
 }
