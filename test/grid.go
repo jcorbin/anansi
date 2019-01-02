@@ -1,6 +1,7 @@
 package anansitest
 
 import (
+	"bytes"
 	"fmt"
 	"unicode"
 	"unicode/utf8"
@@ -89,7 +90,7 @@ func GridLines(g anansi.Grid, fill rune) (lines []string) {
 	return lines
 }
 
-// GridRowData the grid''s cell data in two slices-of-slices.
+// GridRowData the grid's cell data in two slices-of-slices.
 func GridRowData(g anansi.Grid) (rs [][]rune, as [][]ansi.SGRAttr) {
 	r := g.Bounds()
 	p := r.Min
@@ -100,4 +101,39 @@ func GridRowData(g anansi.Grid) (rs [][]rune, as [][]ansi.SGRAttr) {
 		i += g.Stride
 	}
 	return rs, as
+}
+
+// RunesToLines converts row-ed runes into line strings.
+func RunesToLines(rows [][]rune, zero rune) []string {
+	lines := make([]string, len(rows))
+	for i, row := range rows {
+		for j, r := range row {
+			if r == 0 {
+				row[j] = zero
+			}
+		}
+		lines[i] = string(row)
+	}
+	return lines
+}
+
+// AttrsToCtls converts rows of ansi SGR attributes into control string lines.
+func AttrsToCtls(rows [][]ansi.SGRAttr) []string {
+	lines := make([]string, len(rows))
+	var buf bytes.Buffer
+	buf.Grow(1024)
+	var last ansi.SGRAttr
+	buf.WriteString(last.ControlString())
+	for i, row := range rows {
+		for _, a := range row {
+			if d := last.Diff(a); d != 0 {
+				buf.WriteString(d.ControlString())
+				last = last.Merge(d)
+			}
+			buf.WriteRune(' ')
+		}
+		lines[i] = buf.String()
+		buf.Reset()
+	}
+	return lines
 }
