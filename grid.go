@@ -99,3 +99,29 @@ func (g Grid) SubRect(r ansi.Rectangle) Grid {
 		Rect:   r,
 	}
 }
+
+// Eq returns true only if the other grid has the same size and contents as the
+// receiver.
+func (g Grid) Eq(other Grid, zero rune) bool {
+	n := len(g.Rune)
+	if n != len(other.Rune) {
+		return false
+	}
+	i := 0
+	for ; i < n; i++ {
+		if g.Attr[i] != other.Attr[i] {
+			return false
+		}
+		gr, or := g.Rune[i], other.Rune[i]
+		if gr == 0 {
+			gr = zero
+		}
+		if or == 0 {
+			or = zero
+		}
+		if gr != or {
+			return false
+		}
+	}
+	return true
+}
