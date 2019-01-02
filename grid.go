@@ -8,11 +8,11 @@ import (
 
 // Grid is a grid of screen cells.
 type Grid struct {
-	Attr []ansi.SGRAttr
-	Rune []rune
-	// TODO []string for multi-rune glyphs
-	Stride int
 	Rect   ansi.Rectangle
+	Stride int
+	Attr   []ansi.SGRAttr
+	Rune   []rune
+	// TODO []string for multi-rune glyphs
 }
 
 // Resize the grid to have room for n cells.
