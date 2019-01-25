@@ -2,7 +2,13 @@ PACKAGES=github.com/jcorbin/anansi/...
 
 .PHONY: test
 test: lint
-	go test $(PACKAGES)
+	go test -cover -coverprofile=.test_coverage $(PACKAGES)
+
+.test_coverage: test
+
+.PHONY: view-cover
+view-cover: .test_coverage
+	go tool cover -html=$<
 
 .PHONY: lint
 lint:
