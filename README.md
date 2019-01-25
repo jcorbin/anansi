@@ -124,14 +124,16 @@ Core [`anansi/ansi`][ansi_pkg] package:
 
 ### WIP
 
+- an [experimental mid-tier anui package](../../tree/dev/anui) architected
+  around a stack of cooperative layers with user-interaction-authority over
+  each other provides a re-usable fullscreen run loop for many application
+  cases.
 - an [interact command demo](../../tree/dev/cmd/interact/main.go) which
   allows you to interactively manipulate arguments passed to a dynamically
   executed command
 
 ### TODO
 
-- platform "middleware", i.e. for re-usable Ctrl-C and Ctrl-Z behavior (ideally
-  making current builtins like Ctrl-L and record/replay pluggable)
 - fancier image rendition (e.g. leveraging iTerm2's image support)
 - special decoding for CSI M, whose arg follows AFTER
 - provide `DecodeEscapeInString(s string)` for completeness
