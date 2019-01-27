@@ -7,6 +7,44 @@ import (
 	"syscall"
 )
 
+// OpenTerm opens the standard terminal, attached to the controlling terminal.
+// Prefers to existing os.Stdin and os.Stdout files if they're still attached,
+// opens /dev/tty otherwise.
+func OpenTerm() (*Term, error) {
+	in, out, err := openTermFiles(os.Stdin, os.Stdout)
+	if err != nil {
+		return nil, err
+	}
+	return NewTerm(in, out), nil
+}
+
+// openTermFiles opens /dev/tty if the given files are not terminals,
+// returning a usable pair of terminal in/out file handles. It also redirects
+// "log" package output to the Logs buffer if it hasn't already been done
+// (e.g. by calling OpenLogFile).
+func openTermFiles(in, out *os.File) (_, _ *os.File, rerr error) {
+	if !IsTerminal(in) {
+		f, err := os.OpenFile("/dev/tty", syscall.O_RDONLY, 0)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer func() {
+			if rerr != nil {
+				in.Close()
+			}
+		}()
+		in = f
+	}
+	if !IsTerminal(out) {
+		f, err := os.OpenFile("/dev/tty", syscall.O_WRONLY, 0)
+		if err != nil {
+			return nil, nil, err
+		}
+		out = f
+	}
+	return in, out, nil
+}
+
 // NewTerm constructs a new terminal attached the given file pair, and with the
 // given context.
 func NewTerm(in, out *os.File, cs ...Context) *Term {
