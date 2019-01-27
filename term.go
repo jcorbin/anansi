@@ -62,12 +62,7 @@ func NewTerm(in, out *os.File, cs ...Context) *Term {
 	term := &Term{}
 	term.Input.File = in
 	term.Output.File = out
-	term.ctx = Contexts(
-		&term.Input,
-		&term.Output,
-		&term.Attr,
-		&term.Mode,
-		Contexts(cs...))
+	term.AddContext(cs...)
 	return term
 }
 
@@ -79,8 +74,8 @@ type Term struct {
 	Input
 	Output
 
-	active bool
-	under  bool
+	under  bool // under any RunWith
+	active bool // under RunWith, not RunWithout
 	ctx    Context
 }
 
@@ -110,9 +105,7 @@ func (term *Term) RunWith(within func(*Term) error) (err error) {
 		}()
 	}
 
-	if term.ctx == nil {
-		term.ctx = Contexts(&term.Attr, &term.Mode)
-	}
+	term.initContext()
 
 	if cl, ok := term.ctx.(interface{ Close() error }); ok {
 		defer func() {
@@ -131,6 +124,27 @@ func (term *Term) RunWith(within func(*Term) error) (err error) {
 		err = within(term)
 	}
 	return err
+}
+
+// AddContext adds one or more Contexts to the terminal.
+// Panics if called under RunWith.
+func (term *Term) AddContext(cs ...Context) {
+	if term.under {
+		panic("cannot add context to an active terminal")
+	}
+	term.initContext()
+	term.ctx = Contexts(term.ctx, Contexts(cs...))
+}
+
+func (term *Term) initContext() {
+	if term.ctx == nil {
+		term.ctx = Contexts(
+			&term.Input,
+			&term.Output,
+			&term.Attr,
+			&term.Mode,
+		)
+	}
 }
 
 // RunWithout runs the given function without the terminal's context, Exit()ing
