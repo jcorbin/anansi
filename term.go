@@ -45,6 +45,17 @@ func openTermFiles(in, out *os.File) (_, _ *os.File, rerr error) {
 	return in, out, nil
 }
 
+// IsStandardTermFile returns true only if the given file's name corresponds to
+// a standard process terminal file; that is if it's one of /dev/stdin,
+// /dev/stdout, /dev/stderr, or /dev/tty.
+func IsStandardTermFile(f *os.File) bool {
+	switch f.Name() {
+	case "/dev/stdin", "/dev/stdout", "/dev/stderr", "/dev/tty":
+		return true
+	}
+	return false
+}
+
 // NewTerm constructs a new terminal attached the given file pair, and with the
 // given context.
 func NewTerm(in, out *os.File, cs ...Context) *Term {
