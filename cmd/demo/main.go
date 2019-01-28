@@ -15,6 +15,7 @@ import (
 var errInt = errors.New("interrupt")
 
 func main() {
+	// TODO port to anui
 	platform.MustRun(os.Stdin, os.Stdout, Run, platform.FrameRate(60))
 }
 
