@@ -26,9 +26,18 @@ func (bi *Bitmap) Load(stride int, data []bool) {
 
 // Resize the bitmap, re-allocating its bit storage.
 func (bi *Bitmap) Resize(sz image.Point) {
-	bi.Bit = make([]bool, sz.X*sz.Y)
+	// TODO support sub-bitmaps
 	bi.Stride = sz.X
 	bi.Rect = image.Rectangle{image.ZP, sz}
+	n := bi.Stride * sz.Y
+	if n > cap(bi.Bit) {
+		b := make([]bool, sz.X*sz.Y)
+		copy(b, bi.Bit)
+		bi.Bit = b
+	} else {
+		bi.Bit = bi.Bit[:n]
+	}
+	// TODO re-stride data
 }
 
 // ParseBitmap parses a convenience representation for creating bitmaps.
