@@ -112,7 +112,7 @@ func (edl *EditLine) Update(ctx *Context) {
 
 	ctx.Output.UserCursor.Visible = true
 	ctx.Output.UserCursor.Point = ansi.Pt(edl.Box.Min.X+edl.Cur-edl.View, edl.Box.Min.Y)
-	if ctx.Output.X == ctx.Output.UserCursor.X {
+	if ctx.Output.Cursor.X == ctx.Output.UserCursor.X {
 		ctx.Output.WriteRune(' ')
 	}
 

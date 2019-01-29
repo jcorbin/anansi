@@ -32,7 +32,7 @@ type CursorState struct {
 // reason about the virtual state of the terminal screen. It's primary purpose
 // is differential draw update, see the Update() method.
 type ScreenState struct {
-	CursorState
+	Cursor     CursorState
 	UserCursor CursorState
 	Grid
 }
@@ -42,7 +42,7 @@ func (cs CursorState) String() string {
 }
 
 func (scs ScreenState) String() string {
-	return fmt.Sprintf("%v uc:(%v) gridBounds:%v", scs.CursorState, scs.UserCursor, scs.Grid.Bounds())
+	return fmt.Sprintf("%v uc:(%v) gridBounds:%v", scs.Cursor, scs.UserCursor, scs.Grid.Bounds())
 }
 
 // Clear the screen grid, and reset the UserCursor (to invisible nowhere).
@@ -51,8 +51,7 @@ func (scs *ScreenState) Clear() {
 		scs.Grid.Rune[i] = 0
 		scs.Grid.Attr[i] = 0
 	}
-	scs.Point.Point = image.ZP
-	scs.CursorState.Attr = 0
+	scs.Cursor = CursorState{}
 	scs.UserCursor = CursorState{}
 }
 
@@ -60,8 +59,8 @@ func (scs *ScreenState) Clear() {
 // Returns true only if the resize was a change, false if it was a no-op.
 func (scs *ScreenState) Resize(size image.Point) bool {
 	if scs.Grid.Resize(size) {
-		if !scs.Point.In(scs.Bounds()) {
-			scs.Point.Point = image.ZP
+		if !scs.Cursor.Point.In(scs.Bounds()) {
+			scs.Cursor.Point.Point = image.ZP
 		}
 		return true
 	}
@@ -178,7 +177,7 @@ func (scs *ScreenState) clamp(pt ansi.Point) ansi.Point {
 
 // To sets the virtual cursor point to the supplied one.
 func (scs *ScreenState) To(pt ansi.Point) {
-	scs.Point = scs.clamp(pt)
+	scs.Cursor.Point = scs.clamp(pt)
 }
 
 // ApplyTo applies the receiver cursor state into the passed state value,
@@ -335,8 +334,8 @@ func (cs *CursorState) processEscape(
 // Any errors decoding escape arguments are silenced, and the offending
 // escape sequence(s) ignored.
 func (scs *ScreenState) ProcessANSI(e ansi.Escape, a []byte) {
-	if scs.Point.Point == image.ZP {
-		scs.Point = ansi.Pt(1, 1)
+	if scs.Cursor.Point.Point == image.ZP {
+		scs.Cursor.Point = ansi.Pt(1, 1)
 	}
 	switch {
 	case e.IsEscape():
@@ -344,15 +343,15 @@ func (scs *ScreenState) ProcessANSI(e ansi.Escape, a []byte) {
 	case e == '\x0A': // LF
 		scs.linefeed()
 	case e == '\x0D': // CR
-		scs.X = 1
+		scs.Cursor.X = 1
 	// TODO anything for other control runes?
 	case unicode.IsGraphic(rune(e)):
 		br := scs.Bounds()
-		if i, ok := scs.Grid.CellOffset(scs.Point); ok {
-			scs.Grid.Rune[i], scs.Grid.Attr[i] = rune(e), scs.CursorState.Attr
+		if i, ok := scs.Grid.CellOffset(scs.Cursor.Point); ok {
+			scs.Grid.Rune[i], scs.Grid.Attr[i] = rune(e), scs.Cursor.Attr
 		}
-		if scs.X++; scs.X >= br.Max.X {
-			scs.X = br.Min.X
+		if scs.Cursor.X++; scs.Cursor.X >= br.Max.X {
+			scs.Cursor.X = br.Min.X
 			scs.linefeed()
 		}
 	}
@@ -369,11 +368,11 @@ func (scs *ScreenState) processEscape(e ansi.Escape, a []byte) {
 		}
 		switch val {
 		case '0': // Erase from current position to bottom of screen inclusive
-			if i, ok := scs.CellOffset(scs.Point); ok {
+			if i, ok := scs.CellOffset(scs.Cursor.Point); ok {
 				scs.clearRegion(i+1, len(scs.Rune))
 			}
 		case '1': // Erase from top of screen to current position inclusive
-			if i, ok := scs.CellOffset(scs.Point); ok {
+			if i, ok := scs.CellOffset(scs.Cursor.Point); ok {
 				scs.clearRegion(0, i+1)
 			}
 		case '2': // Erase entire screen (without moving the cursor)
@@ -388,17 +387,17 @@ func (scs *ScreenState) processEscape(e ansi.Escape, a []byte) {
 			return
 		}
 
-		lo := scs.Point
+		lo := scs.Cursor.Point
 		hi := scs.Bounds().Max.Sub(image.Pt(1, 1))
 		switch val {
 		case '0': // Erase from current position to end of line inclusive
-			hi.Y = scs.Y
+			hi.Y = scs.Cursor.Y
 		case '1': // Erase from beginning of line to current position inclusive
 			lo.X = 1
-			hi = scs.Point
+			hi = scs.Cursor.Point
 		case '2': // Erase entire line (without moving cursor)
 			lo.X = 1
-			hi.Y = scs.Y
+			hi.Y = scs.Cursor.Y
 		default:
 			return
 		}
@@ -418,7 +417,7 @@ func (scs *ScreenState) processEscape(e ansi.Escape, a []byte) {
 		//         GIGI) have this feature.
 
 	default:
-		scs.CursorState.processEscape(e, a, scs.clamp)
+		scs.Cursor.processEscape(e, a, scs.clamp)
 	}
 }
 
@@ -430,15 +429,15 @@ func (scs *ScreenState) clearRegion(i, max int) {
 }
 
 func (scs *ScreenState) linefeed() {
-	if scs.Y+1 < scs.Bounds().Max.Y {
-		scs.Y++
+	if scs.Cursor.Y+1 < scs.Bounds().Max.Y {
+		scs.Cursor.Y++
 	} else {
 		scs.scrollBy(1)
 	}
 }
 
 func (scs *ScreenState) scrollBy(n int) {
-	i, ok := scs.CellOffset(scs.Point.Add(image.Pt(1, 2)))
+	i, ok := scs.CellOffset(scs.Cursor.Point.Add(image.Pt(1, 2)))
 	if !ok {
 		return
 	}

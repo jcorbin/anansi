@@ -23,7 +23,7 @@ type Screen struct {
 func (sc *Screen) Reset() {
 	sc.buf.Reset()
 	sc.ScreenState.Clear()
-	sc.ScreenState.CursorState = sc.cur
+	sc.ScreenState.Cursor = sc.cur
 }
 
 // Resize the current screen state, and invalidate to cause a full redraw.
@@ -131,7 +131,7 @@ func (sc *Screen) WriteSeq(seqs ...ansi.Seq) int {
 // returning the number of bytes written; updates Attr cursor state.
 func (sc *Screen) WriteSGR(attrs ...ansi.SGRAttr) (n int) {
 	for i := range attrs {
-		if attr := sc.ScreenState.MergeSGR(attrs[i]); attr != 0 {
+		if attr := sc.Cursor.MergeSGR(attrs[i]); attr != 0 {
 			n += sc.buf.WriteSGR(attr)
 		}
 	}

@@ -179,10 +179,10 @@ func (hud *HUD) updateProfilers(p *Platform) {
 func (hud *HUD) calcKVBox(ctx *Context, key string) (kbox, vbox ansi.Rectangle) {
 	outBounds := ctx.Output.Bounds()
 	n := utf8.RuneCountInString(key)
-	kbox.Min = ansi.Pt(outBounds.Max.X-hud.detailWidth-n-1, ctx.Output.Y)
-	vbox.Min = ansi.Pt(outBounds.Max.X-hud.detailWidth, ctx.Output.Y)
-	kbox.Max = ansi.Pt(kbox.Min.X+n, ctx.Output.Y+1)
-	vbox.Max = ansi.Pt(vbox.Min.X+hud.detailWidth, ctx.Output.Y+1)
+	kbox.Min = ansi.Pt(outBounds.Max.X-hud.detailWidth-n-1, ctx.Output.Cursor.Y)
+	vbox.Min = ansi.Pt(outBounds.Max.X-hud.detailWidth, ctx.Output.Cursor.Y)
+	kbox.Max = ansi.Pt(kbox.Min.X+n, ctx.Output.Cursor.Y+1)
+	vbox.Max = ansi.Pt(vbox.Min.X+hud.detailWidth, ctx.Output.Cursor.Y+1)
 	return kbox, vbox
 }
 
@@ -204,7 +204,7 @@ func (hud *HUD) detailRow(ctx *Context, key string, val string) (box ansi.Rectan
 	box.Min = kbox.Min
 	box.Max = vbox.Max
 	n := utf8.RuneCountInString(key) + 2 + hud.detailWidth
-	ctx.Output.To(ansi.Pt(ctx.Output.X-n+1, ctx.Output.Y))
+	ctx.Output.To(ansi.Pt(ctx.Output.Cursor.X-n+1, ctx.Output.Cursor.Y))
 	ctx.Output.WriteString(key)
 	ctx.Output.WriteRune(' ')
 	for i := utf8.RuneCountInString(val); i < hud.detailWidth; i++ {
@@ -217,7 +217,7 @@ func (hud *HUD) detailRow(ctx *Context, key string, val string) (box ansi.Rectan
 
 func (hud *HUD) rightSegment(ctx *Context, s string) (box ansi.Rectangle) {
 	outBounds := ctx.Output.Bounds()
-	box.Min = ctx.Output.Point
+	box.Min = ctx.Output.Cursor.Point
 	if box.Min.X+1 < outBounds.Max.X {
 		box.Min.X--
 	}
@@ -339,14 +339,14 @@ func (hud *HUD) drawPProfSelector(ctx *Context) {
 		withAttr(ctx, hud.SelectAttr, ansi.SGRAttrClear, func(ctx *Context) {
 			for _, prof := range pprofs {
 				withOverAttr(ctx, hud.Mouse,
-					ansi.Rect(box.Min.X, ctx.Output.Y, box.Max.X, ctx.Output.Y+1),
+					ansi.Rect(box.Min.X, ctx.Output.Cursor.Y, box.Max.X, ctx.Output.Cursor.Y+1),
 					hud.ButtonAttr, hud.SelectAttr,
 					func(ctx *Context, _ bool) {
 						ctx.Output.WriteString(prof.Name())
-						ctx.Output.WriteString(strings.Repeat(" ", outBounds.Max.X-1-ctx.Output.X))
+						ctx.Output.WriteString(strings.Repeat(" ", outBounds.Max.X-1-ctx.Output.Cursor.X))
 					})
-				ctx.Output.To(ansi.Pt(box.Min.X, ctx.Output.Y+1))
-				box.Max.Y = ctx.Output.Y
+				ctx.Output.To(ansi.Pt(box.Min.X, ctx.Output.Cursor.Y+1))
+				box.Max.Y = ctx.Output.Cursor.Y
 			}
 		})
 
@@ -435,7 +435,7 @@ func (hud *HUD) drawButton(ctx *Context, box ansi.Rectangle, label string) {
 	ctx.Output.To(box.Min)
 	withAttr(ctx, hud.SelectAttr, ansi.SGRAttrClear, func(ctx *Context) {
 		withOverAttr(ctx, hud.Mouse,
-			ansi.Rect(box.Min.X, ctx.Output.Y, box.Max.X, ctx.Output.Y+1),
+			ansi.Rect(box.Min.X, ctx.Output.Cursor.Y, box.Max.X, ctx.Output.Cursor.Y+1),
 			hud.ButtonAttr, hud.SelectAttr,
 			func(ctx *Context, _ bool) {
 				ctx.Output.WriteString("[ ")
@@ -445,7 +445,7 @@ func (hud *HUD) drawButton(ctx *Context, box ansi.Rectangle, label string) {
 					ctx.Output.WriteRune(' ')
 				}
 				writeTruncated(ctx, max, []byte(label))
-				for ctx.Output.X < box.Max.X-2 {
+				for ctx.Output.Cursor.X < box.Max.X-2 {
 					ctx.Output.WriteRune(' ')
 				}
 				ctx.Output.WriteString(" ]")
@@ -661,8 +661,8 @@ func (lv *LogView) Update(ctx *Context) error {
 		off = eolOffsets[start-2] + 1
 	}
 	for _, eol := range eolOffsets[start-1 : end] {
-		ctx.Output.To(ansi.Pt(1, ctx.Output.Y+1))
-		w := bounds.Max.X - ctx.Output.X
+		ctx.Output.To(ansi.Pt(1, ctx.Output.Cursor.Y+1))
+		w := bounds.Max.X - ctx.Output.Cursor.X
 		writeTruncated(ctx, w, content[off:eol])
 		off = eol + 1
 	}

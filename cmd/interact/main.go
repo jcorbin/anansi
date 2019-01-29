@@ -172,9 +172,9 @@ func (in *inspect) Update(ctx *platform.Context) (err error) {
 			ctx.Output.WriteSGR(attr)
 		}
 		var r ansi.Rectangle
-		r.Min = ctx.Output.Point
+		r.Min = ctx.Output.Cursor.Point
 		ctx.Output.WriteString(arg)
-		r.Max = ctx.Output.Point
+		r.Max = ctx.Output.Cursor.Point
 		r.Max.Y++
 		if attr != 0 {
 			ctx.Output.WriteSGR(ansi.SGRAttrClear)
