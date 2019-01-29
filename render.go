@@ -8,6 +8,7 @@ import (
 
 // WriteGrid writes a grid's contents into an io.Writer, relative to current
 // cursor state and any prior screen contents.
+//
 // To force an absolute (non-differential) update, pass an empty prior grid.
 // Returns the number of bytes written, final cursor state, and any write error
 // encountered.
