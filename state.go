@@ -32,8 +32,7 @@ type CursorState struct {
 // reason about the virtual state of the terminal screen. It's primary purpose
 // is differential draw update, see the Update() method.
 type ScreenState struct {
-	Cursor     CursorState
-	UserCursor CursorState
+	Cursor CursorState
 	Grid
 }
 
@@ -42,17 +41,16 @@ func (cs CursorState) String() string {
 }
 
 func (scs ScreenState) String() string {
-	return fmt.Sprintf("%v uc:(%v) gridBounds:%v", scs.Cursor, scs.UserCursor, scs.Grid.Bounds())
+	return fmt.Sprintf("%v gridBounds:%v", scs.Cursor, scs.Grid.Bounds())
 }
 
-// Clear the screen grid, and reset the UserCursor (to invisible nowhere).
+// Clear the screen grid, and reset cursor state (to invisible nowhere).
 func (scs *ScreenState) Clear() {
 	for i := range scs.Grid.Rune {
 		scs.Grid.Rune[i] = 0
 		scs.Grid.Attr[i] = 0
 	}
 	scs.Cursor = CursorState{}
-	scs.UserCursor = CursorState{}
 }
 
 // Resize the underlying Grid, and zero the cursor position if out of bounds.
@@ -201,8 +199,8 @@ func (cs *CursorState) applyTo(aw ansiWriter, cur CursorState) (n int, _ CursorS
 }
 
 // Update performs a Grid differential update with the cursor hidden, and then
-// applies any non-zero UserCursor, returning the number of bytes written into
-// the given buffer, and the final cursor state.
+// applies cursor state, returning the number of bytes written into the given
+// buffer, and the final cursor state (which will now match that of the receiver).
 func (scs *ScreenState) Update(w io.Writer, cur CursorState, prior Grid) (int, CursorState, error) {
 	return withAnsiWriter(w, cur, func(aw ansiWriter, cur CursorState) (int, CursorState) {
 		return scs.update(aw, cur, prior)
@@ -213,7 +211,7 @@ func (scs *ScreenState) update(aw ansiWriter, cur CursorState, prior Grid) (n in
 	n += aw.WriteSeq(cur.Hide())
 	m, cur := writeGrid(aw, cur, scs.Grid, prior, NoopStyle)
 	n += m
-	m, cur = scs.UserCursor.applyTo(aw, cur)
+	m, cur = scs.Cursor.applyTo(aw, cur)
 	n += m
 	return n, cur
 }

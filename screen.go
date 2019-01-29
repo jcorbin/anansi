@@ -11,6 +11,8 @@ import (
 // Screen combines a cell grid with cursor and screen state, supporting
 // primitive vt100 emulation and differential terminal updating.
 type Screen struct {
+	UserCursor CursorState
+
 	ScreenState
 	prior Grid
 	cur   CursorState
@@ -18,12 +20,17 @@ type Screen struct {
 	buf Buffer
 }
 
-// Reset the internal buffer, clear virtual screen state, and reset virtual
-// cursor state.
+// Reset the internal buffer, Clear(), and restore virtual cursor state.
 func (sc *Screen) Reset() {
 	sc.buf.Reset()
-	sc.ScreenState.Clear()
+	sc.Clear()
 	sc.ScreenState.Cursor = sc.cur
+}
+
+// Clear the screen and user cursor state.
+func (sc *Screen) Clear() {
+	sc.ScreenState.Clear()
+	sc.UserCursor = CursorState{}
 }
 
 // Resize the current screen state, and invalidate to cause a full redraw.
@@ -70,6 +77,9 @@ func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 
 		aw = &sc.buf
 	}
+
+	// enforce final user cursor state
+	sc.ScreenState.Cursor = sc.UserCursor
 
 	// perform (full or differential) update
 	var m int
