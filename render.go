@@ -26,15 +26,13 @@ func WriteGrid(w io.Writer, cur CursorState, g, prior Grid, styles ...Style) (in
 }
 
 func writeGrid(aw ansiWriter, cur CursorState, g, prior Grid, style Style) (int, CursorState) {
-	n := 0
-	if len(g.Attr) > 0 && len(g.Rune) > 0 {
-		if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Rect.Empty() || !prior.Rect.Eq(g.Rect) {
-			n, cur = writeGridFull(aw, cur, g, style)
-		} else {
-			n, cur = writeGridDiff(aw, cur, g, prior, style)
-		}
+	if len(g.Attr) == 0 || len(g.Rune) == 0 {
+		return 0, cur
 	}
-	return n, cur
+	if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Rect.Empty() || !prior.Rect.Eq(g.Rect) {
+		return writeGridFull(aw, cur, g, style)
+	}
+	return writeGridDiff(aw, cur, g, prior, style)
 }
 
 func writeGridFull(aw ansiWriter, cur CursorState, g Grid, style Style) (int, CursorState) {
