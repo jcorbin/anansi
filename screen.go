@@ -9,7 +9,7 @@ import (
 )
 
 // Screen supports deferred screen updating by tracking desired virtual screen
-// state vs last known (prior) screen state. It also supports tracking final
+// state vs last known (Real) screen state. It also supports tracking final
 // desired user cursor state, separate from any cursor state used to
 // update the virtual screen. Primitive vt100 emulation is provided through
 // Write* methods and Buffer processing.
@@ -17,7 +17,7 @@ type Screen struct {
 	UserCursor CursorState
 
 	ScreenState
-	prior ScreenState
+	Real ScreenState
 
 	buf Buffer
 }
@@ -26,7 +26,7 @@ type Screen struct {
 func (sc *Screen) Reset() {
 	sc.buf.Reset()
 	sc.Clear()
-	sc.ScreenState.Cursor = sc.prior.Cursor
+	sc.ScreenState.Cursor = sc.Real.Cursor
 }
 
 // Clear the screen and user cursor state.
@@ -47,7 +47,7 @@ func (sc *Screen) Resize(size image.Point) bool {
 
 // Invalidate forces the next WriteTo() to perform a full redraw.
 func (sc *Screen) Invalidate() {
-	sc.prior.Resize(image.ZP)
+	sc.Real.Resize(image.ZP)
 }
 
 // WriteTo builds and writes output based on the current ScreenState, doing a
@@ -55,10 +55,10 @@ func (sc *Screen) Invalidate() {
 // output buffer isn't empty, then the build step is skipped, and another
 // attempt is made to flush the output buffer.
 func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
-	state := sc.prior
+	state := sc.Real
 	defer func() {
 		if err == nil {
-			sc.prior = state
+			sc.Real = state
 		}
 	}()
 
@@ -171,8 +171,8 @@ func (sc *Screen) Exit(term *Term) error {
 	// discard all virtual state...
 	sc.Reset()
 	// ...and restore real cursor state
-	n := sc.buf.WriteSGR(sc.prior.Cursor.MergeSGR(0))
-	n += sc.buf.WriteSeq(sc.prior.Cursor.Show())
+	n := sc.buf.WriteSGR(sc.Real.Cursor.MergeSGR(0))
+	n += sc.buf.WriteSeq(sc.Real.Cursor.Show())
 	if n > 0 {
 		return term.Flush(&sc.buf)
 	}
