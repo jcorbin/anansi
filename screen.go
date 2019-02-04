@@ -8,14 +8,16 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-// Screen combines a cell grid with cursor and screen state, supporting
-// primitive vt100 emulation and differential terminal updating.
+// Screen supports deferred screen updating by tracking desired virtual screen
+// state vs last known (prior) screen state. It also supports tracking final
+// desired user cursor state, separate from any cursor state used to
+// update the virtual screen. Primitive vt100 emulation is provided through
+// Write* methods and Buffer processing.
 type Screen struct {
 	UserCursor CursorState
 
 	ScreenState
-	prior Grid
-	cur   CursorState
+	prior ScreenState
 
 	buf Buffer
 }
@@ -24,7 +26,7 @@ type Screen struct {
 func (sc *Screen) Reset() {
 	sc.buf.Reset()
 	sc.Clear()
-	sc.ScreenState.Cursor = sc.cur
+	sc.ScreenState.Cursor = sc.prior.Cursor
 }
 
 // Clear the screen and user cursor state.
@@ -53,11 +55,10 @@ func (sc *Screen) Invalidate() {
 // output buffer isn't empty, then the build step is skipped, and another
 // attempt is made to flush the output buffer.
 func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
+	state := sc.prior
 	defer func() {
 		if err == nil {
-			sc.prior.Resize(sc.ScreenState.Grid.Bounds().Size())
-			copy(sc.prior.Rune, sc.ScreenState.Grid.Rune)
-			copy(sc.prior.Attr, sc.ScreenState.Grid.Attr)
+			sc.prior = state
 		}
 	}()
 
@@ -87,7 +88,7 @@ func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 
 	// perform (full or differential) update
 	var m int
-	m, sc.cur = sc.ScreenState.update(aw, sc.cur, sc.prior)
+	m, state = sc.ScreenState.update(aw, state)
 	return int64(m), err
 }
 
@@ -170,8 +171,8 @@ func (sc *Screen) Exit(term *Term) error {
 	// discard all virtual state...
 	sc.Reset()
 	// ...and restore real cursor state
-	n := sc.buf.WriteSGR(sc.cur.MergeSGR(0))
-	n += sc.buf.WriteSeq(sc.cur.Show())
+	n := sc.buf.WriteSGR(sc.prior.Cursor.MergeSGR(0))
+	n += sc.buf.WriteSeq(sc.prior.Cursor.Show())
 	if n > 0 {
 		return term.Flush(&sc.buf)
 	}

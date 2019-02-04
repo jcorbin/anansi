@@ -198,22 +198,32 @@ func (cs *CursorState) applyTo(aw ansiWriter, cur CursorState) (n int, _ CursorS
 	return n, cur
 }
 
-// Update performs a Grid differential update with the cursor hidden, and then
-// applies cursor state, returning the number of bytes written into the given
-// buffer, and the final cursor state (which will now match that of the receiver).
-func (scs *ScreenState) Update(w io.Writer, cur CursorState, prior Grid) (int, CursorState, error) {
-	return withAnsiWriter(w, cur, func(aw ansiWriter, cur CursorState) (int, CursorState) {
-		return scs.update(aw, cur, prior)
+// Update syncs screen state from the receiver against the given prior screen
+// state, generating writing any/all necessary ansi control sequences into the
+// given writer. Returns the number of bytes written and the final screen state,
+// which will now equal the receiver state.
+func (scs *ScreenState) Update(w io.Writer, prior ScreenState) (int, ScreenState, error) {
+	n, cur, err := withAnsiWriter(w, prior.Cursor, func(aw ansiWriter, cur CursorState) (int, CursorState) {
+		prior.Cursor = cur
+		var n int
+		n, prior = scs.update(aw, prior)
+		return n, prior.Cursor
 	})
+	prior.Cursor = cur
+	return n, prior, err
 }
 
-func (scs *ScreenState) update(aw ansiWriter, cur CursorState, prior Grid) (n int, _ CursorState) {
-	n += aw.WriteSeq(cur.Hide())
-	m, cur := writeGrid(aw, cur, scs.Grid, prior, NoopStyle)
+func (scs *ScreenState) update(aw ansiWriter, prior ScreenState) (int, ScreenState) {
+	var n, m int
+	n += aw.WriteSeq(prior.Cursor.Hide())
+	m, prior = writeGrid(aw, scs.Grid, prior, NoopStyle)
 	n += m
-	m, cur = scs.Cursor.applyTo(aw, cur)
+	m, prior.Cursor = scs.Cursor.applyTo(aw, prior.Cursor)
 	n += m
-	return n, cur
+	prior.Resize(scs.Grid.Bounds().Size())
+	copy(prior.Rune, scs.Rune)
+	copy(prior.Attr, scs.Attr)
+	return n, prior
 }
 
 // ProcessANSI updates cursor state to reflect having written the given escape

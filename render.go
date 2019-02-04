@@ -12,27 +12,33 @@ import (
 // To force an absolute (non-differential) update, pass an empty prior grid.
 // Returns the number of bytes written, final cursor state, and any write error
 // encountered.
-func WriteGrid(w io.Writer, cur CursorState, g, prior Grid, styles ...Style) (int, CursorState, error) {
+func WriteGrid(w io.Writer, g Grid, prior ScreenState, styles ...Style) (int, ScreenState, error) {
 	if g.Stride != g.Rect.Dx() {
 		panic("sub-grid update not implemented")
 	}
 	if g.Rect.Min != ansi.Pt(1, 1) {
 		panic("sub-screen update not implemented")
 	}
-	return withAnsiWriter(w, cur, func(aw ansiWriter, cur CursorState) (int, CursorState) {
+	n, cur, err := withAnsiWriter(w, prior.Cursor, func(aw ansiWriter, cur CursorState) (int, CursorState) {
 		style := Styles(styles...)
-		return writeGrid(aw, cur, g, prior, style)
+		prior.Cursor = cur
+		n, state := writeGrid(aw, g, prior, style)
+		return n, state.Cursor
 	})
+	prior.Cursor = cur
+	return n, prior, err
 }
 
-func writeGrid(aw ansiWriter, cur CursorState, g, prior Grid, style Style) (int, CursorState) {
+func writeGrid(aw ansiWriter, g Grid, prior ScreenState, style Style) (int, ScreenState) {
 	if len(g.Attr) == 0 || len(g.Rune) == 0 {
-		return 0, cur
+		return 0, prior
 	}
 	if len(prior.Attr) == 0 || len(prior.Rune) == 0 || prior.Rect.Empty() || !prior.Rect.Eq(g.Rect) {
-		return writeGridFull(aw, cur, g, style)
+		var n int
+		n, prior.Cursor = writeGridFull(aw, prior.Cursor, g, style)
+		return n, prior
 	}
-	return writeGridDiff(aw, cur, g, prior, style)
+	return writeGridDiff(aw, g, prior, style)
 }
 
 func writeGridFull(aw ansiWriter, cur CursorState, g Grid, style Style) (int, CursorState) {
@@ -61,7 +67,7 @@ func writeGridFull(aw ansiWriter, cur CursorState, g Grid, style Style) (int, Cu
 	return n, cur
 }
 
-func writeGridDiff(aw ansiWriter, cur CursorState, g, prior Grid, style Style) (int, CursorState) {
+func writeGridDiff(aw ansiWriter, g Grid, prior ScreenState, style Style) (int, ScreenState) {
 	fillRune, fillAttr := style.Style(ansi.ZP, 0, 0, 0, 0)
 	const empty = ' '
 	if fillRune == 0 {
@@ -92,13 +98,13 @@ func writeGridDiff(aw ansiWriter, cur CursorState, g, prior Grid, style Style) (
 		}
 
 		if gr != 0 {
-			mv := cur.To(pt)
-			ad := cur.MergeSGR(ga)
+			mv := prior.Cursor.To(pt)
+			ad := prior.Cursor.MergeSGR(ga)
 			n += aw.WriteSeq(mv)
 			n += aw.WriteSGR(ad)
 			m, _ := aw.WriteRune(gr)
 			n += m
-			cur.ProcessANSI(ansi.Escape(gr), nil)
+			prior.Cursor.ProcessANSI(ansi.Escape(gr), nil)
 		}
 
 	next:
@@ -108,7 +114,7 @@ func writeGridDiff(aw ansiWriter, cur CursorState, g, prior Grid, style Style) (
 			pt.Y++
 		}
 	}
-	return n, cur
+	return n, prior
 }
 
 // WriteBitmap writes a bitmap's contents as braille runes into an io.Writer.
