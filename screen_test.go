@@ -424,7 +424,15 @@ func TestScreen_equiv(t *testing.T) {
 						}
 					}
 					for i := range aLines {
-						t.Logf("%*s %*s", aw, aLines[i], bw, bLines[i])
+						mark := " "
+						if bLines[i] != aLines[i] {
+							mark = "!"
+						}
+						t.Logf("%*s %s %*s",
+							aw, aLines[i],
+							mark,
+							bw, bLines[i],
+						)
 					}
 
 					assert.Equal(t, aLines, bLines, "[%v] expected equivalent output", i)
