@@ -7,6 +7,24 @@ import (
 	"unicode/utf8"
 )
 
+// DecodeRune normalizes ANSI escaped control runes on top of normal UTF-8
+// decoding. If the first two bytes in p are \x1b (ESCape) and any byte from
+// \x40 through \x5f (ASCII Uppercase), than it returns (cr, 2) where cr is the
+// corresponding rune from U+0080 through U+009F (C1 Control).
+//
+// For example, the most commonly seen escape sequence is "\x1B[" which encodes
+// the '\u009B' Control Sequence Introducer (CSI) rune.
+func DecodeRune(p []byte) (rune, int) {
+	r, m := utf8.DecodeRune(p)
+	if r == 0x1B {
+		if rr, mm := utf8.DecodeRune(p[m:]); 0x40 <= rr && rr <= 0x5F {
+			r = 0x80 | rr&0X1F
+			m += mm
+		}
+	}
+	return r, m
+}
+
 // DecodeEscape unpacks a UTF-8 encoded ANSI escape sequence at the beginning
 // of p returning its Escape identifier, argument, and the number of bytes
 // consumed by decoding it. If the returned escape identifier is non-zero, then
@@ -22,7 +40,7 @@ import (
 // caller MAY decide either to process it immediately, or whether to wait for
 // additional input bytes which may complete an ESCape sequence.
 func DecodeEscape(p []byte) (e Escape, arg []byte, n int) {
-	r, m := decodeRune(p)
+	r, m := DecodeRune(p)
 	if r == 0x1B {
 		return decodeESC(p)
 	}
@@ -51,17 +69,6 @@ func DecodeEscape(p []byte) (e Escape, arg []byte, n int) {
 		utf8.EncodeRune(p[:m], r)
 	}
 	return 0, nil, 0
-}
-
-func decodeRune(p []byte) (rune, int) {
-	r, m := utf8.DecodeRune(p)
-	if r == 0x1B {
-		if rr, mm := utf8.DecodeRune(p[m:]); 0x40 <= rr && rr <= 0x5F {
-			// Uppercase: Translate it into a C1 control character.
-			return 0x80 | rr&0x1f, m + mm
-		}
-	}
-	return r, m
 }
 
 func decodeESC(p []byte) (e Escape, a []byte, n int) {
@@ -196,7 +203,7 @@ term:
 }
 
 func decodeString(p []byte) (a []byte, n int) {
-	r, m := decodeRune(p)
+	r, m := DecodeRune(p)
 	for {
 		switch r {
 		case utf8.RuneError:
@@ -205,7 +212,7 @@ func decodeString(p []byte) (a []byte, n int) {
 			return p[:n], n + m
 		}
 		n += m
-		r, m = decodeRune(p[n:])
+		r, m = DecodeRune(p[n:])
 	}
 }
 
