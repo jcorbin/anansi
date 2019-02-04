@@ -392,14 +392,14 @@ func TestScreen_equiv(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, logBuf.With(func(t *testing.T) {
-			var a, b, aout, bout anansi.Screen
-			a.Resize(tc.sz)
-			b.Resize(tc.sz)
-			aout.Resize(tc.sz)
-			bout.Resize(tc.sz)
-
 			for i, s := range tc.steps {
 				t.Run(fmt.Sprintf("step_%d", i), logBuf.With(func(t *testing.T) {
+					var a, b, aout, bout anansi.Screen
+					a.Resize(tc.sz)
+					b.Resize(tc.sz)
+					aout.Resize(tc.sz)
+					bout.Resize(tc.sz)
+
 					a.Grid = parseGrid(s, tc.sz)
 					b.Grid = parseGrid(s, tc.sz)
 
