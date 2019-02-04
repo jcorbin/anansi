@@ -53,6 +53,14 @@ func (sc *Screen) Invalidate() {
 // output buffer isn't empty, then the build step is skipped, and another
 // attempt is made to flush the output buffer.
 func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
+	defer func() {
+		if err == nil {
+			sc.prior.Resize(sc.ScreenState.Grid.Bounds().Size())
+			copy(sc.prior.Rune, sc.ScreenState.Grid.Rune)
+			copy(sc.prior.Attr, sc.ScreenState.Grid.Attr)
+		}
+	}()
+
 	aw, haveAW := w.(ansiWriter)
 
 	// if caller didn't pass a buffered ansi writer, use internal buffer and
@@ -60,11 +68,7 @@ func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 	if !haveAW {
 		defer func() {
 			n, err = sc.buf.WriteTo(w)
-			if err == nil {
-				sc.prior.Resize(sc.ScreenState.Grid.Bounds().Size())
-				copy(sc.prior.Rune, sc.ScreenState.Grid.Rune)
-				copy(sc.prior.Attr, sc.ScreenState.Grid.Attr)
-			} else if unwrapOSError(err) != syscall.EWOULDBLOCK {
+			if err != nil && unwrapOSError(err) != syscall.EWOULDBLOCK {
 				sc.Reset()
 				sc.Invalidate()
 			}
