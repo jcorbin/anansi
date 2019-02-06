@@ -22,7 +22,7 @@ var (
 	inputReady anansi.InputSignal
 
 	// The virtual screen that will be our canvas.
-	screen anansi.Screen
+	screen anansi.TermScreen
 )
 
 // logf prints a timestamped message to the virtual screen
@@ -34,7 +34,7 @@ func logf(mess string, args ...interface{}) {
 
 // An example of building a simple fullscreen terminal application with an
 // async io loop.
-func ExampleScreen_termapp() {
+func ExampleTermScreen_termapp() {
 	term := anansi.NewTerm(os.Stdin, os.Stdout, &halt, &resize, &inputReady)
 	term.SetRaw(true)
 	term.AddMode(ansi.ModeAlternateScreen)

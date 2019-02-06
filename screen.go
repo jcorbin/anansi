@@ -8,6 +8,11 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
+// TermScreen supports attaching a Screen to a Term's Context.
+type TermScreen struct {
+	Screen
+}
+
 // Screen supports deferred screen updating by tracking desired virtual screen
 // state vs last known (Real) screen state. It also supports tracking final
 // desired user cursor state, separate from any cursor state used to
@@ -16,9 +21,22 @@ import (
 type Screen struct {
 	UserCursor Cursor
 
-	ScreenState
+	VirtualScreen
 	Real ScreenState
+}
 
+// VirtualScreen implements minimal terminal emulation around ScreenState.
+//
+// Normal textual output and control sequences may be written to it, using
+// either high-level convenience methods, or the standard low-level
+// byte/string/rune/byte writing methods. All such output is collected and
+// processed through an internal Buffer, and ScreenState updated accordingly.
+//
+// TODO the vt100 emulation is certainly too minimal at present; it needs to be
+// completed, and validated. E.g. cursor position is currently clamped to the
+// screen size, rather than wrapped.
+type VirtualScreen struct {
+	ScreenState
 	buf Buffer
 }
 
@@ -26,18 +44,18 @@ type Screen struct {
 func (sc *Screen) Reset() {
 	sc.buf.Reset()
 	sc.Clear()
-	sc.ScreenState.Cursor = sc.Real.Cursor
+	sc.VirtualScreen.Cursor = sc.Real.Cursor
 }
 
 // Clear the screen and user cursor state.
 func (sc *Screen) Clear() {
-	sc.ScreenState.Clear()
+	sc.VirtualScreen.Clear()
 	sc.UserCursor = Cursor{}
 }
 
 // Resize the current screen state, and invalidate to cause a full redraw.
 func (sc *Screen) Resize(size image.Point) bool {
-	if sc.ScreenState.Resize(size) {
+	if sc.VirtualScreen.Resize(size) {
 		sc.Invalidate()
 		sc.buf.Reset()
 		return true
@@ -50,10 +68,17 @@ func (sc *Screen) Invalidate() {
 	sc.Real.Resize(image.ZP)
 }
 
-// WriteTo builds and writes output based on the current ScreenState, doing a
-// differential update if possible, or a full redraw otherwise. If the internal
-// output buffer isn't empty, then the build step is skipped, and another
-// attempt is made to flush the output buffer.
+// WriteTo writes the content and ansi control sequences necessary to
+// synchronize Real screen state to match VirtualScreen state.  performs a
+// differential update if possible, falling back to a full redraw if necessary
+// or forced by Invalidate().
+//
+// If the given io.Writer implements higher level ansi writing methods they
+// are used directly; otherwise an internal Buffer is used to first assemble
+// the needed output, then delegating to Buffer.WriteTo to flush output.
+//
+// When using an internal Buffer, resuming a partial write after EWOULDBLOCK is
+// supported, skipping the assembly step described above.
 func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 	state := sc.Real
 	defer func() {
@@ -84,113 +109,111 @@ func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
 	}
 
 	// enforce final user cursor state
-	sc.ScreenState.Cursor = sc.UserCursor
+	sc.VirtualScreen.Cursor = sc.UserCursor
 
 	// perform (full or differential) update
 	var m int
-	m, state = sc.ScreenState.update(aw, state)
+	m, state = sc.VirtualScreen.update(aw, state)
 	return int64(m), err
 }
 
-// Write to the internal buffer, updating cursor state per any ANSI escape
-// sequences, and advancing cursor position by rune count (clamped to screen
-// size).
-func (sc *Screen) Write(p []byte) (n int, err error) {
-	n, _ = sc.buf.Write(p)
-	sc.process()
+// Write writes bytes to the internal buffer, updating screen state as describe
+// on VirtualScreen. Always returns nil error.
+func (vsc *VirtualScreen) Write(p []byte) (n int, err error) {
+	n, _ = vsc.buf.Write(p)
+	vsc.process()
 	return n, nil
 }
 
-// WriteString to the internal buffer, updating cursor state per any ANSI
-// escape sequences, and advancing cursor position by rune count (clamped to
-// screen size).
-func (sc *Screen) WriteString(s string) (n int, err error) {
-	n, _ = sc.buf.WriteString(s)
-	sc.process()
+// WriteString writes a string to the internal buffer, updating screen state as
+// describe on VirtualScreen. Always returns nil error.
+func (vsc *VirtualScreen) WriteString(s string) (n int, err error) {
+	n, _ = vsc.buf.WriteString(s)
+	vsc.process()
 	return n, nil
 }
 
-// WriteRune to the internal buffer, advancing cursor position (clamped to
-// screen size).
-func (sc *Screen) WriteRune(r rune) (n int, err error) {
-	n, _ = sc.buf.WriteRune(r)
-	sc.process()
+// WriteRune writes a single rune to the internal buffer, updating screen state
+// as described on VirtualScreen. Always returns nil error.
+func (vsc *VirtualScreen) WriteRune(r rune) (n int, err error) {
+	n, _ = vsc.buf.WriteRune(r)
+	vsc.process()
 	return n, nil
 }
 
-// WriteByte to the internal buffer, advancing cursor position (clamped to
-// screen size).
-func (sc *Screen) WriteByte(b byte) error {
-	_ = sc.buf.WriteByte(b)
-	sc.process()
+// WriteByte writes a single byte to the internal buffer, updating screen state
+// as described on VirtualScreen. Always returns nil error.
+func (vsc *VirtualScreen) WriteByte(b byte) error {
+	_ = vsc.buf.WriteByte(b)
+	vsc.process()
 	return nil
 }
 
-// WriteESC writes one or more ANSI escapes to the internal buffer, returning
-// the number of bytes written; updates cursor state as appropriate.
-func (sc *Screen) WriteESC(seqs ...ansi.Escape) int {
-	n := sc.buf.WriteESC(seqs...)
-	sc.process()
+// WriteESC writes one or more ANSI escapes to the internal buffer, updating
+// screen state as described on VirtualScreen.
+func (vsc *VirtualScreen) WriteESC(seqs ...ansi.Escape) int {
+	n := vsc.buf.WriteESC(seqs...)
+	vsc.process()
 	return n
 }
 
 // WriteSeq writes one or more ANSI escape sequences to the internal buffer,
-// returning the number of bytes written; updates cursor state as appropriate.
-func (sc *Screen) WriteSeq(seqs ...ansi.Seq) int {
-	n := sc.buf.WriteSeq(seqs...)
-	sc.process()
+// updating screen state as described on VirtualScreen.
+func (vsc *VirtualScreen) WriteSeq(seqs ...ansi.Seq) int {
+	n := vsc.buf.WriteSeq(seqs...)
+	vsc.process()
 	return n
 }
 
 // WriteSGR writes one or more ANSI SGR sequences to the internal buffer,
-// returning the number of bytes written; updates Attr cursor state.
-func (sc *Screen) WriteSGR(attrs ...ansi.SGRAttr) (n int) {
+// updating screen state as described on VirtualScreen.
+func (vsc *VirtualScreen) WriteSGR(attrs ...ansi.SGRAttr) (n int) {
 	for i := range attrs {
-		if attr := sc.Cursor.MergeSGR(attrs[i]); attr != 0 {
-			n += sc.buf.WriteSGR(attr)
+		if attr := vsc.Cursor.MergeSGR(attrs[i]); attr != 0 {
+			n += vsc.buf.WriteSGR(attr)
 		}
 	}
 	if n > 0 {
-		sc.buf.Skip(n)
+		vsc.buf.Skip(n)
 	}
 	return n
 
 }
 
-func (sc *Screen) process() {
-	sc.buf.Process(sc)
-	sc.buf.Discard()
+func (vsc *VirtualScreen) process() {
+	vsc.buf.Process(vsc)
+	vsc.buf.Discard()
 }
 
 // Enter calls SizeToTerm.
-func (sc *Screen) Enter(term *Term) error { return sc.SizeToTerm(term) }
+func (tsc *TermScreen) Enter(term *Term) error { return tsc.SizeToTerm(term) }
 
 // Exit Reset()s all virtual state, and restores real terminal graphics and
 // cursor state.
-func (sc *Screen) Exit(term *Term) error {
+func (tsc *TermScreen) Exit(term *Term) error {
 	// discard all virtual state...
-	sc.Reset()
+	tsc.Reset()
 	// ...and restore real cursor state
-	n := sc.buf.WriteSGR(sc.Real.Cursor.MergeSGR(0))
-	n += sc.buf.WriteSeq(sc.Real.Cursor.Show())
+	n := tsc.buf.WriteSGR(tsc.Real.Cursor.MergeSGR(0))
+	n += tsc.buf.WriteSeq(tsc.Real.Cursor.Show())
 	if n > 0 {
-		return term.Flush(&sc.buf)
+		return term.Flush(&tsc.buf)
 	}
 	return nil
 }
 
 // SizeToTerm invalidates and resizes the screen to match the passed terminal's
 // current size.
-func (sc *Screen) SizeToTerm(term *Term) error {
+func (tsc *TermScreen) SizeToTerm(term *Term) error {
 	sz, err := term.Size()
 	if err == nil {
-		sc.Invalidate()
-		sc.Resize(sz)
+		tsc.Invalidate()
+		tsc.Resize(sz)
 	}
 	return nil
 }
 
 var (
 	_ ansiWriter = &Screen{}
-	_ Context    = &Screen{}
+	_ Context    = &TermScreen{}
 )

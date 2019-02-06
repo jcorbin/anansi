@@ -114,7 +114,7 @@ type Platform struct {
 
 	State
 	Time   time.Time // internal time (rewinds during replay)
-	screen anansi.Screen
+	screen anansi.TermScreen
 
 	Telemetry
 
@@ -149,7 +149,7 @@ type Context struct {
 	Err    error
 	Redraw bool
 	Input  *Events
-	Output *anansi.Screen
+	Output *anansi.TermScreen
 }
 
 // IsReplayDone returns true if the error was due to a replay session finishing.
