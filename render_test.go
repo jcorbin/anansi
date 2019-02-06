@@ -82,14 +82,14 @@ func testWithScreenModes(
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Run("direct to anansi.Screen", func(t *testing.T) {
-			var sc Screen
+			var sc ScreenDiffer
 			sc.Resize(sz)
 			require.NoError(t, f(t, &sc))
 			outLines := anansitest.GridLines(sc.Grid, ' ')
 			assert.Equal(t, outLines, outLines)
 		})
 		t.Run("buffered flush to anansi.Screen", func(t *testing.T) {
-			var sc Screen
+			var sc ScreenDiffer
 			sc.Resize(sz)
 			var buf bytes.Buffer
 			err := f(t, &buf)

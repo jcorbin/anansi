@@ -69,7 +69,7 @@ type inspect struct {
 	edid int
 	ed   platform.EditLine
 
-	cmdOutput anansi.Screen
+	cmdOutput anansi.ScreenDiffer
 }
 
 func (in *inspect) setCmd(cmd []string) {

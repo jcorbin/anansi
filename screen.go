@@ -8,17 +8,17 @@ import (
 	"github.com/jcorbin/anansi/ansi"
 )
 
-// TermScreen supports attaching a Screen to a Term's Context.
+// TermScreen supports attaching a ScreenDiffer to a Term's Context.
 type TermScreen struct {
-	Screen
+	ScreenDiffer
 }
 
-// Screen supports deferred screen updating by tracking desired virtual screen
+// ScreenDiffer supports deferred screen updating by tracking desired virtual screen
 // state vs last known (Real) screen state. It also supports tracking final
 // desired user cursor state, separate from any cursor state used to
 // update the virtual screen. Primitive vt100 emulation is provided through
 // Write* methods and Buffer processing.
-type Screen struct {
+type ScreenDiffer struct {
 	UserCursor Cursor
 
 	VirtualScreen
@@ -41,20 +41,20 @@ type VirtualScreen struct {
 }
 
 // Reset the internal buffer, Clear(), and restore virtual cursor state.
-func (sc *Screen) Reset() {
+func (sc *ScreenDiffer) Reset() {
 	sc.buf.Reset()
 	sc.Clear()
 	sc.VirtualScreen.Cursor = sc.Real.Cursor
 }
 
 // Clear the screen and user cursor state.
-func (sc *Screen) Clear() {
+func (sc *ScreenDiffer) Clear() {
 	sc.VirtualScreen.Clear()
 	sc.UserCursor = Cursor{}
 }
 
 // Resize the current screen state, and invalidate to cause a full redraw.
-func (sc *Screen) Resize(size image.Point) bool {
+func (sc *ScreenDiffer) Resize(size image.Point) bool {
 	if sc.VirtualScreen.Resize(size) {
 		sc.Invalidate()
 		sc.buf.Reset()
@@ -64,7 +64,7 @@ func (sc *Screen) Resize(size image.Point) bool {
 }
 
 // Invalidate forces the next WriteTo() to perform a full redraw.
-func (sc *Screen) Invalidate() {
+func (sc *ScreenDiffer) Invalidate() {
 	sc.Real.Resize(image.ZP)
 }
 
@@ -79,7 +79,7 @@ func (sc *Screen) Invalidate() {
 //
 // When using an internal Buffer, resuming a partial write after EWOULDBLOCK is
 // supported, skipping the assembly step described above.
-func (sc *Screen) WriteTo(w io.Writer) (n int64, err error) {
+func (sc *ScreenDiffer) WriteTo(w io.Writer) (n int64, err error) {
 	state := sc.Real
 	defer func() {
 		if err == nil {
@@ -214,6 +214,6 @@ func (tsc *TermScreen) SizeToTerm(term *Term) error {
 }
 
 var (
-	_ ansiWriter = &Screen{}
+	_ ansiWriter = &ScreenDiffer{}
 	_ Context    = &TermScreen{}
 )

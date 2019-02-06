@@ -18,7 +18,7 @@ import (
 
 func TestScreen_steps(t *testing.T) {
 	type step struct {
-		run    func(*anansi.Screen)
+		run    func(*anansi.ScreenDiffer)
 		expect string
 	}
 	for _, tc := range []struct {
@@ -26,28 +26,28 @@ func TestScreen_steps(t *testing.T) {
 		steps []step
 	}{
 		{"roving set", []step{
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 			}, "\x1b[?25l\x1b[2J"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 			}, ""},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				i, _ := sc.CellOffset(ansi.Pt(3, 3))
 				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRBrightGreen.FG()
 			}, "\x1b[3;3H\x1b[0;92m@"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				i, _ := sc.CellOffset(ansi.Pt(4, 3))
 				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRBrightYellow.FG()
 			}, "\x1b[D\x1b[0m \x1b[93m@"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				i, _ := sc.CellOffset(ansi.Pt(4, 4))
 				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRGreen.FG()
 			}, "\x1b[D\x1b[0m \x1b[4;4H\x1b[32m@"}, // 5,4
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				i, _ := sc.CellOffset(ansi.Pt(3, 4))
 				sc.Grid.Rune[i], sc.Grid.Attr[i] = '@', ansi.SGRYellow.FG()
@@ -55,17 +55,17 @@ func TestScreen_steps(t *testing.T) {
 		}},
 
 		{"write over", []step{
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello world!")
 			}, "\x1b[?25l\x1b[2J\x1b[1;1H\x1b[0mhello worl\r\nd!"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("\x1b[34mhello world!")
 			}, "\x1b[1;1H\x1b[34mhello worl\r\nd!"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("\x1b[34mhello\x1b[0m")
@@ -75,18 +75,18 @@ func TestScreen_steps(t *testing.T) {
 		}},
 
 		{"dangling style", []step{
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("0) --")
 			}, "\x1b[?25l\x1b[2J\x1b[1;1H\x1b[0m0) --"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("1) ")
 				sc.WriteString("\x1b[31mred")
 			}, "\x1b[5D1\x1b[2C\x1b[31mred"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("2) ")
@@ -95,34 +95,34 @@ func TestScreen_steps(t *testing.T) {
 		}},
 
 		{"writing", []step{
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 			}, "\x1b[?25l\x1b[2J"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello world")
 			}, "\x1b[1;1H\x1b[0mhello\x1b[Cworl\r\nd"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello ")
 				sc.WriteSGR(ansi.SGRRed.FG())
 				sc.WriteString("world")
 			}, "\x1b[1;7H\x1b[31mworl\r\nd"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello ")
 				sc.WriteString("\x1b[32mworld")
 			}, "\x1b[1;7H\x1b[32mworl\r\nd"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.Invalidate()
 				sc.To(ansi.Pt(1, 1))
 				sc.WriteString("hello ")
 				sc.WriteString("\x1b[33mworld")
 			}, "\x1b[2J\x1b[1;1H\x1b[0mhello \x1b[33mworl\r\nd"},
-			{func(sc *anansi.Screen) {
+			{func(sc *anansi.ScreenDiffer) {
 				sc.Clear()
 				sc.Resize(image.Pt(20, 10))
 				sc.To(ansi.Pt(1, 1))
@@ -135,7 +135,7 @@ func TestScreen_steps(t *testing.T) {
 	} {
 		t.Run(tc.name, logBuf.With(func(t *testing.T) {
 			var out bytes.Buffer
-			var sc anansi.Screen
+			var sc anansi.ScreenDiffer
 			sc.Resize(image.Pt(10, 10))
 			for i, step := range tc.steps {
 				out.Reset()
@@ -244,7 +244,7 @@ func TestScreen_blobs(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, logBuf.With(func(t *testing.T) {
-			var sc anansi.Screen
+			var sc anansi.ScreenDiffer
 			sc.Resize(tc.size)
 			sc.WriteString(tc.input)
 			assert.Equal(t, tc.lines, anansitest.GridLines(sc.Grid, ' '))
@@ -348,7 +348,7 @@ func Test_gridLines(t *testing.T) {
 }
 
 func parseGrid(s string, sz image.Point) anansi.Grid {
-	var sc anansi.Screen
+	var sc anansi.ScreenDiffer
 	sc.Resize(sz)
 	sc.WriteString(s)
 	return sc.Grid
@@ -394,7 +394,7 @@ func TestScreen_equiv(t *testing.T) {
 		t.Run(tc.name, logBuf.With(func(t *testing.T) {
 			for i, s := range tc.steps {
 				t.Run(fmt.Sprintf("step_%d", i), logBuf.With(func(t *testing.T) {
-					var a, b, aout, bout anansi.Screen
+					var a, b, aout, bout anansi.ScreenDiffer
 					a.Resize(tc.sz)
 					b.Resize(tc.sz)
 					aout.Resize(tc.sz)
