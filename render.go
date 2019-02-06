@@ -19,7 +19,7 @@ func WriteGrid(w io.Writer, g Grid, prior ScreenState, styles ...Style) (int, Sc
 	if g.Rect.Min != ansi.Pt(1, 1) {
 		panic("sub-screen update not implemented")
 	}
-	n, cur, err := withAnsiWriter(w, prior.Cursor, func(aw ansiWriter, cur CursorState) (int, CursorState) {
+	n, cur, err := withAnsiWriter(w, prior.Cursor, func(aw ansiWriter, cur Cursor) (int, Cursor) {
 		style := Styles(styles...)
 		prior.Cursor = cur
 		n, state := writeGrid(aw, g, prior, style)
@@ -41,7 +41,7 @@ func writeGrid(aw ansiWriter, g Grid, prior ScreenState, style Style) (int, Scre
 	return writeGridDiff(aw, g, prior, style)
 }
 
-func writeGridFull(aw ansiWriter, cur CursorState, g Grid, style Style) (int, CursorState) {
+func writeGridFull(aw ansiWriter, cur Cursor, g Grid, style Style) (int, Cursor) {
 	const empty = ' '
 	if fillRune, _ := style.Style(ansi.ZP, 0, 0, 0, 0); fillRune == empty {
 		style = Styles(style, ZeroRuneStyle(empty))
@@ -121,8 +121,8 @@ func writeGridDiff(aw ansiWriter, g Grid, prior ScreenState, style Style) (int, 
 // Optional style(s) may be passed to control graphical rendition of the
 // braille runes.
 func WriteBitmap(w io.Writer, bi Bitmap, styles ...Style) (int, error) {
-	// TODO deal with CursorState?
-	n, _, err := withAnsiWriter(w, CursorState{}, func(aw ansiWriter, cur CursorState) (int, CursorState) {
+	// TODO deal with Cursor?
+	n, _, err := withAnsiWriter(w, Cursor{}, func(aw ansiWriter, cur Cursor) (int, Cursor) {
 		style := Styles(styles...)
 		style = Styles(style, StyleFunc(func(p ansi.Point, _ rune, r rune, _ ansi.SGRAttr, a ansi.SGRAttr) (rune, ansi.SGRAttr) {
 			if r == 0 {
@@ -135,7 +135,7 @@ func WriteBitmap(w io.Writer, bi Bitmap, styles ...Style) (int, error) {
 	return n, err
 }
 
-func writeBitmap(aw ansiWriter, cur CursorState, bi Bitmap, style Style) (n int, _ CursorState) {
+func writeBitmap(aw ansiWriter, cur Cursor, bi Bitmap, style Style) (n int, _ Cursor) {
 	for bp := bi.Rect.Min; bp.Y < bi.Rect.Max.Y; bp.Y += 4 {
 		if bp.Y > 0 {
 			n += aw.WriteSeq(cur.NewLine())
@@ -160,9 +160,9 @@ func writeBitmap(aw ansiWriter, cur CursorState, bi Bitmap, style Style) (n int,
 }
 
 func withAnsiWriter(
-	w io.Writer, cur CursorState,
-	f func(aw ansiWriter, cur CursorState) (int, CursorState),
-) (n int, _ CursorState, err error) {
+	w io.Writer, cur Cursor,
+	f func(aw ansiWriter, cur Cursor) (int, Cursor),
+) (n int, _ Cursor, err error) {
 	aw, ok := w.(ansiWriter)
 	if !ok {
 		var buf Buffer

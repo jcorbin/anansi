@@ -16,27 +16,28 @@ var cursorMoves = [4]image.Point{
 	image.Pt(-1, 0), // CUB ^[[D
 }
 
-// CursorState represents cursor state, allowing consumers to reason virtually
-// about it (e.g. to affect relative movement and SGR changes).
-type CursorState struct {
+// Cursor represents terminal cursor state, including position, graphics
+// attributes, and visibility.
+//
+// TODO more things like cursor shape and color
+type Cursor struct {
 	ansi.Point
 	Attr    ansi.SGRAttr
 	Visible bool
 
 	attrKnown bool
 	visKnown  bool
-	// TODO other mode bits? like shape?
 }
 
 // ScreenState adds a Grid and UserCusor to CursorState, allowing consumers to
 // reason about the virtual state of the terminal screen. It's primary purpose
 // is differential draw update, see the Update() method.
 type ScreenState struct {
-	Cursor CursorState
+	Cursor Cursor
 	Grid
 }
 
-func (cs CursorState) String() string {
+func (cs Cursor) String() string {
 	return fmt.Sprintf("@%v a:%v v:%v", cs.Point, cs.Attr, cs.Visible)
 }
 
@@ -50,7 +51,7 @@ func (scs *ScreenState) Clear() {
 		scs.Grid.Rune[i] = 0
 		scs.Grid.Attr[i] = 0
 	}
-	scs.Cursor = CursorState{}
+	scs.Cursor = Cursor{}
 }
 
 // Resize the underlying Grid, and zero the cursor position if out of bounds.
@@ -67,7 +68,7 @@ func (scs *ScreenState) Resize(size image.Point) bool {
 
 // Show returns the control sequence necessary to show the cursor if it is not
 // visible, the zero sequence otherwise.
-func (cs *CursorState) Show() ansi.Seq {
+func (cs *Cursor) Show() ansi.Seq {
 	// TODO terminfo
 	if !cs.visKnown || !cs.Visible {
 		cs.visKnown = true
@@ -79,7 +80,7 @@ func (cs *CursorState) Show() ansi.Seq {
 
 // Hide returns the control sequence necessary to hide the cursor if it is
 // visible, the zero sequence otherwise.
-func (cs *CursorState) Hide() ansi.Seq {
+func (cs *Cursor) Hide() ansi.Seq {
 	// TODO terminfo
 	if !cs.visKnown || cs.Visible {
 		cs.visKnown = true
@@ -90,7 +91,7 @@ func (cs *CursorState) Hide() ansi.Seq {
 }
 
 // MergeSGR merges the given SGR attribute into Attr, returning the difference.
-func (cs *CursorState) MergeSGR(attr ansi.SGRAttr) ansi.SGRAttr {
+func (cs *Cursor) MergeSGR(attr ansi.SGRAttr) ansi.SGRAttr {
 	if !cs.attrKnown {
 		cs.Attr = attr
 		cs.attrKnown = true
@@ -105,7 +106,7 @@ func (cs *CursorState) MergeSGR(attr ansi.SGRAttr) ansi.SGRAttr {
 // given screen point using absolute (ansi.CUP) or relative
 // (ansi.{CUU,CUD,CUF,CUD}) if possible. Returns a zero sequence if the cursor
 // is already at the given point.
-func (cs *CursorState) To(pt ansi.Point) ansi.Seq {
+func (cs *Cursor) To(pt ansi.Point) ansi.Seq {
 	if !cs.Point.Valid() {
 		// TODO more nuanced: if X in unknown / Y is unknown?
 		cs.X, cs.Y = pt.X, pt.Y
@@ -152,7 +153,7 @@ func (cs *CursorState) To(pt ansi.Point) ansi.Seq {
 
 // NewLine moves the cursor to the start of the next line, returning the
 // necessary ansi sequence.
-func (cs *CursorState) NewLine() ansi.Seq {
+func (cs *Cursor) NewLine() ansi.Seq {
 	cs.Y++
 	cs.X = 1
 	return ansi.Escape('\r').With('\n')
@@ -181,13 +182,13 @@ func (scs *ScreenState) To(pt ansi.Point) {
 // ApplyTo applies the receiver cursor state into the passed state value,
 // writing any necessary control sequences into the provided buffer. Returns
 // the number of bytes written, and the updated cursor state.
-func (cs *CursorState) ApplyTo(w io.Writer, cur CursorState) (int, CursorState, error) {
-	return withAnsiWriter(w, cur, func(aw ansiWriter, cur CursorState) (int, CursorState) {
+func (cs *Cursor) ApplyTo(w io.Writer, cur Cursor) (int, Cursor, error) {
+	return withAnsiWriter(w, cur, func(aw ansiWriter, cur Cursor) (int, Cursor) {
 		return cs.applyTo(aw, cur)
 	})
 }
 
-func (cs *CursorState) applyTo(aw ansiWriter, cur CursorState) (n int, _ CursorState) {
+func (cs *Cursor) applyTo(aw ansiWriter, cur Cursor) (n int, _ Cursor) {
 	if cs.Visible && cs.Point.Valid() {
 		n += aw.WriteSeq(cur.To(cs.Point))
 		n += aw.WriteSGR(cur.MergeSGR(cs.Attr))
@@ -203,7 +204,7 @@ func (cs *CursorState) applyTo(aw ansiWriter, cur CursorState) (n int, _ CursorS
 // given writer. Returns the number of bytes written and the final screen state,
 // which will now equal the receiver state.
 func (scs *ScreenState) Update(w io.Writer, prior ScreenState) (int, ScreenState, error) {
-	n, cur, err := withAnsiWriter(w, prior.Cursor, func(aw ansiWriter, cur CursorState) (int, CursorState) {
+	n, cur, err := withAnsiWriter(w, prior.Cursor, func(aw ansiWriter, cur Cursor) (int, Cursor) {
 		prior.Cursor = cur
 		var n int
 		n, prior = scs.update(aw, prior)
@@ -240,7 +241,7 @@ func (scs *ScreenState) update(aw ansiWriter, prior ScreenState) (int, ScreenSta
 //
 // Any errors decoding escape arguments are silenced, and the offending
 // escape sequence(s) ignored.
-func (cs *CursorState) ProcessANSI(e ansi.Escape, a []byte) {
+func (cs *Cursor) ProcessANSI(e ansi.Escape, a []byte) {
 	switch {
 	case e.IsEscape():
 		cs.processEscape(e, a, ptID)
@@ -258,7 +259,7 @@ func ptID(pt ansi.Point) ansi.Point { return pt }
 
 // processEscape implements cursor escape processing shared with ScreenState,
 // which passes a non-identity clamp function.
-func (cs *CursorState) processEscape(
+func (cs *Cursor) processEscape(
 	e ansi.Escape, a []byte,
 	clamp func(pt ansi.Point) ansi.Point,
 ) {
@@ -458,6 +459,6 @@ func (scs *ScreenState) scrollBy(n int) {
 }
 
 var (
-	_ Processor = &CursorState{}
+	_ Processor = &Cursor{}
 	_ Processor = &ScreenState{}
 )

@@ -14,7 +14,7 @@ import (
 // update the virtual screen. Primitive vt100 emulation is provided through
 // Write* methods and Buffer processing.
 type Screen struct {
-	UserCursor CursorState
+	UserCursor Cursor
 
 	ScreenState
 	Real ScreenState
@@ -32,7 +32,7 @@ func (sc *Screen) Reset() {
 // Clear the screen and user cursor state.
 func (sc *Screen) Clear() {
 	sc.ScreenState.Clear()
-	sc.UserCursor = CursorState{}
+	sc.UserCursor = Cursor{}
 }
 
 // Resize the current screen state, and invalidate to cause a full redraw.
