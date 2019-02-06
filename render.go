@@ -12,7 +12,7 @@ import (
 // To force an absolute (non-differential) update, pass an empty prior grid.
 // Returns the number of bytes written, final cursor state, and any write error
 // encountered.
-func WriteGrid(w io.Writer, g Grid, prior ScreenState, styles ...Style) (int, ScreenState, error) {
+func WriteGrid(w io.Writer, g Grid, prior Screen, styles ...Style) (int, Screen, error) {
 	if g.Stride != g.Rect.Dx() {
 		panic("sub-grid update not implemented")
 	}
@@ -29,7 +29,7 @@ func WriteGrid(w io.Writer, g Grid, prior ScreenState, styles ...Style) (int, Sc
 	return n, prior, err
 }
 
-func writeGrid(aw ansiWriter, g Grid, prior ScreenState, style Style) (int, ScreenState) {
+func writeGrid(aw ansiWriter, g Grid, prior Screen, style Style) (int, Screen) {
 	if len(g.Attr) == 0 || len(g.Rune) == 0 {
 		return 0, prior
 	}
@@ -67,7 +67,7 @@ func writeGridFull(aw ansiWriter, cur Cursor, g Grid, style Style) (int, Cursor)
 	return n, cur
 }
 
-func writeGridDiff(aw ansiWriter, g Grid, prior ScreenState, style Style) (int, ScreenState) {
+func writeGridDiff(aw ansiWriter, g Grid, prior Screen, style Style) (int, Screen) {
 	fillRune, fillAttr := style.Style(ansi.ZP, 0, 0, 0, 0)
 	const empty = ' '
 	if fillRune == 0 {

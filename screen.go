@@ -22,7 +22,7 @@ type ScreenDiffer struct {
 	UserCursor Cursor
 
 	VirtualScreen
-	Real ScreenState
+	Real Screen
 }
 
 // VirtualScreen implements minimal terminal emulation around ScreenState.
@@ -36,7 +36,7 @@ type ScreenDiffer struct {
 // completed, and validated. E.g. cursor position is currently clamped to the
 // screen size, rather than wrapped.
 type VirtualScreen struct {
-	ScreenState
+	Screen
 	buf Buffer
 }
 

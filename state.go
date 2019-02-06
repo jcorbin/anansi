@@ -29,10 +29,10 @@ type Cursor struct {
 	visKnown  bool
 }
 
-// ScreenState adds a Grid and UserCusor to CursorState, allowing consumers to
-// reason about the virtual state of the terminal screen. It's primary purpose
-// is differential draw update, see the Update() method.
-type ScreenState struct {
+// Screen extends Cursor with a Grid of screen content.  allowing
+// consumers to reason about the state of the terminal screen (virtual, real,
+// or otherwise).
+type Screen struct {
 	Cursor Cursor
 	Grid
 }
@@ -41,12 +41,12 @@ func (cs Cursor) String() string {
 	return fmt.Sprintf("@%v a:%v v:%v", cs.Point, cs.Attr, cs.Visible)
 }
 
-func (scs ScreenState) String() string {
+func (scs Screen) String() string {
 	return fmt.Sprintf("%v gridBounds:%v", scs.Cursor, scs.Grid.Bounds())
 }
 
 // Clear the screen grid, and reset cursor state (to invisible nowhere).
-func (scs *ScreenState) Clear() {
+func (scs *Screen) Clear() {
 	for i := range scs.Grid.Rune {
 		scs.Grid.Rune[i] = 0
 		scs.Grid.Attr[i] = 0
@@ -56,7 +56,7 @@ func (scs *ScreenState) Clear() {
 
 // Resize the underlying Grid, and zero the cursor position if out of bounds.
 // Returns true only if the resize was a change, false if it was a no-op.
-func (scs *ScreenState) Resize(size image.Point) bool {
+func (scs *Screen) Resize(size image.Point) bool {
 	if scs.Grid.Resize(size) {
 		if !scs.Cursor.Point.In(scs.Bounds()) {
 			scs.Cursor.Point.Point = image.ZP
@@ -159,7 +159,7 @@ func (cs *Cursor) NewLine() ansi.Seq {
 	return ansi.Escape('\r').With('\n')
 }
 
-func (scs *ScreenState) clamp(pt ansi.Point) ansi.Point {
+func (scs *Screen) clamp(pt ansi.Point) ansi.Point {
 	r := scs.Bounds()
 	if pt.X < r.Min.X {
 		pt.X = r.Min.X
@@ -175,7 +175,7 @@ func (scs *ScreenState) clamp(pt ansi.Point) ansi.Point {
 }
 
 // To sets the virtual cursor point to the supplied one.
-func (scs *ScreenState) To(pt ansi.Point) {
+func (scs *Screen) To(pt ansi.Point) {
 	scs.Cursor.Point = scs.clamp(pt)
 }
 
@@ -203,7 +203,7 @@ func (cs *Cursor) applyTo(aw ansiWriter, cur Cursor) (n int, _ Cursor) {
 // state, generating writing any/all necessary ansi control sequences into the
 // given writer. Returns the number of bytes written and the final screen state,
 // which will now equal the receiver state.
-func (scs *ScreenState) Update(w io.Writer, prior ScreenState) (int, ScreenState, error) {
+func (scs *Screen) Update(w io.Writer, prior Screen) (int, Screen, error) {
 	n, cur, err := withAnsiWriter(w, prior.Cursor, func(aw ansiWriter, cur Cursor) (int, Cursor) {
 		prior.Cursor = cur
 		var n int
@@ -214,7 +214,7 @@ func (scs *ScreenState) Update(w io.Writer, prior ScreenState) (int, ScreenState
 	return n, prior, err
 }
 
-func (scs *ScreenState) update(aw ansiWriter, prior ScreenState) (int, ScreenState) {
+func (scs *Screen) update(aw ansiWriter, prior Screen) (int, Screen) {
 	var n, m int
 	n += aw.WriteSeq(prior.Cursor.Hide())
 	m, prior = writeGrid(aw, scs.Grid, prior, NoopStyle)
@@ -342,7 +342,7 @@ func (cs *Cursor) processEscape(
 //
 // Any errors decoding escape arguments are silenced, and the offending
 // escape sequence(s) ignored.
-func (scs *ScreenState) ProcessANSI(e ansi.Escape, a []byte) {
+func (scs *Screen) ProcessANSI(e ansi.Escape, a []byte) {
 	if scs.Cursor.Point.Point == image.ZP {
 		scs.Cursor.Point = ansi.Pt(1, 1)
 	}
@@ -366,7 +366,7 @@ func (scs *ScreenState) ProcessANSI(e ansi.Escape, a []byte) {
 	}
 }
 
-func (scs *ScreenState) processEscape(e ansi.Escape, a []byte) {
+func (scs *Screen) processEscape(e ansi.Escape, a []byte) {
 	switch e {
 	case ansi.ED:
 		var val byte
@@ -430,14 +430,14 @@ func (scs *ScreenState) processEscape(e ansi.Escape, a []byte) {
 	}
 }
 
-func (scs *ScreenState) clearRegion(i, max int) {
+func (scs *Screen) clearRegion(i, max int) {
 	for ; i < max; i++ {
 		scs.Grid.Rune[i] = 0
 		scs.Grid.Attr[i] = 0
 	}
 }
 
-func (scs *ScreenState) linefeed() {
+func (scs *Screen) linefeed() {
 	if scs.Cursor.Y+1 < scs.Bounds().Max.Y {
 		scs.Cursor.Y++
 	} else {
@@ -445,7 +445,7 @@ func (scs *ScreenState) linefeed() {
 	}
 }
 
-func (scs *ScreenState) scrollBy(n int) {
+func (scs *Screen) scrollBy(n int) {
 	i, ok := scs.CellOffset(scs.Cursor.Point.Add(image.Pt(1, 2)))
 	if !ok {
 		return
@@ -460,5 +460,5 @@ func (scs *ScreenState) scrollBy(n int) {
 
 var (
 	_ Processor = &Cursor{}
-	_ Processor = &ScreenState{}
+	_ Processor = &Screen{}
 )
