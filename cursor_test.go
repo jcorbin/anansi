@@ -15,7 +15,7 @@ import (
 
 func TestCursor(t *testing.T) {
 	type step struct {
-		run    func(*Cursor)
+		run    func(*VirtualCursor)
 		expect string
 	}
 	for _, tc := range []struct {
@@ -24,12 +24,12 @@ func TestCursor(t *testing.T) {
 	}{
 
 		{"hello", []step{
-			{func(cur *Cursor) {
+			{func(cur *VirtualCursor) {
 				cur.To(ansi.Pt(5, 5))
 				cur.WriteSGR(ansi.SGRRed.FG() | ansi.SGRGreen.BG())
 				cur.WriteString("hello")
 			}, "\x1b[5;5H\x1B[0;31;42mhello"},
-			{func(cur *Cursor) {
+			{func(cur *VirtualCursor) {
 				cur.To(ansi.Pt(5, 6))
 				cur.WriteSGR(ansi.SGRBlue.FG() | ansi.SGRGreen.BG())
 				cur.WriteString("world")
@@ -38,7 +38,7 @@ func TestCursor(t *testing.T) {
 	} {
 		t.Run(tc.name, logBuf.With(func(t *testing.T) {
 			var out bytes.Buffer
-			var cur Cursor
+			var cur VirtualCursor
 			for i, step := range tc.steps {
 				out.Reset()
 				step.run(&cur)
