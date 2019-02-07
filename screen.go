@@ -57,7 +57,6 @@ func (sc *ScreenDiffer) Clear() {
 func (sc *ScreenDiffer) Resize(size image.Point) bool {
 	if sc.VirtualScreen.Resize(size) {
 		sc.Invalidate()
-		sc.buf.Reset()
 		return true
 	}
 	return false
