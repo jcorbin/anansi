@@ -19,14 +19,9 @@ func WriteGrid(w io.Writer, g Grid, prior Screen, styles ...Style) (int, Screen,
 	if g.Rect.Min != ansi.Pt(1, 1) {
 		panic("sub-screen update not implemented")
 	}
-	n, cur, err := withAnsiWriter(w, prior.Cursor, func(aw ansiWriter, cur Cursor) (int, Cursor) {
-		style := Styles(styles...)
-		prior.Cursor = cur
-		n, state := writeGrid(aw, g, prior, style)
-		return n, state.Cursor
+	return withAnsiScreenWriter(w, prior, func(aw ansiWriter, sc Screen) (int, Screen) {
+		return writeGrid(aw, g, sc, Styles(styles...))
 	})
-	prior.Cursor = cur
-	return n, prior, err
 }
 
 func writeGrid(aw ansiWriter, g Grid, prior Screen, style Style) (int, Screen) {
@@ -122,7 +117,7 @@ func writeGridDiff(aw ansiWriter, g Grid, prior Screen, style Style) (int, Scree
 // braille runes.
 func WriteBitmap(w io.Writer, bi Bitmap, styles ...Style) (int, error) {
 	// TODO deal with Cursor?
-	n, _, err := withAnsiWriter(w, Cursor{}, func(aw ansiWriter, cur Cursor) (int, Cursor) {
+	n, _, err := withAnsiCursorWriter(w, Cursor{}, func(aw ansiWriter, cur Cursor) (int, Cursor) {
 		style := Styles(styles...)
 		style = Styles(style, StyleFunc(func(p ansi.Point, _ rune, r rune, _ ansi.SGRAttr, a ansi.SGRAttr) (rune, ansi.SGRAttr) {
 			if r == 0 {
@@ -159,7 +154,7 @@ func writeBitmap(aw ansiWriter, cur Cursor, bi Bitmap, style Style) (n int, _ Cu
 	return n, cur
 }
 
-func withAnsiWriter(
+func withAnsiCursorWriter(
 	w io.Writer, cur Cursor,
 	f func(aw ansiWriter, cur Cursor) (int, Cursor),
 ) (n int, _ Cursor, err error) {
@@ -175,6 +170,18 @@ func withAnsiWriter(
 	}
 	n, cur = f(aw, cur)
 	return n, cur, nil
+}
+
+func withAnsiScreenWriter(
+	w io.Writer, sc Screen,
+	f func(aw ansiWriter, sc Screen) (int, Screen),
+) (n int, _ Screen, err error) {
+	n, sc.Cursor, err = withAnsiCursorWriter(w, sc.Cursor, func(aw ansiWriter, cur Cursor) (int, Cursor) {
+		sc.Cursor = cur
+		n, sc = f(aw, sc)
+		return n, sc.Cursor
+	})
+	return n, sc, err
 }
 
 type ansiWriter interface {

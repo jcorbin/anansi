@@ -180,7 +180,7 @@ func (scs *Screen) To(pt ansi.Point) {
 // writing any necessary control sequences into the provided buffer. Returns
 // the number of bytes written, and the updated cursor state.
 func (cs *Cursor) ApplyTo(w io.Writer, cur Cursor) (int, Cursor, error) {
-	return withAnsiWriter(w, cur, func(aw ansiWriter, cur Cursor) (int, Cursor) {
+	return withAnsiCursorWriter(w, cur, func(aw ansiWriter, cur Cursor) (int, Cursor) {
 		return cs.applyTo(aw, cur)
 	})
 }
@@ -201,14 +201,7 @@ func (cs *Cursor) applyTo(aw ansiWriter, cur Cursor) (n int, _ Cursor) {
 // given writer. Returns the number of bytes written and the final screen state,
 // which will now equal the receiver state.
 func (scs *Screen) Update(w io.Writer, prior Screen) (int, Screen, error) {
-	n, cur, err := withAnsiWriter(w, prior.Cursor, func(aw ansiWriter, cur Cursor) (int, Cursor) {
-		prior.Cursor = cur
-		var n int
-		n, prior = scs.update(aw, prior)
-		return n, prior.Cursor
-	})
-	prior.Cursor = cur
-	return n, prior, err
+	return withAnsiScreenWriter(w, prior, scs.update)
 }
 
 func (scs *Screen) update(aw ansiWriter, prior Screen) (int, Screen) {
