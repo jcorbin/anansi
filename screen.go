@@ -40,17 +40,17 @@ type VirtualScreen struct {
 	buf Buffer
 }
 
-// Reset the internal buffer, Clear(), and restore virtual cursor state.
+// Reset calls Clear() and restores virtual cursor state.
 func (sc *ScreenDiffer) Reset() {
-	sc.buf.Reset()
 	sc.Clear()
 	sc.VirtualScreen.Cursor = sc.Real.Cursor
 }
 
-// Clear the screen and user cursor state.
+// Clear the virtual screen, user cursor state, and internal buffer.
 func (sc *ScreenDiffer) Clear() {
 	sc.VirtualScreen.Clear()
 	sc.UserCursor = Cursor{}
+	sc.buf.Reset()
 }
 
 // Resize the current screen state, and invalidate to cause a full redraw.
