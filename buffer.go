@@ -11,6 +11,9 @@ import (
 // Buffer implements a deferred buffer of ANSI output, providing
 // convenience methods for writing various ansi escape sequences, and keeping
 // an observant processor up to date.
+//
+// TODO consider decoupling processing use case and maybe killing off the
+// writing case.
 type Buffer struct {
 	buf bytes.Buffer
 	off int
