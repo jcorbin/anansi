@@ -71,16 +71,18 @@ func main() {
 	}
 }
 
-type schotterDemo struct {
-	// config
+type schotterDemoConfig struct {
 	squaresPerRow int
 	squaresPerCol int
 	squareSide    int
 	padding       int
 	seed          int64
 	angleOffset   float64
+}
 
-	// state
+type schotterDemo struct {
+	schotterDemoConfig
+
 	canvas anansi.Bitmap
 	rand   *rand.Rand
 }

@@ -9,14 +9,21 @@ import (
 	"github.com/jcorbin/anansi/x/platform"
 )
 
+type schotterDemoUI struct {
+	*schotterDemo
+}
+
 func runInteractive() {
-	sd.squareSide = 20 // TODO push down, pre-compute based on initial width and squaresPerRow
 	platform.MustRun(os.Stdin, os.Stdout, func(p *platform.Platform) error {
-		return p.Run(&sd)
+		var ui schotterDemoUI
+		ui.schotterDemo = &sd
+		ui.squareSide = 20 // TODO push down, pre-compute based on initial width and squaresPerRow
+
+		return p.Run(&ui)
 	}, platform.FrameRate(60))
 }
 
-func (sd *schotterDemo) Update(ctx *platform.Context) (err error) {
+func (sd *schotterDemoUI) Update(ctx *platform.Context) (err error) {
 	// Ctrl-C interrupts
 	if ctx.Input.HasTerminal('\x03') {
 		// ... AFTER any other available input has been processed
