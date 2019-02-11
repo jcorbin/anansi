@@ -37,6 +37,33 @@ type Screen struct {
 	Grid
 }
 
+// Full returns a shallow copy of the screen with the Grid restored to its full
+// area.
+func (sc Screen) Full() Screen {
+	sc.Grid = sc.Grid.Full()
+	return sc
+}
+
+// SubAt returns a shallow copy of the screen with a sub-Grid anchored at the
+// given point; clamps the cursor to the new bounding rectangle.
+func (sc Screen) SubAt(at ansi.Point) Screen {
+	return sc.SubRect(ansi.Rectangle{Min: at, Max: sc.Rect.Max})
+}
+
+// SubSize returns a shallow copy of the screen with a sub-Grid resized to the
+// given size; clamps the cursor to the new bounding rectangle.
+func (sc Screen) SubSize(sz image.Point) Screen {
+	return sc.SubRect(ansi.Rectangle{Min: sc.Rect.Min, Max: sc.Rect.Min.Add(sz)})
+}
+
+// SubRect returns a shallow copy of the screen with a sub-Grid bounded by the
+// given rectangle; clamps the cursor to the new bounding rectangle.
+func (sc Screen) SubRect(r ansi.Rectangle) Screen {
+	sc.Grid = sc.Grid.SubRect(r)
+	sc.Cursor.Point = clampPointTo(sc.Cursor.Point, r)
+	return sc
+}
+
 func (cs Cursor) String() string {
 	return fmt.Sprintf("@%v a:%v v:%v", cs.Point, cs.Attr, cs.Visible)
 }
@@ -452,3 +479,18 @@ var (
 	_ Processor = &Cursor{}
 	_ Processor = &Screen{}
 )
+
+// TODO should this by a method or utility in ansi/geom.go?
+func clampPointTo(p ansi.Point, r ansi.Rectangle) ansi.Point {
+	if p.X < r.Min.X {
+		p.X = r.Min.X
+	} else if p.X >= r.Max.X {
+		p.X = r.Max.X - 1
+	}
+	if p.Y < r.Min.Y {
+		p.Y = r.Min.Y
+	} else if p.Y >= r.Max.Y {
+		p.Y = r.Max.Y - 1
+	}
+	return p
+}
