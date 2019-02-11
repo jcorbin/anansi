@@ -143,20 +143,26 @@ func (b *Buffer) Discard() {
 // Process bytes written to the internal buffer, decoding runes and escape
 // sequences, and passing them to the given processor.
 func (b *Buffer) Process(proc Processor) {
-	for p := b.buf.Bytes(); b.off < len(p); {
-		e, a, n := ansi.DecodeEscape(p[b.off:])
-		b.off += n
+	b.off += Process(proc, b.buf.Bytes()[b.off:])
+}
+
+// Process decodes ansi escapes and utf8 runes from p, passing them to proc.
+func Process(proc Processor, p []byte) (n int) {
+	for n < len(p) {
+		e, a, m := ansi.DecodeEscape(p[n:])
+		n += m
 		if e == 0 {
-			switch r, n := utf8.DecodeRune(p[b.off:]); r {
+			switch r, m := utf8.DecodeRune(p[n:]); r {
 			case '\x1b':
-				return
+				return n
 			default:
-				b.off += n
+				n += m
 				e = ansi.Escape(r)
 			}
 		}
 		proc.ProcessANSI(e, a)
 	}
+	return n
 }
 
 // Processor receives decoded ANSI escape sequences and Unicode runes from
