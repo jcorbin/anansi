@@ -43,6 +43,7 @@ func writeGridFull(aw ansiWriter, cur Cursor, g Grid, style Style) (int, Cursor)
 	}
 	style = Styles(style, DefaultRuneStyle(empty))
 	n := aw.WriteSeq(ansi.ED.With('2'))
+	// TODO support writing a sub-grid
 	for i, pt := 0, ansi.Pt(1, 1); i < len(g.Rune); {
 		if gr, ga := style.Style(pt, 0, g.Rune[i], 0, g.Attr[i]); gr != 0 {
 			mv := cur.To(pt)
@@ -71,6 +72,7 @@ func writeGridDiff(aw ansiWriter, g Grid, prior Screen, style Style) (int, Scree
 	}
 	style = Styles(style, DefaultRuneStyle(empty))
 	n, diffing := 0, true
+	// TODO support writing a sub-grid
 	for i, pt := 0, ansi.Pt(1, 1); i < len(g.Rune); /* next: */ {
 		pr, pa := fillRune, fillAttr
 		gr, ga := style.Style(pt, pr, g.Rune[i], pa, g.Attr[i])

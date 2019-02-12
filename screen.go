@@ -1,6 +1,7 @@
 package anansi
 
 import (
+	"errors"
 	"image"
 	"io"
 	"syscall"
@@ -67,6 +68,9 @@ func (sc *ScreenDiffer) Invalidate() {
 	sc.Real.Resize(image.ZP)
 }
 
+// TODO support sub-screen diffs
+var errSubScreenDiff = errors.New("anansi.ScreenDiffer does not support sub-screens")
+
 // WriteTo writes the content and ansi control sequences necessary to
 // synchronize Real screen state to match VirtualScreen state.  performs a
 // differential update if possible, falling back to a full redraw if necessary
@@ -79,6 +83,10 @@ func (sc *ScreenDiffer) Invalidate() {
 // When using an internal Buffer, resuming a partial write after EWOULDBLOCK is
 // supported, skipping the assembly step described above.
 func (sc *ScreenDiffer) WriteTo(w io.Writer) (n int64, err error) {
+	if sc.IsSub() {
+		return 0, errSubScreenDiff
+	}
+
 	state := sc.Real
 	defer func() {
 		if err == nil {
