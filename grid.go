@@ -51,6 +51,30 @@ func (g *Grid) Resize(size image.Point) bool {
 	return true
 }
 
+// Clear the (maybe sub) grid; zeros all runes an attributes.
+func (g Grid) Clear() {
+	if !g.IsSub() {
+		for i := range g.Rune {
+			g.Rune[i] = 0
+			g.Attr[i] = 0
+		}
+		return
+	}
+
+	pt := g.Rect.Min
+	i, _ := g.CellOffset(pt)
+	dx := g.Rect.Dx()
+	for ; pt.Y < g.Rect.Max.Y; pt.Y++ {
+		for pt.X = g.Rect.Min.X; pt.X < g.Rect.Max.X; pt.X++ {
+			g.Rune[i] = 0
+			g.Attr[i] = 0
+			i++
+		}
+		i -= dx       // CR
+		i += g.Stride // LF
+	}
+}
+
 // Bounds returns the screen bounding rectangle of the grid.
 func (g Grid) Bounds() ansi.Rectangle {
 	return g.Rect

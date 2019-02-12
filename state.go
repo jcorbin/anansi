@@ -47,10 +47,7 @@ func (scs Screen) String() string {
 
 // Clear the screen grid, and reset cursor state (to invisible nowhere).
 func (scs *Screen) Clear() {
-	for i := range scs.Grid.Rune {
-		scs.Grid.Rune[i] = 0
-		scs.Grid.Attr[i] = 0
-	}
+	scs.Grid.Clear()
 	scs.Cursor = Cursor{}
 }
 

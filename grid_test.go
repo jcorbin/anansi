@@ -1,10 +1,12 @@
 package anansi_test
 
 import (
+	"image"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	. "github.com/jcorbin/anansi"
 	"github.com/jcorbin/anansi/ansi"
 	anansitest "github.com/jcorbin/anansi/test"
 )
@@ -113,6 +115,73 @@ func TestGrid_SubRect(t *testing.T) {
 					assert.Equal(t, sub.out, out, "sub %v", sub.r)
 				})
 			}
+		})
+	}
+}
+
+func TestGrid_Clear(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		build func() Grid
+		out   []string
+	}{
+
+		{
+			name: "basic",
+			build: func() Grid {
+				var g Grid
+				g.Resize(image.Pt(10, 10))
+				for i := range g.Rune {
+					g.Rune[i] = 'A'
+					g.Attr[i] = ansi.SGRAttrBold
+				}
+				g.Clear()
+				return g
+			},
+			out: []string{
+				"..........",
+				"..........",
+				"..........",
+				"..........",
+				"..........",
+				"..........",
+				"..........",
+				"..........",
+				"..........",
+				"..........",
+			},
+		},
+
+		{
+			name: "middle",
+			build: func() Grid {
+				var g Grid
+				g.Resize(image.Pt(10, 10))
+				for i := range g.Rune {
+					g.Rune[i] = 'A'
+					g.Attr[i] = ansi.SGRAttrBold
+				}
+				g.SubAt(ansi.Pt(3, 3)).SubSize(image.Pt(5, 5)).Clear()
+				return g
+			},
+			out: []string{
+				"\x1b[1mAAAAAAAAAA",
+				"AAAAAAAAAA",
+				"AA\x1b[0m.....\x1b[1mAAA",
+				"AA\x1b[0m.....\x1b[1mAAA",
+				"AA\x1b[0m.....\x1b[1mAAA",
+				"AA\x1b[0m.....\x1b[1mAAA",
+				"AA\x1b[0m.....\x1b[1mAAA",
+				"AAAAAAAAAA",
+				"AAAAAAAAAA",
+				"AAAAAAAAAA",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := tc.build()
+			out := anansitest.GridLines(g, '.')
+			assert.Equal(t, tc.out, out)
 		})
 	}
 }
