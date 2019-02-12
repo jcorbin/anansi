@@ -79,6 +79,14 @@ func (g *Grid) fullSize() image.Point {
 	return image.Pt(g.Stride, len(g.Rune)/g.Stride)
 }
 
+// Full returns the full grid containing the receiver grid, reversing any
+// sub-grid targeting done by SubRect().
+func (g Grid) Full() Grid {
+	g.Rect.Min = ansi.Pt(1, 1)
+	g.Rect.Max = g.Rect.Min.Add(g.fullSize())
+	return g
+}
+
 // SubAt is a convenience for calling SubRect with at as the new Min point, and
 // the receiver's Rect.Max point.
 func (g Grid) SubAt(at ansi.Point) Grid {
@@ -91,10 +99,9 @@ func (g Grid) SubSize(sz image.Point) Grid {
 	return g.SubRect(ansi.Rectangle{Min: g.Rect.Min, Max: g.Rect.Min.Add(sz)})
 }
 
-// SubRect returns a subgrid, sharing the receiver's Rune/Attr/Stride data, but
-// with a new bounding Rect.
-// Clamps r.Max to g.Rect.Max, and returns the zero Grid if r.Min is not in
-// g.Rect.
+// SubRect returns a sub-grid, sharing the receiver's Rune/Attr/Stride data,
+// but with a new bounding Rect. Clamps r.Max to g.Rect.Max, and returns the
+// zero Grid if r.Min is not in g.Rect.
 func (g Grid) SubRect(r ansi.Rectangle) Grid {
 	if !r.Min.In(g.Rect) {
 		return Grid{}
