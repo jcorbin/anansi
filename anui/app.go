@@ -46,7 +46,6 @@ func RunTermLayer(term *anansi.Term, layer Layer, opts ...Option) error {
 	if err := app.init(opt); err != nil {
 		return err
 	}
-	app.Layer = ClampNeedsDrawLayer(app.Layer, time.Second/120)
 	return app.Term.RunWith(app.run)
 }
 
@@ -55,9 +54,14 @@ type Option interface {
 	apply(app *app) error
 }
 
+// DefaultDrawRate is the default number of layer draws per second to run at if
+// specified by an other option.
+const DefaultDrawRate = 30
+
 // DefaultOptions are used if no options are given to RunTermLayer.
 var DefaultOptions = Options(
 	StandardKeys,
+	WithDrawRate(DefaultDrawRate),
 )
 
 // StandardKeys is an option that installs sensible default Ctrl-C (halt),
@@ -175,16 +179,20 @@ type app struct {
 	input  anansi.InputSignal
 	halt   anansi.Signal
 	resize anansi.Signal
-	t      drawTimer
+
+	appRunner
+}
+
+type appRunner interface {
+	run(*app, *anansi.Term) error
 }
 
 // init ialize term ancillaries and settings.
 func (app *app) init(opt Option) error {
-	// apply options
-	if opt != nil {
-		if err := opt.apply(app); err != nil {
-			return err
-		}
+	// apply options, with initial default sync draw rate
+	opt = Options(WithDrawRate(DefaultDrawRate), opt)
+	if err := opt.apply(app); err != nil {
+		return err
 	}
 
 	// handle SIGTERM and SIGINT when input is a terminal
@@ -208,109 +216,166 @@ func (app *app) init(opt Option) error {
 	return app.Term.SetEcho(false)
 }
 
-// run the layer in an event loop under the terminal's context.
-func (app *app) run(term *anansi.Term) (err error) {
-	app.resize.Send("initial screen resize")
-	var needsDraw time.Duration
-	for err == nil {
-		if needsDraw == 0 {
-			needsDraw = app.Layer.NeedsDraw()
-		}
-		if needsDraw != 0 {
-			app.t.request(needsDraw)
-			needsDraw = 0
-		}
+func (app *app) run(term *anansi.Term) error {
+	return app.appRunner.run(app, term)
+}
 
+// WithDrawRate sets the target draw rate for a layer application: draw times
+// requested by Layer.NeedsDraw will be adjusted a consistent timing schedule
+// that will target a time.Second/rate delay between calling Layer.Draw.
+func WithDrawRate(rate int) Option {
+	return &syncAppRunner{
+		drawRate: rate,
+	}
+}
+
+type syncAppRunner struct {
+	// config
+	drawRate     int
+	drawInterval time.Duration
+
+	// timer state
+	nextDraw time.Time
+	lastDraw time.Time
+	timer    *time.Timer
+
+	// controller state
+	adjust        time.Duration
+	p, i, d       float64
+	timerErrRange [2]float64
+	timerErr      float64
+	timerErrI     float64
+	timerErrD     float64
+}
+
+func (sar *syncAppRunner) apply(app *app) error {
+	app.appRunner = sar
+	return nil
+}
+
+func (sar *syncAppRunner) run(app *app, term *anansi.Term) error {
+	if sar.drawRate == 0 {
+		sar.drawRate = DefaultDrawRate
+	}
+	if sar.drawInterval == 0 {
+		sar.drawInterval = time.Second / time.Duration(sar.drawRate)
+	}
+	if sar.p == 0 {
+		sar.p = 1.0
+		sar.i = 0.5
+		sar.d = 0.25
+		sar.timerErrRange[1] = float64(sar.drawInterval) / 2
+		sar.timerErrRange[0] = -sar.timerErrRange[1]
+	}
+
+	sar.nextDraw = time.Now()
+	sar.lastDraw = sar.nextDraw.Add(-sar.drawInterval)
+	sar.timer = time.NewTimer(0)
+	defer func() {
+		sar.timer = nil
+	}()
+
+	for {
 		select {
 
+		// halt event, stop now
 		case sig := <-app.halt.C:
 			return anansi.SigErr(sig)
 
+		// terminal resized, read the new size, and trigger a draw
 		case <-app.resize.C:
-			app.screen.Screen = app.screen.Screen.Full()
-			err = app.screen.SizeToTerm(term)
-			needsDraw = 1
+			if err := app.screen.SizeToTerm(term); err != nil {
+				return err
+			}
+			sar.scheduleDraw(1)
 
+		// time to draw
+		case now := <-sar.timer.C:
+			sar.updateControl(now.Sub(sar.nextDraw))
+			app.screen.Screen = drawLayerInto(app.Layer, app.screen.Screen, now)
+			sar.lastDraw, sar.nextDraw = now, time.Time{}
+			if err := term.Flush(&app.screen); err != nil {
+				return err
+			}
+			sar.scheduleDraw(app.Layer.NeedsDraw())
+
+		// input received, process it
 		case <-app.input.C:
-			_, err = term.ReadAny()
+			_, err := term.ReadAny()
 			for e, a, ok := term.Decode(); ok; e, a, ok = term.Decode() {
 				if _, herr := app.Layer.HandleInput(e, a); herr != nil {
 					err = herr
 					break
 				}
 			}
-
-		case now := <-app.t.C:
-			app.screen.Screen = drawLayerInto(app.Layer, app.screen.Screen, now)
-			err = app.Flush(&app.screen)
+			if err != nil {
+				return err
+			}
+			sar.scheduleDraw(app.Layer.NeedsDraw())
 
 		}
 	}
-	return err
 }
 
-// ClampNeedsDrawLayer returns a Layer that clamps any non-zero value returned
-// by layer.NeedsDraw() to be no smaller than the given duration. The min
-// argument defaults to time.Second/120 if zero.
-func ClampNeedsDrawLayer(layer Layer, min time.Duration) Layer {
-	if min == 0 {
-		min = time.Second / 120
-	}
-	return clampNeedsDrawLayer{
-		Layer: layer,
-		min:   min,
-	}
-}
-
-type clampNeedsDrawLayer struct {
-	Layer
-	min time.Duration
-}
-
-func (cl clampNeedsDrawLayer) NeedsDraw() time.Duration {
-	d := cl.Layer.NeedsDraw()
-	if d == 0 {
-		return 0
-	}
-
-	if d < cl.min {
-		return cl.min
-	}
-	return d
-}
-
-type drawTimer struct {
-	C        <-chan time.Time
-	deadline time.Time
-	timer    *time.Timer
-}
-
-// request the timer to expire at most d time in the future, maybe sooner;
-// ONLY IF d is positive, no-op if d is zero (or negative for that matter).
-func (t *drawTimer) request(d time.Duration) {
-	if d <= 0 {
-		return
-	}
-	now := time.Now()
-	if dd := t.deadline.Sub(now); dd > 0 && dd < d {
-		return
-	}
-	t.deadline = now.Add(d)
-	if t.timer == nil {
-		t.timer = time.NewTimer(d)
-		t.C = t.timer.C
+func (sar *syncAppRunner) updateControl(drawTimeErr time.Duration) {
+	timerErr := float64(drawTimeErr)
+	if timerErr > sar.timerErrRange[1] {
+		sar.timerErrD = 0
+		sar.timerErrI = 0
+		sar.timerErr = sar.timerErrRange[1]
+	} else if timerErr < sar.timerErrRange[0] {
+		sar.timerErrD = 0
+		sar.timerErrI = 0
+		sar.timerErr = sar.timerErrRange[0]
 	} else {
-		t.timer.Reset(d)
+		sar.timerErrD = timerErr - sar.timerErr
+		sar.timerErrI += timerErr
+		sar.timerErr = timerErr
+		if sar.timerErrI > sar.timerErrRange[1] {
+			sar.timerErrI = sar.timerErrRange[1]
+		} else if sar.timerErrI < sar.timerErrRange[0] {
+			sar.timerErrI = sar.timerErrRange[0]
+		}
 	}
+	sar.adjust = time.Duration(
+		sar.p*sar.timerErr +
+			sar.i*sar.timerErrI +
+			sar.d*sar.timerErrD)
 }
 
-// cancel any timer set by request().
-// Should not be called concurrently with request or receiving on C.
-// TODO drop if not needed
-func (t *drawTimer) cancel() {
-	t.deadline = time.Time{}
-	if !t.timer.Stop() {
-		<-t.C
+func (sar *syncAppRunner) scheduleDraw(need time.Duration) {
+	const minTimerSet = 10 * time.Microsecond
+
+	if need == 0 {
+		return
+	}
+
+	now := time.Now()
+
+	// start of future draw containing needed draw
+	drawsUntil := (need + sar.drawInterval - 1) / sar.drawInterval
+	then := sar.lastDraw.Add(sar.drawInterval * drawsUntil)
+
+	if timerSet := !sar.nextDraw.IsZero(); !(timerSet && then.Before(sar.nextDraw)) {
+		until := then.Sub(now)
+
+		// apply clamped control adjustment
+		if sar.adjust > 0 {
+			until -= sar.adjust
+		}
+
+		// trigger immediate draw if under minimum
+		if until < minTimerSet {
+			if timerSet {
+				if !sar.timer.Stop() {
+					<-sar.timer.C
+				}
+			}
+			until = 0
+		}
+
+		sar.timer.Reset(until)
+		sar.nextDraw = then
 	}
 }
 
