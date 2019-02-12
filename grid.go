@@ -21,7 +21,7 @@ func (g *Grid) Resize(size image.Point) bool {
 	if size == g.Rect.Size() {
 		return false
 	}
-	if isSubgrid := g.Stride != g.Rect.Dx(); isSubgrid {
+	if g.IsSub() {
 		if size.X > g.Stride {
 			size.X = g.Stride
 		}
@@ -64,6 +64,19 @@ func (g Grid) CellOffset(pt ansi.Point) (int, bool) {
 	}
 	p := pt.ToImage() // convert to normal 0-indexed point
 	return p.Y*g.Stride + p.X, true
+}
+
+// IsSub returns true if the grid's bounding rectangle only covers a
+// sub-section of its underlying data.
+func (g *Grid) IsSub() bool {
+	return g.Rect.Size() != g.fullSize()
+}
+
+func (g *Grid) fullSize() image.Point {
+	if g.Stride == 0 {
+		return image.ZP
+	}
+	return image.Pt(g.Stride, len(g.Rune)/g.Stride)
 }
 
 // SubAt is a convenience for calling SubRect with at as the new Min point, and
