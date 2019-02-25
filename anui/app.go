@@ -3,6 +3,7 @@ package anui
 import (
 	"fmt"
 	"image"
+	"math"
 	"syscall"
 	"time"
 
@@ -261,9 +262,9 @@ func (sar *syncAppRunner) run(app *app, term *anansi.Term) error {
 		sar.drawInterval = time.Second / time.Duration(sar.drawRate)
 	}
 	if sar.p == 0 {
-		sar.p = 1.0
-		sar.i = 0.5
-		sar.d = 0.25
+		sar.p = 0.0625
+		sar.i = 0.25
+		sar.d = 0.125
 		sar.timerErrRange[1] = float64(sar.drawInterval) / 2
 		sar.timerErrRange[0] = -sar.timerErrRange[1]
 	}
@@ -319,28 +320,14 @@ func (sar *syncAppRunner) run(app *app, term *anansi.Term) error {
 
 func (sar *syncAppRunner) updateControl(drawTimeErr time.Duration) {
 	timerErr := float64(drawTimeErr)
-	if timerErr > sar.timerErrRange[1] {
-		sar.timerErrD = 0
-		sar.timerErrI = 0
-		sar.timerErr = sar.timerErrRange[1]
-	} else if timerErr < sar.timerErrRange[0] {
-		sar.timerErrD = 0
-		sar.timerErrI = 0
-		sar.timerErr = sar.timerErrRange[0]
-	} else {
-		sar.timerErrD = timerErr - sar.timerErr
-		sar.timerErrI += timerErr
-		sar.timerErr = timerErr
-		if sar.timerErrI > sar.timerErrRange[1] {
-			sar.timerErrI = sar.timerErrRange[1]
-		} else if sar.timerErrI < sar.timerErrRange[0] {
-			sar.timerErrI = sar.timerErrRange[0]
-		}
-	}
-	sar.adjust = time.Duration(
-		sar.p*sar.timerErr +
-			sar.i*sar.timerErrI +
-			sar.d*sar.timerErrD)
+	sar.timerErrD = clampToRange(timerErr-sar.timerErr, sar.timerErrRange)
+	sar.timerErrI = clampToRange(sar.timerErrI+timerErr, sar.timerErrRange)
+	sar.timerErr = clampToRange(timerErr, sar.timerErrRange)
+	sar.adjust = time.Duration(math.Floor(clampToRange(
+		sar.p*sar.timerErr+
+			sar.i*sar.timerErrI+
+			sar.d*sar.timerErrD,
+		sar.timerErrRange)))
 }
 
 func (sar *syncAppRunner) scheduleDraw(need time.Duration) {
@@ -350,10 +337,12 @@ func (sar *syncAppRunner) scheduleDraw(need time.Duration) {
 		return
 	}
 
+	// needed draw deadline
 	now := time.Now()
+	deadline := now.Add(need)
 
-	// start of future draw containing needed draw
-	drawsUntil := (need + sar.drawInterval - 1) / sar.drawInterval
+	// start of future draw containing deadline
+	drawsUntil := (deadline.Sub(sar.lastDraw) + sar.drawInterval - 1) / sar.drawInterval
 	then := sar.lastDraw.Add(sar.drawInterval * drawsUntil)
 
 	if timerSet := !sar.nextDraw.IsZero(); !(timerSet && then.Before(sar.nextDraw)) {
@@ -377,6 +366,16 @@ func (sar *syncAppRunner) scheduleDraw(need time.Duration) {
 		sar.timer.Reset(until)
 		sar.nextDraw = then
 	}
+}
+
+func clampToRange(val float64, valRange [2]float64) float64 {
+	if val < valRange[0] {
+		return valRange[0]
+	}
+	if val > valRange[1] {
+		return valRange[1]
+	}
+	return val
 }
 
 // WithCtrlCHalt provides standard halt on Ctrl-C behavior, wrapping the layer
