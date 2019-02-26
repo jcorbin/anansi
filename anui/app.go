@@ -62,7 +62,7 @@ const DefaultDrawRate = 30
 // DefaultOptions are used if no options are given to RunTermLayer.
 var DefaultOptions = Options(
 	StandardKeys,
-	WithDrawRate(DefaultDrawRate),
+	WithSyncDrawRate(DefaultDrawRate),
 )
 
 // StandardKeys is an option that installs sensible default Ctrl-C (halt),
@@ -191,7 +191,7 @@ type appRunner interface {
 // init ialize term ancillaries and settings.
 func (app *app) init(opt Option) error {
 	// apply options, with initial default sync draw rate
-	opt = Options(WithDrawRate(DefaultDrawRate), opt)
+	opt = Options(WithSyncDrawRate(DefaultDrawRate), opt)
 	if err := opt.apply(app); err != nil {
 		return err
 	}
@@ -221,10 +221,18 @@ func (app *app) run(term *anansi.Term) error {
 	return app.appRunner.run(app, term)
 }
 
-// WithDrawRate sets the target draw rate for a layer application: draw times
-// requested by Layer.NeedsDraw will be adjusted a consistent timing schedule
-// that will target a time.Second/rate delay between calling Layer.Draw.
-func WithDrawRate(rate int) Option {
+// WithSyncDrawRate sets the target draw rate for a low draw rate /
+// sporadically animated layer application.
+//
+// All input handling, drawing, and output rendering is done in a synchronous
+// loop on a single goroutine.
+//
+// Draw timing is managed through a dynamically controlled time.Timer.
+//
+// This is a sensible default for a typical terminal application that does not
+// make heavy use of animation. Such applications do not need to draw
+// frequently, primarily drawing in response to direct user input.
+func WithSyncDrawRate(rate int) Option {
 	return &syncAppRunner{
 		drawRate: rate,
 	}
@@ -376,6 +384,160 @@ func clampToRange(val float64, valRange [2]float64) float64 {
 		return valRange[1]
 	}
 	return val
+}
+
+// WithAsyncDrawRate sets the target draw rate for a high draw rate / heavily
+// animated layer application.
+//
+// Input handling and drawing are done in a synchronous loop on a goroutine,
+// but output rendering is driven asynchronously in an ancillary goroutine.
+//
+// Render timing is driven directly by a time.Ticker in the ancillary, which in
+// turn drives Draw timing on the primary goroutine.
+//
+// This is a sensible default for an intensive application, e.g. one that
+// employs animation, needing to draw every frame irrespective of user input.
+func WithAsyncDrawRate(rate int) Option {
+	return &asyncAppRunner{
+		drawRate: rate,
+	}
+}
+
+type asyncAppRunner struct {
+	drawRate     int
+	drawInterval time.Duration
+}
+
+func (aar *asyncAppRunner) apply(app *app) error {
+	app.appRunner = aar
+	return nil
+}
+
+func (aar *asyncAppRunner) run(app *app, term *anansi.Term) error {
+	if aar.drawRate == 0 {
+		aar.drawRate = DefaultDrawRate
+	}
+	if aar.drawInterval == 0 {
+		aar.drawInterval = time.Second / time.Duration(aar.drawRate)
+	}
+
+	type drawReq struct {
+		anansi.Screen
+		force    bool
+		drawTime time.Time
+		nextDraw time.Time
+	}
+
+	type flushReq struct {
+		drawReq
+		skip bool
+	}
+
+	toDraw := make(chan drawReq, 1)
+	flushErr := make(chan error, 1)
+	defer func() {
+		for range toDraw {
+		}
+	}()
+
+	toFlush := make(chan flushReq, 1)
+	defer close(toFlush)
+
+	go func() {
+		defer close(toDraw)
+		defer close(flushErr)
+
+		ticker := time.NewTicker(aar.drawInterval)
+		defer ticker.Stop()
+
+		toDraw <- drawReq{
+			Screen:   app.screen.Screen,
+			nextDraw: time.Now().Add(aar.drawInterval),
+			force:    true,
+		}
+		app.screen.Screen = anansi.Screen{}
+
+		for req := range toFlush {
+			resp := drawReq{
+				Screen: req.Screen,
+			}
+			var err error
+			app.screen.Screen = req.Screen
+
+			select {
+
+			case <-app.resize.C:
+				err = app.screen.SizeToTerm(term)
+				resp.Screen = app.screen.Screen
+				resp.force = true
+
+			case drawTime := <-ticker.C:
+				if !req.skip {
+					app.screen.UserCursor = req.Screen.Cursor
+					err = term.Flush(&app.screen)
+				}
+				resp.drawTime = drawTime
+				resp.nextDraw = drawTime.Add(aar.drawInterval)
+
+			}
+
+			app.screen.Screen = anansi.Screen{}
+			if err != nil {
+				flushErr <- err
+				return
+			}
+			toDraw <- resp
+		}
+	}()
+
+	nextDraw := time.Now()
+
+	for {
+		select {
+		// halt event, stop now
+		case sig := <-app.halt.C:
+			return anansi.SigErr(sig)
+
+		// output flush error
+		case err := <-flushErr:
+			return err
+
+		// time to draw
+		case req := <-toDraw:
+			resp := flushReq{
+				drawReq: req,
+				skip:    true,
+			}
+			if req.force || req.nextDraw.After(nextDraw) {
+				sc := req.Screen
+				sc = sc.Full()
+				sc.Clear()
+				sc = app.Layer.Draw(sc, req.drawTime)
+				if then := time.Now().Add(app.Layer.NeedsDraw()); then.After(nextDraw) {
+					nextDraw = then
+				}
+				resp.skip = false
+				resp.Screen = sc.Full()
+			}
+			toFlush <- resp
+
+		// input received, process it
+		case <-app.input.C:
+			_, err := term.ReadAny()
+			for e, a, ok := term.Decode(); ok; e, a, ok = term.Decode() {
+				if _, herr := app.Layer.HandleInput(e, a); herr != nil {
+					err = herr
+					break
+				}
+			}
+			if err != nil {
+				return err
+			}
+			if then := time.Now().Add(app.Layer.NeedsDraw()); then.After(nextDraw) {
+				nextDraw = then
+			}
+		}
+	}
 }
 
 // WithCtrlCHalt provides standard halt on Ctrl-C behavior, wrapping the layer
