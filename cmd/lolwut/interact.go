@@ -22,7 +22,7 @@ type schotterDemoUI struct {
 }
 
 func runInteractive() {
-	anansi.MustRun(func() error {
+	anansi.MustRun(anui.WithOpenLogFile("lolwut.log", func() error {
 		var ui schotterDemoUI
 		ui.schotterDemo = &sd
 		ui.squareSide = 20 // TODO push down, pre-compute based on initial width and squaresPerRow
@@ -51,7 +51,7 @@ func runInteractive() {
 			// anui.WithSyncDrawRate(60),
 			anui.WithAsyncDrawRate(60),
 		)
-	}())
+	}))
 }
 
 func (sd *schotterDemoUI) HandleInput(e ansi.Escape, a []byte) (handled bool, err error) {
