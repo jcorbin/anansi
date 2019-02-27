@@ -48,6 +48,7 @@ func (sc *ScreenDiffer) Reset() {
 }
 
 // Clear the virtual screen, user cursor state, and internal buffer.
+// XXX kill?
 func (sc *ScreenDiffer) Clear() {
 	sc.VirtualScreen.Clear()
 	sc.UserCursor = Cursor{}
