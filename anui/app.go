@@ -443,7 +443,11 @@ func (aar *asyncAppRunner) run(app *app, term *anansi.Term) error {
 	toFlush := make(chan flushReq, 1)
 	defer close(toFlush)
 
+	// runtime.LockOSThread()
+	// defer runtime.UnlockOSThread()
+
 	go func() {
+		// runtime.LockOSThread()
 		defer close(toDraw)
 		defer close(flushErr)
 
@@ -456,6 +460,8 @@ func (aar *asyncAppRunner) run(app *app, term *anansi.Term) error {
 			force:    true,
 		}
 		app.screen.Screen = anansi.Screen{}
+
+		// TODO less skipped frame on resize?
 
 		for req := range toFlush {
 			resp := drawReq{
@@ -476,7 +482,7 @@ func (aar *asyncAppRunner) run(app *app, term *anansi.Term) error {
 					app.screen.UserCursor = req.Screen.Cursor
 					err = term.Flush(&app.screen)
 				}
-				resp.drawTime = drawTime
+				resp.drawTime = drawTime // TODO should this be the new now?
 				resp.nextDraw = drawTime.Add(aar.drawInterval)
 
 			}
