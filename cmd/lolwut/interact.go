@@ -48,7 +48,8 @@ func runInteractive() {
 			},
 		},
 			anui.DefaultOptions,
-			anui.WithDrawRate(60),
+			// anui.WithSyncDrawRate(60),
+			anui.WithAsyncDrawRate(60),
 		)
 	}())
 }
