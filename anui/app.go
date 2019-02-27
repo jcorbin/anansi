@@ -229,7 +229,7 @@ func (app *app) run(term *anansi.Term) error {
 //
 // Draw timing is managed through a dynamically controlled time.Timer.
 //
-// This is a sensible default for a typical terminal application that does not
+// XXX This is a sensible default for a typical terminal application that does not
 // make heavy use of animation. Such applications do not need to draw
 // frequently, primarily drawing in response to direct user input.
 func WithSyncDrawRate(rate int) Option {
@@ -395,7 +395,7 @@ func clampToRange(val float64, valRange [2]float64) float64 {
 // Render timing is driven directly by a time.Ticker in the ancillary, which in
 // turn drives Draw timing on the primary goroutine.
 //
-// This is a sensible default for an intensive application, e.g. one that
+// XXX This is a sensible default for an intensive application, e.g. one that
 // employs animation, needing to draw every frame irrespective of user input.
 func WithAsyncDrawRate(rate int) Option {
 	return &asyncAppRunner{
