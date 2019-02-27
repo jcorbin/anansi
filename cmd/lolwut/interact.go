@@ -47,7 +47,10 @@ func runInteractive() {
 			elapsed: elapsedStats{
 				e: make([]time.Duration, 15),
 			},
-		})
+		},
+			anui.DefaultOptions,
+			anui.WithDrawRate(60),
+		)
 	}())
 }
 
