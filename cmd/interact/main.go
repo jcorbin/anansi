@@ -23,53 +23,55 @@ This is a very rough prototype of an "interact" command:
 */
 
 import (
-	"errors"
+	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/jcorbin/anansi"
 	"github.com/jcorbin/anansi/ansi"
+	"github.com/jcorbin/anansi/anui"
 	"github.com/jcorbin/anansi/x/platform"
 )
 
-var errInt = errors.New("interrupt")
-
 func main() {
-	platform.MustRun(os.Stdin, os.Stdout, Run, platform.FrameRate(60))
+	anansi.MustRun(run())
 }
 
-// Run the demo under an active terminal platform.
-func Run(p *platform.Platform) error {
-	cmd := flag.Args()
-	for {
-		in := inspect{}
-		in.setCmd(cmd)
-		if err := p.Run(&in); platform.IsReplayDone(err) {
-			continue // loop replay
-		} else if err == io.EOF || err == errInt {
-			return nil
-		} else if err != nil {
-			log.Printf("exiting due to %v", err)
-			return err
-		}
+func run() error {
+	term, err := anansi.OpenTerm()
+	if err != nil {
+		return err
 	}
+
+	term.AddMode(
+		ansi.ModeMouseSgrExt,
+		ansi.ModeMouseBtnEvent,
+	)
+
+	cmd := flag.Args()
+	in := inspect{}
+	in.setCmd(cmd)
+
+	return anui.RunTermLayer(term, &in)
 }
 
 type inspect struct {
+	immLayer
+	needsDraw time.Duration
+
 	cmd  []string
 	argi []int
 	arg  []string
 	val  []string
 
 	edid int
-	ed   platform.EditLine
+	ed   platform.EditLine // XXX port to anui
 
-	cmdOutput anansi.ScreenDiffer
+	cmdOutput anansi.ScreenDiffer // XXX VirtualScreen
 }
 
 func (in *inspect) setCmd(cmd []string) {
@@ -129,29 +131,15 @@ func (in *inspect) runCmd() {
 
 }
 
+func (in *inspect) Draw(sc anansi.Screen, now time.Time) anansi.Screen {
+	panic("not implemented")
+}
+
 func (in *inspect) Update(ctx *platform.Context) (err error) {
-	// Ctrl-C interrupts
-	if ctx.Input.HasTerminal('\x03') {
-		// ... AFTER any other available input has been processed
-		err = errInt
-		// ... NOTE err != nil will prevent wasting any time flushing the final
-		//          lame-duck frame
-	}
-
-	// Ctrl-Z suspends
-	if ctx.Input.CountRune('\x1a') > 0 {
-		defer func() {
-			if err == nil {
-				err = ctx.Suspend()
-			} // else NOTE don't bother suspending, e.g. if Ctrl-C was also present
-		}()
-	}
-
 	ctx.Output.Clear()
+
 	p := ansi.Pt(1, 1)
-	if ctx.HUD.Visible {
-		p.Y++
-	}
+
 	ctx.Output.To(p)
 
 	j := 0
@@ -250,6 +238,74 @@ func (in *inspect) Update(ctx *platform.Context) (err error) {
 
 	// TODO scroll w/in cmdOutput
 	anansi.DrawGrid(ctx.Output.Grid.SubAt(p), in.cmdOutput.Grid)
+
+	return err
+}
+
+func (in *inspect) NeedsDraw() time.Duration {
+	return in.needsDraw
+}
+
+// TODO move into anui
+
+type inputType uint8
+
+const (
+	inputNone inputType = iota
+	inputKey
+	inputMouse
+)
+
+// TODO design
+
+type immLayer struct {
+	input inputQueue
+}
+
+func (im *immLayer) HandleInput(e ansi.Escape, a []byte) (handled bool, err error) {
+	return true, im.input.add(e, a)
+}
+
+type inputQueue struct {
+	t []inputType
+	e []ansi.Escape
+	m []ansi.MouseEvent
+	r [][2]int
+	b bytes.Buffer
+}
+
+func (iq *inputQueue) add(e ansi.Escape, a []byte) (err error) {
+	var (
+		t inputType
+		m ansi.MouseEvent
+		r [2]int
+	)
+
+	switch e {
+
+	case ansi.CSI('M'), ansi.CSI('m'):
+		m, err = ansi.ParseMouseEvent(e, a)
+		if err != nil {
+			return err
+		}
+		t = inputMouse
+
+	default:
+		t = inputKey // TODO further nuance
+		if len(a) > 0 {
+			r[0] = iq.b.Len()
+			_, _ = iq.b.Write(a)
+			r[1] = iq.b.Len()
+		}
+
+	}
+
+	if err != nil && t != inputNone {
+		iq.t = append(iq.t, t)
+		iq.e = append(iq.e, e)
+		iq.m = append(iq.m, m)
+		iq.r = append(iq.r, r)
+	}
 
 	return err
 }
