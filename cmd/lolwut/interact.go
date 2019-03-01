@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"image"
 	"log"
@@ -59,7 +58,7 @@ func (sd *schotterDemoUI) HandleInput(e ansi.Escape, a []byte) (handled bool, er
 
 	// mouse-wheel zooms
 	case ansi.CSI('M'), ansi.CSI('m'):
-		m, err := parseMouseEvent(e, a)
+		m, err := ansi.ParseMouseEvent(e, a)
 		if err != nil {
 			return false, err
 		}
@@ -128,30 +127,6 @@ func (sd *schotterDemoUI) Draw(sc anansi.Screen, now time.Time) anansi.Screen {
 	anansi.DrawBitmap(sc.Grid, sd.canvas)
 
 	return sc
-}
-
-// TODO move into ansi or anui
-
-// MouseEvent holds data parsed from a mouse input control sequence.
-type MouseEvent struct {
-	ansi.Point
-	State ansi.MouseState
-}
-
-var errInvalidMouseEvent = errors.New("invalid mouse event data")
-
-func parseMouseEvent(e ansi.Escape, a []byte) (m MouseEvent, err error) {
-	switch e {
-	case ansi.CSI('M'), ansi.CSI('m'):
-		m.State, m.Point, err = ansi.DecodeXtermExtendedMouse(e, a)
-		if err == nil && m.State == 0 && !m.Point.Valid() {
-			err = errInvalidMouseEvent
-		}
-
-	default:
-		err = errInvalidMouseEvent
-	}
-	return m, err
 }
 
 type drawTimeStats struct {
