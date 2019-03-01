@@ -5,6 +5,31 @@ import (
 	"fmt"
 )
 
+// MouseEvent holds data parsed from a mouse input control sequence.
+type MouseEvent struct {
+	Point
+	State MouseState
+}
+
+var errInvalidMouseEvent = errors.New("invalid mouse event data")
+
+// ParseMouseEvent parses a mouse input control sequence into MouseEvent
+// structure, or an error if the given control sequence isn't a valid mouse
+// input.
+func ParseMouseEvent(e Escape, a []byte) (m MouseEvent, err error) {
+	switch e {
+	case CSI('M'), CSI('m'):
+		m.State, m.Point, err = DecodeXtermExtendedMouse(e, a)
+		if err == nil && m.State == 0 && !m.Point.Valid() {
+			err = errInvalidMouseEvent
+		}
+
+	default:
+		err = errInvalidMouseEvent
+	}
+	return m, err
+}
+
 // MouseState represents buttons presses, button releases, motions, and scrolling.
 type MouseState uint8
 
