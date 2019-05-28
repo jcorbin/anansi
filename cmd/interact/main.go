@@ -61,7 +61,6 @@ func run() error {
 
 type inspect struct {
 	immLayer
-	needsDraw time.Duration
 
 	cmd  []string
 	argi []int
@@ -69,7 +68,7 @@ type inspect struct {
 	val  []string
 
 	edid int
-	ed   platform.EditLine // XXX port to anui
+	ed   editLine
 
 	cmdOutput anansi.ScreenDiffer // XXX VirtualScreen
 }
@@ -131,104 +130,112 @@ func (in *inspect) runCmd() {
 
 }
 
-func (in *inspect) Draw(sc anansi.Screen, now time.Time) anansi.Screen {
-	panic("not implemented")
-}
-
-func (in *inspect) Update(ctx *platform.Context) (err error) {
-	ctx.Output.Clear()
-
-	p := ansi.Pt(1, 1)
-
-	ctx.Output.To(p)
-
-	j := 0
-	for i, arg := range in.cmd {
-		if i > 0 {
-			ctx.Output.WriteRune(' ')
+func (in *inspect) Update(inp immInput, out anansi.Screen, now time.Time) (needsDraw time.Duration) {
+	run := false
+	defer func() {
+		if run {
+			in.runCmd()
 		}
-		var attr ansi.SGRAttr
+	}()
+
+	p := out.Rect.Min
+	i, j := 0, 0
+
+	restart := func() {
+		p = out.Rect.Min
+		i, j = 0, 0
+	}
+
+	for ; i < len(in.cmd); i++ {
+		arg := in.cmd[i]
+		if i > 0 {
+			if !out.SetCell(p, ' ', 0) {
+				break
+			}
+		}
+		var keyAttr, valAttr ansi.SGRAttr
 		var val *string
 		if j < len(in.argi) && in.argi[j] == i {
-			attr = ansi.SGRCyan.FG()
+			keyAttr = ansi.SGRCyan.FG()
+			valAttr = ansi.SGRBrightBlue.FG()
 			val = &in.val[j]
 			j++
 		} else if i == 0 {
-			attr = ansi.SGRGreen.FG()
+			keyAttr = ansi.SGRGreen.FG()
 		}
-		if attr != 0 {
-			ctx.Output.WriteSGR(attr)
-		}
-		var r ansi.Rectangle
-		r.Min = ctx.Output.Cursor.Point
-		ctx.Output.WriteString(arg)
-		r.Max = ctx.Output.Cursor.Point
-		r.Max.Y++
-		if attr != 0 {
-			ctx.Output.WriteSGR(ansi.SGRAttrClear)
-		}
-		if val != nil && *val != "" {
-			ctx.Output.WriteRune('=')
-			ctx.Output.WriteSGR(ansi.SGRBrightBlue.FG())
-			ctx.Output.WriteString(*val)
-			ctx.Output.WriteSGR(ansi.SGRAttrClear)
-		}
+		argBox := ansi.Rectangle{p, p}
 
-		var enter bool
-		edid := i + 1
-		if ctx.Input.CountPressesIn(r, 1)%2 == 1 {
-			if in.edid == edid {
-				in.edid = 0
-			} else {
-				enter = true
-				in.edid = edid
+		for _, r := range arg {
+			if !out.SetCell(p, r, keyAttr) {
+				break
+			}
+			p.X++
+		}
+		if val != nil {
+			if out.SetCell(p, '=', 0) {
+				p.X++
+			}
+			for _, r := range *val {
+				if !out.SetCell(p, r, valAttr) {
+					break
+				}
+				p.X++
 			}
 		}
 
-		if in.edid == edid {
-			func() {
-				exit := false
-				defer func() {
-					if exit {
-						in.ed.Reset()
-						in.edid = 0
-						in.runCmd()
-					}
-				}()
-				if val == nil {
-					return
-				}
-
-				if enter {
-					in.ed.Reset()
-					in.ed.Buf = append(in.ed.Buf, *val...)
-				}
-
-				done := false
-				defer func() {
-					if done {
-						if len(in.ed.Buf) > 0 {
-							*val = string(in.ed.Buf)
-						}
-						exit = true
-					}
-				}()
-
-				in.ed.Box = r // TODO expand more space
-				if in.ed.Update(ctx); in.ed.Active() {
-					// if len(in.ed.Buf) == 0 && name != "" { }
-				} else if in.ed.Done() {
-					done = true
-				} else {
-					exit = true
-				}
-			}()
+		if p.X > argBox.Min.X {
+			argBox.Max = ansi.Pt(p.X, p.Y+1)
+		}
+		if argBox.Empty() {
+			break
 		}
 
+		if val == nil {
+			continue
+		}
+
+		func() {
+			edid := i + 1
+
+			if m, is := inp.Mouse(); is && m.Point.In(argBox) {
+				in.ed.Reset()
+				if in.edid == edid {
+					in.edid = 0
+					run = true
+				} else {
+					in.edid = edid
+					in.ed.Buf = append(in.ed.Buf, *val...)
+				}
+				if inp.Next() {
+					restart()
+					return
+				}
+			}
+
+			if in.edid != edid {
+				return
+			}
+
+			needsDraw = in.ed.Update(inp, out.SubRect(argBox), now)
+
+			if !in.ed.Active() {
+				// TODO draw ghost
+				// if len(in.ed.Buf) == 0 && name != "" { }
+			} else {
+				if in.ed.Done() && len(in.ed.Buf) > 0 {
+					*val = string(in.ed.Buf)
+				}
+				in.edid = 0
+				in.ed.Reset()
+				run = true
+			}
+		}()
+
 	}
+
 	p.Y++
 
-	sz := ctx.Output.Bounds().Size()
+	sz := out.Bounds().Size()
 	sz.Y -= p.Y
 	if !in.cmdOutput.Bounds().Size().Eq(sz) {
 		log.Printf("resize cmd out %v", sz)
@@ -237,75 +244,165 @@ func (in *inspect) Update(ctx *platform.Context) (err error) {
 	}
 
 	// TODO scroll w/in cmdOutput
-	anansi.DrawGrid(ctx.Output.Grid.SubAt(p), in.cmdOutput.Grid)
+	anansi.DrawGrid(out.Grid.SubAt(p), in.cmdOutput.Grid)
 
-	return err
-}
-
-func (in *inspect) NeedsDraw() time.Duration {
-	return in.needsDraw
+	return needsDraw
 }
 
 // TODO move into anui
 
-type inputType uint8
+type editLine struct {
+	platform.EditLine // XXX port to anui
+}
 
-const (
-	inputNone inputType = iota
-	inputKey
-	inputMouse
-)
+func (ed *editLine) Update(in immInput, out anansi.Screen, now time.Time) time.Duration
 
-// TODO design
+// TODO move into anui
+
+type immUI interface {
+	Update(in immInput, out anansi.Screen, now time.Time) time.Duration
+}
+
+type immInput interface {
+	Any() bool
+	Next() bool
+	Rune() (r rune)
+	Mouse() (m ansi.MouseEvent, is bool)
+	Escape() (e ansi.Escape, a []byte)
+}
 
 type immLayer struct {
-	input inputQueue
+	input     inputBuffer
+	needsDraw time.Duration
+	ui        immUI
+}
+
+func (im *immLayer) Draw(sc anansi.Screen, now time.Time) anansi.Screen {
+	im.needsDraw = im.ui.Update(&im.input, sc, now)
+	return sc
+}
+
+func (im *immLayer) NeedsDraw() time.Duration {
+	return im.needsDraw
 }
 
 func (im *immLayer) HandleInput(e ansi.Escape, a []byte) (handled bool, err error) {
 	return true, im.input.add(e, a)
 }
 
-type inputQueue struct {
+type inputType uint8
+
+const (
+	inputNone inputType = iota
+	inputRune
+	inputEscape
+	inputMouse
+)
+
+type inputBuffer struct {
 	t []inputType
 	e []ansi.Escape
 	m []ansi.MouseEvent
 	r [][2]int
 	b bytes.Buffer
+
+	current int
 }
 
-func (iq *inputQueue) add(e ansi.Escape, a []byte) (err error) {
+func (ib *inputBuffer) Next() bool {
+	if ib.current < len(ib.t) {
+		ib.current++
+	}
+	return ib.Any()
+}
+
+func (ib *inputBuffer) Any() bool {
+	return ib.current < len(ib.t)
+}
+
+func (ib *inputBuffer) Rune() (r rune) {
+	if ib.t[ib.current] == inputRune {
+		r := rune(ib.e[ib.current])
+	}
+	return r
+}
+
+func (ib *inputBuffer) Mouse() (m ansi.MouseEvent, is bool) {
+	if ib.t[ib.current] == inputMouse {
+		m := ib.m[ib.current]
+		is = true
+	}
+	return m, is
+}
+
+func (ib *inputBuffer) Escape() (e ansi.Escape, a []byte) {
+	if ib.t[ib.current] == inputEscape {
+		e = ib.e[ib.current]
+		if r := ib.r[ib.current]; r[1] > r[0] {
+			a = ib.b.Bytes()[r[0]:r[1]]
+		}
+	}
+	return e, a
+}
+
+func (ib *inputBuffer) add(e ansi.Escape, a []byte) (err error) {
 	var (
 		t inputType
 		m ansi.MouseEvent
 		r [2]int
 	)
 
-	switch e {
+	switch {
 
-	case ansi.CSI('M'), ansi.CSI('m'):
-		m, err = ansi.ParseMouseEvent(e, a)
-		if err != nil {
-			return err
-		}
+	case e == ansi.CSI('M'), e == ansi.CSI('m'):
 		t = inputMouse
+		m, err = ansi.ParseMouseEvent(e, a)
+
+	case e.IsEscape(), len(a) > 0:
+		t = inputEscape
+		if len(a) > 0 {
+			r[0] = ib.b.Len()
+			_, _ = ib.b.Write(a)
+			r[1] = ib.b.Len()
+		}
 
 	default:
-		t = inputKey // TODO further nuance
-		if len(a) > 0 {
-			r[0] = iq.b.Len()
-			_, _ = iq.b.Write(a)
-			r[1] = iq.b.Len()
+		t = inputRune
+
+	}
+
+	if err != nil || t == inputNone {
+		return err
+	}
+
+	if len(ib.t) == cap(ib.t) && ib.current > 0 {
+		ib.shift(ib.current)
+	}
+
+	ib.t = append(ib.t, t)
+	ib.e = append(ib.e, e)
+	ib.m = append(ib.m, m)
+	ib.r = append(ib.r, r)
+
+	return nil
+}
+
+func (ib *inputBuffer) shift(n int) {
+	m := 0
+	if n >= len(ib.t) {
+		ib.b.Reset()
+	} else {
+		m = copy(ib.t, ib.t[n:])
+		copy(ib.e, ib.e[n:])
+		copy(ib.m, ib.m[n:])
+		bn := ib.r[n][0]
+		ib.b.Next(bn)
+		for i, j := 0, n; j < len(ib.r); i, j = i+1, j+1 {
+			ib.r[i] = [2]int{ib.r[j][0] - bn, ib.r[j][1] - bn}
 		}
-
 	}
-
-	if err != nil && t != inputNone {
-		iq.t = append(iq.t, t)
-		iq.e = append(iq.e, e)
-		iq.m = append(iq.m, m)
-		iq.r = append(iq.r, r)
-	}
-
-	return err
+	ib.t = ib.t[:m]
+	ib.e = ib.e[:m]
+	ib.m = ib.m[:m]
+	ib.r = ib.r[:m]
 }
