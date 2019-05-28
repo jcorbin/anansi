@@ -169,3 +169,28 @@ func (g Grid) Eq(other Grid, zero rune) bool {
 	}
 	return true
 }
+
+// SetCell stores the given rune and attribute data into the grid at the given
+// point and returns true, only if in range; returns false otherwise.
+func (g Grid) SetCell(p ansi.Point, r rune, attr ansi.SGRAttr) (ok bool) {
+	var i int
+	i, ok = g.CellOffset(p)
+	if ok {
+		g.Rune[i] = r
+		g.Attr[i] = attr
+	}
+	return ok
+}
+
+// GetCell loads rune and attributee data from the given point within the
+// grid, returning them with ok=true if in range; returns 0 values and
+// ok=false otherwise.
+func (g Grid) GetCell(p ansi.Point) (r rune, attr ansi.SGRAttr, ok bool) {
+	var i int
+	i, ok = g.CellOffset(p)
+	if ok {
+		r = g.Rune[i]
+		attr = g.Attr[i]
+	}
+	return r, attr, ok
+}
